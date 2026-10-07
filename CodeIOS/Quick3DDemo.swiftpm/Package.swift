@@ -20,7 +20,9 @@ let package = Package(
             supportedInterfaceOrientations: [.portrait, .landscapeLeft, .landscapeRight],
             // Màn AR cần quyền camera → sinh NSCameraUsageDescription
             capabilities: [.camera(purposeString: "Demo AR: vẽ point cloud lên hình camera")],
-            appCategory: .developerTools
+            appCategory: .developerTools,
+            // ATS exception cho http://<ip-android>:8080 (màn Fake AR)
+            additionalInfoPlistContentFilePath: "AdditionalInfo.plist"
         )
     ],
     targets: [

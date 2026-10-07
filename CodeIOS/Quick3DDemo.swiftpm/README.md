@@ -24,12 +24,32 @@ Yêu cầu: macOS 13+, **Xcode 15+** (App Store). Không cần CocoaPods.
 Trên máy ảo macOS (VMware/Parallels) thường **không có Metal** → màn Home sẽ báo
 "KHÔNG CÓ Metal" và 3D không vẽ được. Cần Mac thật hoặc chạy trên iPad thật.
 
+## Màn 3 — Fake AR bằng camera Android (không cần iPhone)
+
+`ARSCNView` thật = **frame camera làm `scene.background`** + SceneKit vẽ node + ARKit tính pose.
+Màn này giữ 2 phần đầu, nguồn ảnh là app **IP Webcam** trên Android:
+
+1. Android: mở IP Webcam → *Start server* → ghi địa chỉ (vd. `http://192.168.0.106:8080`).
+2. Mac/Simulator cùng Wi-Fi với điện thoại (Simulator dùng mạng của Mac). Thử mở
+   `http://192.168.0.106:8080/shot.jpg` trong Safari của Mac — phải ra một ảnh.
+3. Trong app → "3. Fake AR" → sửa URL nếu khác → **Kết nối**. Ảnh JPEG được tải mỗi ~80 ms
+   (`Sources/CameraStream.swift`) và gán vào `scene.background.contents` (`Sources/FakeAR.swift`).
+4. Point cloud vẽ đè lên y như màn AR thật; xoay bằng ngón tay.
+
+Giới hạn thật: **không có tracking** — xoay điện thoại Android thì nền đổi nhưng model đứng yên,
+vì pose camera trong AR thật do ARKit tính từ camera + IMU của chính iPhone. Nếu muốn
+"gần thật" hơn, bước tiếp theo là đọc `http://<ip>:8080/sensors.json?sense=rot_vector`
+(IP Webcam có xuất gyro/rotation vector) để xoay `cameraNode` theo điện thoại.
+
+`AdditionalInfo.plist` thêm `NSAppTransportSecurity` để iOS cho phép `http://` tới LAN.
+
 ## Nếu Xcode không chịu mở `.swiftpm` (fallback 5 phút)
 
 1. Xcode → File → New → Project → iOS → **App** (Interface: SwiftUI, Language: Swift). Đặt tên `Quick3DDemo`.
 2. Xoá `ContentView.swift` và `Quick3DDemoApp.swift` mặc định.
 3. Kéo toàn bộ file trong `Sources/` (kể cả `Shaders.metal`) vào project, tick *Copy items if needed*.
-4. Target → Info → thêm key `Privacy - Camera Usage Description` (NSCameraUsageDescription), giá trị bất kỳ.
+4. Target → Info → thêm key `Privacy - Camera Usage Description` (NSCameraUsageDescription), giá trị bất kỳ;
+   và copy nội dung `AdditionalInfo.plist` (NSAppTransportSecurity, NSLocalNetworkUsageDescription) vào Info của target.
 5. ⌘R. (Shaders.metal trong target được Xcode biên dịch vào default.metallib của app, SceneKit tự tìm hàm theo tên.)
 
 ## Map file demo → file project thật

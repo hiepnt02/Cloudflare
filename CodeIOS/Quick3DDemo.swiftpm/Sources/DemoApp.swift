@@ -34,6 +34,9 @@ struct HomeScreen: View {
                 NavigationLink("2. View AR (ARSCNView — cần iPad/iPhone thật)") {
                     DemoARScreen()
                 }
+                NavigationLink("3. Fake AR — nền là camera Android qua IP Webcam (chạy Simulator)") {
+                    FakeARScreen()
+                }
             }
             Section("Thiết bị") {
                 Text("Metal: \(metalName)")
