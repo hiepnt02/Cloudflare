@@ -36,10 +36,31 @@ Màn này giữ 2 phần đầu, nguồn ảnh là app **IP Webcam** trên Andro
    (`Sources/CameraStream.swift`) và gán vào `scene.background.contents` (`Sources/FakeAR.swift`).
 4. Point cloud vẽ đè lên y như màn AR thật; xoay bằng ngón tay.
 
-Giới hạn thật: **không có tracking** — xoay điện thoại Android thì nền đổi nhưng model đứng yên,
-vì pose camera trong AR thật do ARKit tính từ camera + IMU của chính iPhone. Nếu muốn
-"gần thật" hơn, bước tiếp theo là đọc `http://<ip>:8080/sensors.json?sense=rot_vector`
-(IP Webcam có xuất gyro/rotation vector) để xoay `cameraNode` theo điện thoại.
+### Bám theo gyro (AR 3 bậc tự do)
+
+IP Webcam không xuất cảm biến (`/sensors.json` trả `{}` trên nhiều máy), nên hướng máy lấy từ app
+**Sensor Server** (Play Store, tác giả umer0586, mã nguồn mở):
+
+1. Android: cài Sensor Server. Nó dùng 2 port: **WebSocket** (mặc định 8080, trùng IP Webcam) và
+   **HTTP** (8081, trang liệt kê sensor). → STOP → *Settings* → **Port number / WebSocket port = 8082** → START.
+   Màn hình phải hiện `ws://192.168.0.106:8082`. Chạy song song với IP Webcam (vẫn 8080).
+2. Trong app → ô **Sensor** để `ws://192.168.0.106:8082` → bật toggle **"Bám theo gyro điện thoại"**.
+   App mở WebSocket `ws://<ip>:8082/sensor/connect?type=android.sensor.rotation_vector`
+   (`Sources/CameraStream.swift` → `PhoneOrientationStream`, ~50 Hz, tự kết nối lại khi rớt),
+   parse `{"values":[x,y,z,w]}` thành quaternion và gán `cameraNode.simdOrientation`
+   (`FakeARContext.updateOrientation`).
+3. Chĩa camera vào mặt bàn, bấm **Đặt lại trước mặt**: model đặt 1.5 m trước mặt, thấp hơn mắt 0.9 m.
+   Từ đó **xoay** điện thoại, model đứng yên đúng chỗ — giống "magic window".
+
+- Chọn đúng **chiều cầm máy** (Dọc / Ngang ← / Ngang →) để trục xoay khớp ảnh; chọn sai thì xoay
+  ngang sẽ thành xoay dọc.
+- Kiểm tra nhanh Sensor Server: trong Safari của Mac mở `http://192.168.0.106:8081/` — trang của nó
+  liệt kê sensor; phải có `android.sensor.rotation_vector`. Không có → dùng `android.sensor.game_rotation_vector`
+  (đổi `PhoneOrientationStream.sensorType`).
+
+Giới hạn còn lại: **không có dịch chuyển** (6DoF) — đi tới/lùi thì model không bám, vì vị trí
+camera trong AR thật do ARKit tính bằng visual-inertial odometry từ camera + IMU của iPhone.
+Đây là ranh giới cuối không giả được bằng IP Webcam.
 
 `AdditionalInfo.plist` thêm `NSAppTransportSecurity` để iOS cho phép `http://` tới LAN.
 
