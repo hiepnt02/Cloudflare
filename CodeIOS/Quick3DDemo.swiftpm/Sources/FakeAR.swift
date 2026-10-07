@@ -44,6 +44,15 @@ final class FakeARContext: DemoSceneContext {
     private(set) var trackingEnabled = false
     private var needsPlacement = true
 
+    /// Hướng ngang (XZ) từ mắt tới model, chốt lúc "Đặt lại trước mặt"; khoảng cách đổi được.
+    private var placementDirection = SIMD3<Float>(0, 0, -1)
+    private(set) var distance: Float = 1.5
+    private let eyeHeight: Float = 0.9
+    private var pinchStartDistance: Float = 1.5
+
+    /// UI gán closure này để slider cập nhật khi pinch đổi khoảng cách.
+    var onDistanceChanged: ((Float) -> Void)?
+
     func setup(_ view: SCNView) {
         scnView = view
         let scene = SCNScene()
@@ -51,6 +60,10 @@ final class FakeARContext: DemoSceneContext {
         view.backgroundColor = .black
         view.autoenablesDefaultLighting = false
         view.showsStatistics = true
+
+        // Pinch = tiến/lùi (thay cho tracking dịch chuyển). Chỉ có tác dụng khi đang bám gyro.
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        view.addGestureRecognizer(pinch)
 
         cameraNode.camera = SCNCamera()
         cameraNode.camera?.zNear = 0.01
@@ -89,6 +102,8 @@ final class FakeARContext: DemoSceneContext {
 
     /// Mỗi mẫu cảm biến: q_scene = M · q_android · D⁻¹
     /// (device→ENU từ Android, đổi sang hệ SceneKit, rồi bù chiều cầm máy).
+    private var orientationSamples = 0
+
     func updateOrientation(_ deviceToAndroidWorld: simd_quatf) {
         guard trackingEnabled else { return }
         let q = androidWorldToScene * deviceToAndroidWorld * holding.cameraToDevice
@@ -97,22 +112,52 @@ final class FakeARContext: DemoSceneContext {
             needsPlacement = false
             placeInFront()
         }
+        // Debug: cứ 10 mẫu báo góc camera một lần để biết cảm biến có vào và trục có đúng không
+        orientationSamples += 1
+        if orientationSamples % 10 == 0 {
+            let e = cameraNode.simdEulerAngles * (180 / .pi)      // x = pitch, y = yaw, z = roll
+            delegate?.demo(status: String(format: "cam yaw %.0f° pitch %.0f° roll %.0f°", e.y, e.x, e.z))
+        }
     }
 
-    /// Đặt model 1.5 m trước mặt theo hướng nhìn hiện tại, thấp hơn mắt 0.9 m (≈ mặt bàn/đất).
+    /// Chốt hướng nhìn hiện tại rồi đặt model cách `distance` m, thấp hơn mắt 0.9 m (≈ mặt bàn/đất).
     /// Giống DemoARContext.place(using:) — chỉ khác nguồn pose.
     private func placeInFront() {
         let forward = cameraNode.simdWorldFront                   // −Z của camera trong world
         var flat = SIMD3(forward.x, 0, forward.z)
         if simd_length(flat) < 0.01 { flat = SIMD3(0, 0, -1) }
-        flat = simd_normalize(flat)
-        let p = cameraNode.simdPosition + flat * 1.5 + SIMD3(0, -0.9, 0)
+        placementDirection = simd_normalize(flat)
+        applyPlacement()
+    }
+
+    /// Vị trí model = mắt + hướng đã chốt × khoảng cách − chiều cao mắt.
+    private func applyPlacement() {
+        let p = cameraNode.simdPosition + placementDirection * distance + SIMD3(0, -eyeHeight, 0)
         arNode.simdPosition = p
         delegate?.demo(didPlaceAt: p)
     }
 
     override func recenter() {
         if trackingEnabled { placeInFront() } else { arNode.simdPosition = .zero }
+    }
+
+    override func setDistance(_ meters: Float) {
+        distance = min(max(meters, 0.3), 8)
+        if trackingEnabled { applyPlacement() }
+    }
+
+    @objc private func handlePinch(_ g: UIPinchGestureRecognizer) {
+        guard trackingEnabled else { return }     // chưa bám gyro thì SceneKit tự xử lý pinch
+        switch g.state {
+        case .began:
+            pinchStartDistance = distance
+        case .changed:
+            // Kéo hai ngón ra (scale > 1) = tiến lại gần → khoảng cách giảm
+            setDistance(pinchStartDistance / Float(g.scale))
+            onDistanceChanged?(distance)
+        default:
+            break
+        }
     }
 }
 
@@ -157,6 +202,8 @@ struct FakeARScreen: View {
     @StateObject private var stream = IPCameraStream()
     @StateObject private var sensors = PhoneOrientationStream()
     @State private var tracking = false
+    @State private var distance: Double = 1.5
+    @State private var showPanel = false          // Fake AR: mặc định ẩn, bấm ⚙ để mở
 
     private var holding: Binding<PhoneHolding> {
         Binding(
@@ -166,12 +213,12 @@ struct FakeARScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
             FakeARView(context: context, stream: stream, sensors: sensors)
                 .ignoresSafeArea()
 
-            // Một panel duy nhất, thu/mở bằng nút ⌄ ở góc; phần riêng của màn này ở "extra"
-            ControlPanel(perform: { context.perform($0) }, showRecenter: true, model: model) {
+            // Panel ẩn/hiện bằng nút ⚙ góc phải trên; phần riêng của màn này ở "extra"
+            ControlPanel(perform: { context.perform($0) }, showRecenter: true, model: model, isPresented: $showPanel) {
                 VStack(spacing: 6) {
                     HStack {
                         TextField("http://ip:8080", text: $baseURL)
@@ -214,14 +261,29 @@ struct FakeARScreen: View {
                          : "Chưa bám: xoay model bằng ngón tay. Bật toggle để nhận rotation_vector từ app Sensor Server.")
                         .font(.caption2).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if tracking {
+                        HStack {
+                            Text("Khoảng cách").frame(width: 90, alignment: .leading)
+                            Slider(value: $distance, in: 0.3...8)
+                                .onChange(of: distance) { v in context.perform(ChangeDistanceEvent(Float(v))) }
+                            Text(String(format: "%.1f m", distance)).frame(width: 48)
+                        }
+                        Text("Giả đi tới/lùi: kéo slider hoặc pinch 2 ngón trên hình (Simulator: giữ ⌥ + kéo chuột).")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
         }
+        .overlay(alignment: .topTrailing) { PanelToggleButton(isPresented: $showPanel) }
         .navigationTitle("Fake AR (IP Webcam)")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             context.delegate = model
             context.holding = holding.wrappedValue
+            let distanceBinding = $distance                              // pinch → cập nhật slider
+            context.onDistanceChanged = { d in distanceBinding.wrappedValue = Double(d) }
             connect()
         }
         .onDisappear { stream.stop(); sensors.stop() }

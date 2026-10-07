@@ -100,6 +100,8 @@ class DemoSceneContext: NSObject, DemoEventContext {
     }
 
     func recenter() { /* chỉ bản AR override */ }
+
+    func setDistance(_ meters: Float) { /* chỉ Fake AR override */ }
 }
 
 // MARK: - Bản 3D: SCNView, camera của SceneKit, xoay bằng tay
