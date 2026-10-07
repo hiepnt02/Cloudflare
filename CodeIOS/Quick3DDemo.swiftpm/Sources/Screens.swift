@@ -36,45 +36,86 @@ final class DemoStatus: ObservableObject, DemoDelegate {
 
 // MARK: - Bảng điều khiển dùng chung
 
-struct ControlPanel: View {
+/// Panel thu/mở được. `extra` là phần riêng của từng màn (vd. ô URL của Fake AR),
+/// hiện phía trên các slider khi panel mở.
+struct ControlPanel<Extra: View>: View {
     let perform: (DemoEvent) -> Void
     let showRecenter: Bool
     @ObservedObject var model: DemoStatus
+    @ViewBuilder let extra: () -> Extra
 
+    @State private var collapsed = false
     @State private var pointSize: Double = 14
     @State private var opacity: Double = 1
     @State private var visible = true
 
+    init(perform: @escaping (DemoEvent) -> Void,
+         showRecenter: Bool,
+         model: DemoStatus,
+         @ViewBuilder extra: @escaping () -> Extra) {
+        self.perform = perform
+        self.showRecenter = showRecenter
+        self._model = ObservedObject(wrappedValue: model)
+        self.extra = extra
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(model.status).font(.footnote.bold())
-            if showRecenter { Text("Vị trí arNode: \(model.placedAt)").font(.footnote) }
+            // Hàng đầu luôn hiện và CẢ HÀNG bấm được để thu/mở
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { collapsed.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: collapsed ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .font(.title3)
+                    Text(collapsed ? "Mở bảng điều khiển" : "Thu gọn")
+                        .font(.footnote.bold())
+                    Spacer(minLength: 8)
+                    Text(model.status).font(.caption).lineLimit(1).foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
-            HStack {
-                Text("Point size").frame(width: 90, alignment: .leading)
-                Slider(value: $pointSize, in: 2...40)
-                    .onChange(of: pointSize) { v in perform(ChangePointSizeEvent(Float(v))) }
-                Text("\(Int(pointSize))").frame(width: 30)
-            }
-            HStack {
-                Text("Opacity").frame(width: 90, alignment: .leading)
-                Slider(value: $opacity, in: 0...1)
-                    .onChange(of: opacity) { v in perform(ChangeOpacityEvent(Float(v))) }
-                Text(String(format: "%.2f", opacity)).frame(width: 40)
-            }
-            HStack {
-                Toggle("Hiện point cloud", isOn: $visible)
-                    .onChange(of: visible) { v in perform(TogglePointCloudEvent(v)) }
-                if showRecenter {
-                    Button("Đặt lại trước mặt") { perform(RecenterEvent()) }
-                        .buttonStyle(.borderedProminent)
+            if !collapsed {
+                extra()
+
+                if showRecenter { Text("Vị trí arNode: \(model.placedAt)").font(.footnote) }
+
+                HStack {
+                    Text("Point size").frame(width: 90, alignment: .leading)
+                    Slider(value: $pointSize, in: 2...40)
+                        .onChange(of: pointSize) { v in perform(ChangePointSizeEvent(Float(v))) }
+                    Text("\(Int(pointSize))").frame(width: 30)
+                }
+                HStack {
+                    Text("Opacity").frame(width: 90, alignment: .leading)
+                    Slider(value: $opacity, in: 0...1)
+                        .onChange(of: opacity) { v in perform(ChangeOpacityEvent(Float(v))) }
+                    Text(String(format: "%.2f", opacity)).frame(width: 40)
+                }
+                HStack {
+                    Toggle("Hiện point cloud", isOn: $visible)
+                        .onChange(of: visible) { v in perform(TogglePointCloudEvent(v)) }
+                    if showRecenter {
+                        Button("Đặt lại trước mặt") { perform(RecenterEvent()) }
+                            .buttonStyle(.borderedProminent)
+                    }
                 }
             }
         }
         .font(.callout)
-        .padding(12)
+        .padding(collapsed ? 8 : 12)
+        .frame(maxWidth: collapsed ? 360 : 520)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(12)
+    }
+}
+
+/// Dùng không có phần extra (màn 3D và AR thật).
+extension ControlPanel where Extra == EmptyView {
+    init(perform: @escaping (DemoEvent) -> Void, showRecenter: Bool, model: DemoStatus) {
+        self.init(perform: perform, showRecenter: showRecenter, model: model) { EmptyView() }
     }
 }
 
