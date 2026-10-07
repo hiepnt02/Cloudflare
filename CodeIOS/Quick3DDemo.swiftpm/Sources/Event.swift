@@ -30,12 +30,6 @@ protocol DemoEventContext: AnyObject {
     func setPointCloudVisible(_ visible: Bool)
     func setOpacity(_ opacity: Float)
     func recenter()
-    /// Khoảng cách từ mắt tới model (m) — chỉ Fake AR dùng, thay cho tracking dịch chuyển.
-    func setDistance(_ meters: Float)
-}
-
-extension DemoEventContext {
-    func setDistance(_ meters: Float) {}   // mặc định không làm gì (màn 3D / AR thật)
 }
 
 protocol DemoEvent: Event {
@@ -65,11 +59,4 @@ final class ChangeOpacityEvent: EventIdentity, DemoEvent {
 /// AR: đặt lại model ra trước mặt camera.
 final class RecenterEvent: EventIdentity, DemoEvent {
     func call(_ context: DemoEventContext) { context.recenter() }
-}
-
-/// Fake AR: giả việc đi tới/lùi bằng cách đổi khoảng cách model.
-final class ChangeDistanceEvent: EventIdentity, DemoEvent {
-    let meters: Float
-    init(_ meters: Float) { self.meters = meters; super.init() }
-    func call(_ context: DemoEventContext) { context.setDistance(meters) }
 }
