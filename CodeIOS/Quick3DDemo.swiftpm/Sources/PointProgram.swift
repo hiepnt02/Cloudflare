@@ -24,15 +24,8 @@ final class PointProgram: SCNProgram {
         fragmentFunctionName = "demoFragment"
         isOpaque = false                 // cho phép blend alpha
 
-        // Khi build từ Swift package, metallib nằm trong Bundle.module chứ không
-        // phải main bundle → phải chỉ cho SceneKit. Trong Xcode project thường
-        // (fallback trong README) không có Bundle.module, SceneKit tự tìm ở main.
-        #if SWIFT_PACKAGE
-        if let device = MTLCreateSystemDefaultDevice(),
-           let lib = try? device.makeDefaultLibrary(bundle: .module) {
-            library = lib
-        }
-        #endif
+        // Xcode biên dịch Shaders.metal vào default.metallib của app;
+        // SCNProgram tự tìm hàm theo tên trong main bundle, không cần chỉ library.
 
         // Tương đương material.uniforms.pointSize.value = … nhưng theo kiểu "pull":
         // SceneKit gọi closure này mỗi frame trước khi vẽ node dùng program.

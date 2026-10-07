@@ -30,7 +30,7 @@ Trên máy ảo macOS (VMware/Parallels) thường **không có Metal** → màn
 2. Xoá `ContentView.swift` và `Quick3DDemoApp.swift` mặc định.
 3. Kéo toàn bộ file trong `Sources/` (kể cả `Shaders.metal`) vào project, tick *Copy items if needed*.
 4. Target → Info → thêm key `Privacy - Camera Usage Description` (NSCameraUsageDescription), giá trị bất kỳ.
-5. ⌘R. (Đoạn `#if SWIFT_PACKAGE` trong `PointProgram.swift` tự tắt, SceneKit tìm metallib ở main bundle.)
+5. ⌘R. (Shaders.metal trong target được Xcode biên dịch vào default.metallib của app, SceneKit tự tìm hàm theo tên.)
 
 ## Map file demo → file project thật
 

@@ -26,9 +26,9 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Quick3DDemo",
-            path: "Sources",
-            // Xcode biên dịch Shaders.metal → default.metallib trong Bundle.module
-            resources: [.process("Shaders.metal")]
+            path: "Sources"
+            // Shaders.metal nằm trong Sources được Xcode biên dịch thẳng vào
+            // default.metallib của app (không khai resources, không có Bundle.module)
         )
     ]
 )

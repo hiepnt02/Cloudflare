@@ -12,8 +12,9 @@
 //
 
 #include <metal_stdlib>
+#include <simd/simd.h>
+using namespace metal;            // PHẢI đứng trước scn_metal: header đó dùng float4x4 không prefix
 #include <SceneKit/scn_metal>
-using namespace metal;
 
 // Layout chuẩn Apple cho buffer "scn_node" (giống project)
 typedef struct {
