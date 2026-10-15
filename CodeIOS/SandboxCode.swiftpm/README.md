@@ -52,15 +52,54 @@ IP Webcam không xuất cảm biến (`/sensors.json` trả `{}` trên nhiều m
 3. Chĩa camera vào mặt bàn, bấm **Đặt lại trước mặt**: model đặt 1.5 m trước mặt, thấp hơn mắt 0.9 m.
    Từ đó **xoay** điện thoại, model đứng yên đúng chỗ — giống "magic window".
 
+- Ô Sensor nhập cổng **8082** (cổng WebSocket); 8081 chỉ là trang HTTP của Sensor Server.
 - Chọn đúng **chiều cầm máy** (Dọc / Ngang ← / Ngang →) để trục xoay khớp ảnh; chọn sai thì xoay
   ngang sẽ thành xoay dọc.
 - Kiểm tra nhanh Sensor Server: trong Safari của Mac mở `http://192.168.0.106:8081/` — trang của nó
   liệt kê sensor; phải có `android.sensor.rotation_vector`. Không có → dùng `android.sensor.game_rotation_vector`
   (đổi `PhoneOrientationStream.sensorType`).
 
-Giới hạn còn lại: **không có dịch chuyển** (6DoF) — đi tới/lùi thì model không bám, vì vị trí
-camera trong AR thật do ARKit tính bằng visual-inertial odometry từ camera + IMU của iPhone.
-Đây là ranh giới cuối không giả được bằng IP Webcam.
+Giới hạn của màn 3: **không có dịch chuyển** (6DoF) — đi tới/lùi thì model không bám, vì vị trí
+camera do ARKit tính bằng visual-inertial odometry từ camera + IMU. Gyro không giả được → xem màn 4.
+
+## Màn 4 — AR 6DoF bằng ARCore trên Android
+
+Thay ARKit bằng **ARCore** (cùng thuật toán VIO) chạy trên Android, app iOS chỉ nhận kết quả:
+
+```
+Android (AndroidARBridge/)                         iOS Simulator (Sources/BridgeAR.swift)
+ARCore Frame ─┬─ ảnh CPU (YUV→JPEG)  ┐             scene.background = ảnh
+              ├─ camera.pose (4×4)   ├─ 1 message ─→ cameraNode.simdTransform = pose
+              ├─ intrinsics (fy)     │   WebSocket   camera.fieldOfView = 2·atan(h/2/fy)
+              └─ hitTest giữa màn    ┘   :8090       arNode đặt tại điểm hit trên mặt phẳng
+```
+
+Ảnh và pose cùng một frame nên không lệch trễ như IP Webcam + Sensor Server; đi tới/lùi/sang ngang
+thì model bám đúng chỗ.
+
+1. Cài **Android Studio** → File → Open → thư mục `D:\Project\Cloudflare\AndroidARBridge` → chờ Gradle sync
+   (lần đầu nó tự tải Gradle 8.7) → cắm điện thoại (bật USB debugging) → Run.
+   Điện thoại phải [hỗ trợ ARCore](https://developers.google.com/ar/devices) (có "Google Play Services for AR").
+2. **Tắt IP Webcam** (hai app không dùng chung camera được). Màn hình ARBridge hiện `ws://<ip>:8090`.
+3. Cầm điện thoại **ngang, đỉnh máy bên trái**; chạy Simulator cũng ở chế độ ngang cho to hình.
+4. App iOS → "4. AR 6DoF" → ⚙ → nhập `ws://<ip>:8090` → **Kết nối**. Quét chậm sàn/bàn đến khi
+   "mặt phẳng" > 0, chĩa giữa màn vào chỗ muốn đặt → **Đặt lại trước mặt** → model đứng lên mặt phẳng.
+
+Ghi chú: ảnh CPU của ARCore thường 640×480 (đủ cho demo). Vài máy cảm biến lắp ngược (sensor 270°)
+sẽ thấy ảnh lộn ngược → cầm ngang theo chiều kia.
+
+## Thay point cloud bằng model cụ thể (mọi màn)
+
+Bảng ⚙ có mục **Model**:
+- **Tải** từ URL — dễ nhất trên Simulator: trên Mac `cd` vào thư mục chứa model, chạy
+  `python3 -m http.server 8000`, nhập `http://localhost:8000/ten-model.usdz`.
+- **Chọn file…** — từ app Files (OBJ chọn kiểu này sẽ mất file `.mtl`/texture đi kèm → dùng URL hoặc USDZ).
+- **Nhà mẫu** — model dựng sẵn trong code để thử.
+- **Cỡ model**: cạnh dài nhất (0.1–30 m), hoặc bật **Kích thước gốc** để dùng đúng đơn vị mét trong file.
+
+Định dạng: `.usdz/.usd/.usda/.usdc/.scn/.obj`. `.glb/.gltf/.fbx/.dae` iOS không đọc lúc chạy →
+đổi sang USDZ bằng Reality Converter (Mac) hoặc Blender (Export → USD). Code: `Sources/ModelLoader.swift`;
+model gắn dưới `arNode/modelRoot`, đáy-giữa model nằm ở gốc nên đứng đúng lên mặt phẳng.
 
 `AdditionalInfo.plist` thêm `NSAppTransportSecurity` để iOS cho phép `http://` tới LAN.
 

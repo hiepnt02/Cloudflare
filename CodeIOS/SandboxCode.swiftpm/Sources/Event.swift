@@ -33,6 +33,10 @@ protocol DemoEventContext: AnyObject {
     /// Khoảng cách từ mắt tới model (m) — chỉ Fake AR dùng, thay cho tracking dịch chuyển.
     /// (DemoSceneContext có bản rỗng; FakeARContext override.)
     func setDistance(_ meters: Float)
+    /// Nạp model cụ thể thay cho point cloud (.none = bỏ model).
+    func loadModel(_ source: ModelSource)
+    /// Cạnh dài nhất của model (m); nil = giữ kích thước gốc trong file.
+    func setModelSize(_ meters: Float?)
 }
 
 protocol DemoEvent: Event {
@@ -69,4 +73,16 @@ final class ChangeDistanceEvent: EventIdentity, DemoEvent {
     let meters: Float
     init(_ meters: Float) { self.meters = meters; super.init() }
     func call(_ context: DemoEventContext) { context.setDistance(meters) }
+}
+
+final class LoadModelEvent: EventIdentity, DemoEvent {
+    let source: ModelSource
+    init(_ source: ModelSource) { self.source = source; super.init() }
+    func call(_ context: DemoEventContext) { context.loadModel(source) }
+}
+
+final class ChangeModelSizeEvent: EventIdentity, DemoEvent {
+    let meters: Float?
+    init(_ meters: Float?) { self.meters = meters; super.init() }
+    func call(_ context: DemoEventContext) { context.setModelSize(meters) }
 }

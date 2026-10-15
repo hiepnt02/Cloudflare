@@ -237,7 +237,7 @@ struct FakeARScreen: View {
 
                     HStack {
                         Text("Sensor").font(.caption).frame(width: 48, alignment: .leading)
-                        TextField("ws://ip:8081", text: $sensorURL)
+                        TextField("ws://ip:8082", text: $sensorURL)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)

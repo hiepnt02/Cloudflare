@@ -1,0 +1,46 @@
+# Build APK của app Android ARBridge trên GitHub, không cần Android Studio.
+# Kết quả: tab Actions → chọn lần chạy → mục Artifacts → ARBridge-debug-apk (zip chứa app-debug.apk).
+name: Build ARBridge APK
+
+on:
+  push:
+    paths:
+      - "AndroidARBridge/**"
+      - ".github/workflows/android-arbridge.yml"
+  workflow_dispatch:        # cho phép bấm "Run workflow" bằng tay trên GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AndroidARBridge
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Runner ubuntu-latest có sẵn Android SDK ở $ANDROID_HOME; chỉ cần chấp nhận license
+      # và chắc chắn có platform 34 + build-tools 34 (khớp compileSdk trong app/build.gradle.kts)
+      - name: Install Android SDK packages
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ARBridge-debug-apk
+          path: AndroidARBridge/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

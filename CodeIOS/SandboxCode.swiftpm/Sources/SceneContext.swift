@@ -10,7 +10,8 @@
 //    ├─ cameraNode (chỉ bản 3D; bản AR camera là ARKit)
 //    ├─ lightNode
 //    └─ arNode               ← gốc của model, dời cả cụm
-//        └─ pointCloudNode   ← SCNNode(geometry từ MTLBuffer)
+//        ├─ pointCloudNode   ← SCNNode(geometry từ MTLBuffer)
+//        └─ modelRoot        ← model cụ thể (USDZ/SCN/OBJ) + đèn riêng cho nó
 //
 
 import SceneKit
@@ -34,6 +35,11 @@ class DemoSceneContext: NSObject, DemoEventContext {
     let program = PointProgram()
     private(set) var pointCloud: MetalPointCloud?
 
+    let modelRoot = SCNNode()
+    private var model: ModelLoader.Loaded?
+    private var modelSize: Float? = 1           // cạnh dài nhất (m); nil = kích thước gốc
+    private var modelRequest = 0
+
     // Lọc trùng event — giống CameraContextTemplate.handle()
     private let queue = DispatchQueue(label: "demo.context.events")
     private var lastEventId = -1
@@ -51,7 +57,26 @@ class DemoSceneContext: NSObject, DemoEventContext {
     func attach(to scene: SCNScene) {
         arNode.name = "arNode"
         scene.rootNode.addChildNode(arNode)
+        modelRoot.name = "modelRoot"
+        arNode.addChildNode(modelRoot)
+        addModelLights()
         loadPointCloud()
+    }
+
+    /// Point cloud tự tô màu trong shader, còn model PBR cần đèn.
+    private func addModelLights() {
+        let ambient = SCNNode()
+        ambient.light = SCNLight()
+        ambient.light?.type = .ambient
+        ambient.light?.intensity = 400
+        modelRoot.addChildNode(ambient)
+
+        let sun = SCNNode()
+        sun.light = SCNLight()
+        sun.light?.type = .directional
+        sun.light?.intensity = 1000
+        sun.simdEulerAngles = SIMD3(-.pi / 3, .pi / 4, 0)
+        modelRoot.addChildNode(sun)
     }
 
     /// Giả lập SfmProject + BVHReader: sinh dữ liệu ở thread nền, về main tạo node.
@@ -97,6 +122,46 @@ class DemoSceneContext: NSObject, DemoEventContext {
     func setOpacity(_ opacity: Float) {
         program.opacity = opacity
         pointCloudNode?.isHidden = opacity == 0
+        modelRoot.opacity = CGFloat(opacity)
+    }
+
+    func loadModel(_ source: ModelSource) {
+        model?.node.removeFromParentNode()
+        model = nil
+        modelRequest += 1
+        let request = modelRequest
+        if case .none = source {
+            delegate?.demo(status: "Đã bỏ model")
+            return
+        }
+        delegate?.demo(status: "Đang tải model…")
+        Task.detached(priority: .userInitiated) { [weak self] in
+            do {
+                guard let loaded = try await ModelLoader.load(source) else { return }
+                await MainActor.run {
+                    // Bỏ kết quả cũ nếu trong lúc tải đã có lệnh model khác
+                    guard let self, request == self.modelRequest else { return }
+                    self.modelRoot.addChildNode(loaded.node)
+                    self.model = loaded
+                    self.applyModelSize()
+                    let e = loaded.extent
+                    self.delegate?.demo(status: String(format: "Model gốc %.2f × %.2f × %.2f m", e.x, e.y, e.z))
+                }
+            } catch {
+                await MainActor.run { self?.delegate?.demo(status: "Lỗi model: \(error.localizedDescription)") }
+            }
+        }
+    }
+
+    func setModelSize(_ meters: Float?) {
+        modelSize = meters
+        applyModelSize()
+    }
+
+    private func applyModelSize() {
+        guard let model else { return }
+        let scale = modelSize.map { $0 / model.extent.max() } ?? 1
+        model.node.simdScale = SIMD3(repeating: scale)
     }
 
     func recenter() { /* chỉ bản AR override */ }

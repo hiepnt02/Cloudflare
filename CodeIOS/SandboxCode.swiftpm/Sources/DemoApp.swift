@@ -37,6 +37,9 @@ struct HomeScreen: View {
                 NavigationLink("3. Fake AR — nền là camera Android qua IP Webcam (chạy Simulator)") {
                     FakeARScreen()
                 }
+                NavigationLink("4. AR 6DoF — camera + ARCore từ Android (app ARBridge, chạy Simulator)") {
+                    BridgeARScreen()
+                }
             }
             Section("Thiết bị") {
                 Text("Metal: \(metalName)")

@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 import simd
 
 /// Nhận delegate từ 3D và đẩy vào @Published để SwiftUI vẽ lại.
@@ -70,6 +71,8 @@ struct ControlPanel<Extra: View>: View {
                         VStack(alignment: .leading, spacing: 10) {
                             extra()
 
+                            ModelControls(perform: perform, pointCloudVisible: $visible)
+
                             if showRecenter { Text("Vị trí arNode: \(model.placedAt)").font(.footnote) }
 
                             HStack {
@@ -114,6 +117,68 @@ struct ControlPanel<Extra: View>: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         }
+    }
+}
+
+/// Chọn model thay cho point cloud: file trong Files, URL http, hoặc nhà mẫu.
+/// Trên Simulator dễ nhất là URL: trên Mac chạy `python3 -m http.server 8000` trong thư mục chứa
+/// model rồi nhập http://localhost:8000/ten.usdz (Simulator dùng chung localhost với Mac).
+struct ModelControls: View {
+    let perform: (DemoEvent) -> Void
+    @Binding var pointCloudVisible: Bool
+
+    @AppStorage("model.url") private var modelURL = "http://localhost:8000/model.usdz"
+    @State private var showImporter = false
+    @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
+    @State private var originalSize = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Model").font(.caption).frame(width: 48, alignment: .leading)
+                TextField("http://…/model.usdz", text: $modelURL)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Tải") {
+                    if let url = URL(string: modelURL.trimmingCharacters(in: .whitespaces)) { load(.url(url)) }
+                }
+                .buttonStyle(.bordered)
+            }
+            HStack {
+                Button("Chọn file…") { showImporter = true }
+                Button("Nhà mẫu") { load(.sample) }
+                Button("Bỏ model") {
+                    perform(LoadModelEvent(.none))
+                    pointCloudVisible = true
+                }
+            }
+            .buttonStyle(.bordered)
+            HStack {
+                Text("Cỡ model").frame(width: 90, alignment: .leading)
+                Slider(value: $sizeLog, in: -1...1.5)
+                    .disabled(originalSize)
+                    .onChange(of: sizeLog) { _ in sendSize() }
+                Text(originalSize ? "gốc" : String(format: "%.1f m", pow(10, sizeLog))).frame(width: 52)
+            }
+            Toggle("Kích thước gốc trong file (mét)", isOn: $originalSize)
+                .onChange(of: originalSize) { _ in sendSize() }
+        }
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
+            guard case .success(let url) = result else { return }
+            do { load(.url(try ModelLoader.copyPicked(url))) }
+            catch { print("Không copy được file model: \(error)") }
+        }
+    }
+
+    private func load(_ source: ModelSource) {
+        perform(LoadModelEvent(source))
+        pointCloudVisible = false                   // onChange của toggle sẽ gửi TogglePointCloudEvent
+    }
+
+    private func sendSize() {
+        perform(ChangeModelSizeEvent(originalSize ? nil : Float(pow(10, sizeLog))))
     }
 }
 
