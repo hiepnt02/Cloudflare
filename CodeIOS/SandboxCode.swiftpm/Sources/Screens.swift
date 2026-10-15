@@ -148,17 +148,23 @@ struct ModelControls: View {
             }
             HStack {
                 Button("Chọn file…") { showImporter = true }
-                Menu("Model mẫu") {
-                    ForEach(SampleModel.allCases) { kind in
-                        Button(kind.rawValue) { load(.sample(kind)) }
-                    }
-                }
                 Button("Bỏ model") {
                     perform(LoadModelEvent(.none))
                     pointCloudVisible = true
                 }
             }
             .buttonStyle(.bordered)
+            // Model mẫu: dải nút cuộn ngang (Menu ở màn ngang bị iOS cắt còn ~8 dòng)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    Text("Mẫu").font(.caption).foregroundStyle(.secondary)
+                    ForEach(SampleModel.allCases) { kind in
+                        Button(kind.rawValue) { load(.sample(kind)) }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                }
+            }
             HStack {
                 Text("Cỡ model").frame(width: 90, alignment: .leading)
                 Slider(value: $sizeLog, in: -1...1.5)
