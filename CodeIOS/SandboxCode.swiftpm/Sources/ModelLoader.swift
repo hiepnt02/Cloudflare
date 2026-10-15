@@ -17,9 +17,20 @@ import SceneKit.ModelIO
 
 /// Nguồn model cho LoadModelEvent.
 enum ModelSource {
-    case none           // bỏ model, quay lại point cloud
-    case sample         // nhà mẫu dựng bằng code, để thử không cần file
-    case url(URL)       // file:// (đã copy vào tmp) hoặc http(s)://
+    case none                   // bỏ model, quay lại point cloud
+    case sample(SampleModel)    // model dựng bằng code, để thử không cần file
+    case url(URL)               // file:// (đã copy vào tmp) hoặc http(s)://
+}
+
+/// Model mẫu dựng bằng hình cơ bản của SceneKit. Kích thước thật (m), đáy ở y = 0, mặt trước +Z.
+enum SampleModel: String, CaseIterable, Identifiable {
+    case house = "Nhà"
+    case tree = "Cây"
+    case car = "Xe"
+    case table = "Bàn ghế"
+    case marker = "Cột mốc"
+    case tower = "Cột điện"
+    var id: String { rawValue }
 }
 
 enum ModelLoader {
@@ -47,7 +58,7 @@ enum ModelLoader {
     static func load(_ source: ModelSource) async throws -> Loaded? {
         switch source {
         case .none: return nil
-        case .sample: return sampleHouse()
+        case .sample(let kind): return sample(kind)
         case .url(let url): return try await load(url)
         }
     }
@@ -112,33 +123,103 @@ enum ModelLoader {
         return Loaded(node: root, extent: extent)
     }
 
-    /// Nhà 1×0.8×1 m: thân hộp + mái chóp + cửa ở mặt trước (+Z) để nhìn ra hướng.
-    static func sampleHouse() -> Loaded {
-        func material(_ color: UIColor) -> SCNMaterial {
-            let m = SCNMaterial()
-            m.diffuse.contents = color
-            m.lightingModel = .physicallyBased
-            m.roughness.contents = 0.8
-            return m
-        }
+    // MARK: - Model mẫu
+
+    static func sample(_ kind: SampleModel) -> Loaded {
         let content = SCNNode()
-
-        let body = SCNNode(geometry: SCNBox(width: 1, height: 0.6, length: 1, chamferRadius: 0))
-        body.geometry?.materials = [material(.systemTeal)]
-        body.position = SCNVector3(0, 0.3, 0)
-        content.addChildNode(body)
-
-        let roof = SCNNode(geometry: SCNPyramid(width: 1.1, height: 0.4, length: 1.1))
-        roof.geometry?.materials = [material(.systemRed)]
-        roof.position = SCNVector3(0, 0.6, 0)
-        content.addChildNode(roof)
-
-        let door = SCNNode(geometry: SCNBox(width: 0.25, height: 0.4, length: 0.02, chamferRadius: 0))
-        door.geometry?.materials = [material(.brown)]
-        door.position = SCNVector3(0, 0.2, 0.505)
-        content.addChildNode(door)
-
+        switch kind {
+        case .house: buildHouse(into: content)
+        case .tree: buildTree(into: content)
+        case .car: buildCar(into: content)
+        case .table: buildTable(into: content)
+        case .marker: buildMarker(into: content)
+        case .tower: buildTower(into: content)
+        }
         // centered() không thể lỗi với hình dựng sẵn
         return (try? centered(content)) ?? Loaded(node: content, extent: SIMD3(1, 1, 1))
+    }
+
+    private static func material(_ color: UIColor, metal: Bool = false) -> SCNMaterial {
+        let m = SCNMaterial()
+        m.diffuse.contents = color
+        m.lightingModel = .physicallyBased
+        m.roughness.contents = metal ? 0.35 : 0.8
+        m.metalness.contents = metal ? 0.9 : 0
+        return m
+    }
+
+    /// Gắn `geometry` tô `color` vào `parent` tại (x, y, z); trả node để xoay thêm nếu cần.
+    @discardableResult
+    private static func add(_ geometry: SCNGeometry, _ color: UIColor, metal: Bool = false,
+                            to parent: SCNNode, x: Float = 0, y: Float = 0, z: Float = 0) -> SCNNode {
+        geometry.materials = [material(color, metal: metal)]
+        let node = SCNNode(geometry: geometry)
+        node.simdPosition = SIMD3(x, y, z)
+        parent.addChildNode(node)
+        return node
+    }
+
+    /// Nhà 1×1×1 m: thân hộp + mái chóp + cửa ở mặt trước (+Z) để nhìn ra hướng.
+    private static func buildHouse(into root: SCNNode) {
+        add(SCNBox(width: 1, height: 0.6, length: 1, chamferRadius: 0), .systemTeal, to: root, y: 0.3)
+        add(SCNPyramid(width: 1.1, height: 0.4, length: 1.1), .systemRed, to: root, y: 0.6)
+        add(SCNBox(width: 0.25, height: 0.4, length: 0.02, chamferRadius: 0), .brown, to: root, y: 0.2, z: 0.505)
+    }
+
+    /// Cây 2 m: thân trụ + 3 tầng nón lá.
+    private static func buildTree(into root: SCNNode) {
+        add(SCNCylinder(radius: 0.08, height: 0.6), .brown, to: root, y: 0.3)
+        add(SCNCone(topRadius: 0, bottomRadius: 0.6, height: 0.7), .systemGreen, to: root, y: 0.85)
+        add(SCNCone(topRadius: 0, bottomRadius: 0.45, height: 0.6), .systemGreen, to: root, y: 1.3)
+        add(SCNCone(topRadius: 0, bottomRadius: 0.3, height: 0.5), .systemGreen, to: root, y: 1.75)
+    }
+
+    /// Xe 1.8 m dài (theo trục Z), đầu xe hướng +Z.
+    private static func buildCar(into root: SCNNode) {
+        add(SCNBox(width: 0.8, height: 0.35, length: 1.8, chamferRadius: 0.05), .systemBlue, to: root, y: 0.3)
+        add(SCNBox(width: 0.7, height: 0.3, length: 0.9, chamferRadius: 0.08), .systemIndigo, to: root, y: 0.62, z: -0.1)
+        for (x, z) in [(-0.4, 0.55), (0.4, 0.55), (-0.4, -0.55), (0.4, -0.55)] {
+            let wheel = add(SCNCylinder(radius: 0.15, height: 0.1), .darkGray, to: root,
+                            x: Float(x), y: 0.15, z: Float(z))
+            wheel.simdEulerAngles = SIMD3(0, 0, .pi / 2)      // trục bánh xe nằm ngang
+        }
+        add(SCNBox(width: 0.12, height: 0.08, length: 0.02, chamferRadius: 0), .yellow, to: root, x: -0.28, y: 0.35, z: 0.905)
+        add(SCNBox(width: 0.12, height: 0.08, length: 0.02, chamferRadius: 0), .yellow, to: root, x: 0.28, y: 0.35, z: 0.905)
+    }
+
+    /// Bàn 1.2×0.75 m + 2 ghế hai bên.
+    private static func buildTable(into root: SCNNode) {
+        add(SCNBox(width: 1.2, height: 0.04, length: 0.7, chamferRadius: 0.01), .brown, to: root, y: 0.73)
+        for (x, z) in [(-0.55, 0.3), (0.55, 0.3), (-0.55, -0.3), (0.55, -0.3)] {
+            add(SCNCylinder(radius: 0.025, height: 0.71), .darkGray, metal: true, to: root, x: Float(x), y: 0.355, z: Float(z))
+        }
+        for x: Float in [-0.9, 0.9] {
+            add(SCNBox(width: 0.4, height: 0.04, length: 0.4, chamferRadius: 0.01), .systemOrange, to: root, x: x, y: 0.45)
+            add(SCNBox(width: 0.04, height: 0.45, length: 0.4, chamferRadius: 0.01), .systemOrange, to: root,
+                x: x + (x < 0 ? -0.18 : 0.18), y: 0.69)
+            for (dx, dz) in [(-0.17, 0.17), (0.17, 0.17), (-0.17, -0.17), (0.17, -0.17)] {
+                add(SCNCylinder(radius: 0.015, height: 0.43), .darkGray, metal: true, to: root,
+                    x: x + Float(dx), y: 0.215, z: Float(dz))
+            }
+        }
+    }
+
+    /// Cột mốc khảo sát 1.5 m: đế bê tông + cọc đỏ-trắng + cờ.
+    private static func buildMarker(into root: SCNNode) {
+        add(SCNCylinder(radius: 0.2, height: 0.1), .lightGray, to: root, y: 0.05)
+        for i in 0 ..< 6 {
+            add(SCNCylinder(radius: 0.03, height: 0.2), i % 2 == 0 ? .systemRed : .white, to: root, y: 0.2 + Float(i) * 0.2)
+        }
+        add(SCNBox(width: 0.3, height: 0.2, length: 0.005, chamferRadius: 0), .systemYellow, to: root, x: 0.16, y: 1.4, z: 0)
+        add(SCNSphere(radius: 0.04), .systemRed, to: root, y: 1.52)
+    }
+
+    /// Cột điện 6 m: trụ bê tông + xà ngang + 3 sứ cách điện.
+    private static func buildTower(into root: SCNNode) {
+        add(SCNCone(topRadius: 0.09, bottomRadius: 0.14, height: 6), .lightGray, to: root, y: 3)
+        add(SCNBox(width: 1.6, height: 0.08, length: 0.08, chamferRadius: 0), .darkGray, metal: true, to: root, y: 5.6)
+        for x: Float in [-0.7, 0, 0.7] {
+            add(SCNCylinder(radius: 0.05, height: 0.15), .white, to: root, x: x, y: 5.72)
+        }
     }
 }

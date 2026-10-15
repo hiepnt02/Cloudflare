@@ -148,7 +148,11 @@ struct ModelControls: View {
             }
             HStack {
                 Button("Chọn file…") { showImporter = true }
-                Button("Nhà mẫu") { load(.sample) }
+                Menu("Model mẫu") {
+                    ForEach(SampleModel.allCases) { kind in
+                        Button(kind.rawValue) { load(.sample(kind)) }
+                    }
+                }
                 Button("Bỏ model") {
                     perform(LoadModelEvent(.none))
                     pointCloudVisible = true

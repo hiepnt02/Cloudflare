@@ -94,7 +94,8 @@ Bảng ⚙ có mục **Model**:
 - **Tải** từ URL — dễ nhất trên Simulator: trên Mac `cd` vào thư mục chứa model, chạy
   `python3 -m http.server 8000`, nhập `http://localhost:8000/ten-model.usdz`.
 - **Chọn file…** — từ app Files (OBJ chọn kiểu này sẽ mất file `.mtl`/texture đi kèm → dùng URL hoặc USDZ).
-- **Nhà mẫu** — model dựng sẵn trong code để thử.
+- **Model mẫu** — menu chọn Nhà / Cây / Xe / Bàn ghế / Cột mốc / Cột điện dựng sẵn trong code
+  (`ModelLoader.sample`), kích thước thật — bật "Kích thước gốc" để thấy đúng cỡ.
 - **Cỡ model**: cạnh dài nhất (0.1–30 m), hoặc bật **Kích thước gốc** để dùng đúng đơn vị mét trong file.
 
 Định dạng: `.usdz/.usd/.usda/.usdc/.scn/.obj`. `.glb/.gltf/.fbx/.dae` iOS không đọc lúc chạy →
