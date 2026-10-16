@@ -128,7 +128,11 @@ struct ModelControls: View {
     @Binding var pointCloudVisible: Bool
 
     @AppStorage("model.url") private var modelURL = "http://localhost:8000/model.usdz"
+    @AppStorage("ply.url") private var plyURL = "http://localhost:8000/lorem.ply"
     @State private var showImporter = false
+    @State private var showPLYImporter = false
+    @State private var cloudSizeLog: Double = 0.7       // 10^0.7 ≈ 5 m
+    @State private var cloudOriginal = true             // địa hình mẫu đã là mét
     @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
     @State private var originalSize = false
 
@@ -174,6 +178,41 @@ struct ModelControls: View {
             }
             Toggle("Kích thước gốc trong file (mét)", isOn: $originalSize)
                 .onChange(of: originalSize) { _ in sendSize() }
+
+            // Point cloud từ file .ply (thường hoặc Gaussian splatting) thay cho địa hình mẫu
+            HStack {
+                Text("PLY").font(.caption).frame(width: 48, alignment: .leading)
+                TextField("http://…/scene.ply", text: $plyURL)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Tải") {
+                    if let url = URL(string: plyURL.trimmingCharacters(in: .whitespaces)) { loadPLY(.url(url)) }
+                }
+                .buttonStyle(.bordered)
+                Button("Chọn…") { showPLYImporter = true }
+                    .buttonStyle(.bordered)
+                    .fileImporter(isPresented: $showPLYImporter, allowedContentTypes: [.item]) { result in
+                        guard case .success(let url) = result else { return }
+                        do { loadPLY(.url(try ModelLoader.copyPicked(url))) }
+                        catch { print("Không copy được file PLY: \(error)") }
+                    }
+                Button("Địa hình") { loadPLY(.none) }
+                    .buttonStyle(.bordered)
+            }
+            HStack {
+                Text("Cỡ cloud").frame(width: 90, alignment: .leading)
+                Slider(value: $cloudSizeLog, in: -0.5...1.7)          // 0.3 … 50 m
+                    .disabled(cloudOriginal)
+                    .onChange(of: cloudSizeLog) { _ in sendCloudSize() }
+                Text(cloudOriginal ? "gốc" : String(format: "%.1f m", pow(10, cloudSizeLog))).frame(width: 52)
+                Toggle("gốc", isOn: $cloudOriginal).labelsHidden()
+                    .onChange(of: cloudOriginal) { _ in sendCloudSize() }
+            }
+            Text("3DGS vẽ dạng điểm (màu từ f_dc, bỏ opacity thấp), tối đa \(PLYReader.maxPoints / 1000)k điểm. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud. Điểm to/nhỏ: Point size.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
             guard case .success(let url) = result else { return }
@@ -185,6 +224,17 @@ struct ModelControls: View {
     private func load(_ source: ModelSource) {
         perform(LoadModelEvent(source))
         pointCloudVisible = false                   // onChange của toggle sẽ gửi TogglePointCloudEvent
+    }
+
+    private func loadPLY(_ source: ModelSource) {
+        perform(LoadPointCloudEvent(source))
+        pointCloudVisible = true
+        // PLY thường không có đơn vị mét → mặc định ép về cỡ slider; địa hình mẫu thì giữ gốc
+        if case .url = source { cloudOriginal = false } else { cloudOriginal = true }
+    }
+
+    private func sendCloudSize() {
+        perform(ChangePointCloudSizeEvent(cloudOriginal ? nil : Float(pow(10, cloudSizeLog))))
     }
 
     private func sendSize() {

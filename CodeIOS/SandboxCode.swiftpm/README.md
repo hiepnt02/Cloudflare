@@ -98,7 +98,20 @@ Bảng ⚙ có mục **Model**:
   (`ModelLoader.sample`), kích thước thật — bật "Kích thước gốc" để thấy đúng cỡ.
 - **Cỡ model**: cạnh dài nhất (0.1–30 m), hoặc bật **Kích thước gốc** để dùng đúng đơn vị mét trong file.
 
-Định dạng: `.usdz/.usd/.usda/.usdc/.scn/.obj`. `.glb/.gltf/.fbx/.dae` iOS không đọc lúc chạy →
+### Point cloud từ file PLY / Gaussian splatting
+
+Ô **PLY** trong bảng ⚙: **Tải** từ URL (cùng cách `python3 -m http.server`), **Chọn…** từ Files, **Địa hình** quay về
+mẫu sinh bằng code. `Sources/PLYReader.swift` đọc binary little/big-endian và ascii:
+- PLY thường: `x y z` + `red green blue` (uchar hoặc float). Không có màu → tô theo chiều cao.
+- **3D Gaussian splatting** (`f_dc_*`, `opacity`, `scale_*`, `rot_*`): màu = `0.5 + 0.2821·f_dc`, bỏ điểm
+  `sigmoid(opacity) < 0.1`, lật Y/Z (COLMAP Y xuống → SceneKit Y lên). Vẽ **dạng điểm**, không phải
+  ellipsoid trộn alpha, nên nhìn như scan màu chứ không mịn như viewer 3DGS thật.
+- File > 1 triệu điểm được lấy mẫu đều xuống 1 triệu (`PLYReader.maxPoints`). Toạ độ được dời: tâm XZ về 0,
+  sàn (phân vị 2 % của Y) về 0 — đặt lên mặt phẳng AR là đứng đúng.
+- Thử: `lorem.ply` (23k điểm) trước, rồi `mihama_0_optimized.ply` (3.4 M → 1 M, ~10 s đọc). Bản
+  `mihama_combined_3dgs_10.ply` 810 MB cùng số điểm nhưng thừa 45 hệ số SH, không cần dùng.
+
+Định dạng model: `.usdz/.usd/.usda/.usdc/.scn/.obj`. `.glb/.gltf/.fbx/.dae` iOS không đọc lúc chạy →
 đổi sang USDZ bằng Reality Converter (Mac) hoặc Blender (Export → USD). Code: `Sources/ModelLoader.swift`;
 model gắn dưới `arNode/modelRoot`, đáy-giữa model nằm ở gốc nên đứng đúng lên mặt phẳng.
 

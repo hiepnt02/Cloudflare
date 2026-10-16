@@ -60,7 +60,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
         modelRoot.name = "modelRoot"
         arNode.addChildNode(modelRoot)
         addModelLights()
-        loadPointCloud()
+        loadPointCloud(.none)
     }
 
     /// Point cloud tự tô màu trong shader, còn model PBR cần đèn.
@@ -79,24 +79,73 @@ class DemoSceneContext: NSObject, DemoEventContext {
         modelRoot.addChildNode(sun)
     }
 
-    /// Giả lập SfmProject + BVHReader: sinh dữ liệu ở thread nền, về main tạo node.
-    private func loadPointCloud() {
+    private struct CloudError: LocalizedError {
+        let errorDescription: String?
+        init(_ text: String) { errorDescription = text }
+    }
+    private var pointCloudRequest = 0
+    private var pointCloudExtent: SIMD3<Float>?     // chỉ có khi nạp từ PLY
+    private var pointCloudSize: Float?              // nil = giữ toạ độ gốc
+
+    func setPointCloudSize(_ meters: Float?) {
+        pointCloudSize = meters
+        applyPointCloudSize()
+    }
+
+    /// Point size trong shader tính theo pixel màn hình nên scale node không làm điểm to/nhỏ.
+    private func applyPointCloudSize() {
+        guard let node = pointCloudNode else { return }
+        var scale: Float = 1
+        if let size = pointCloudSize, let e = pointCloudExtent, e.max() > 0 { scale = size / e.max() }
+        node.simdScale = SIMD3(repeating: scale)
+    }
+
+    /// Giả lập SfmProject + BVHReader: đọc/sinh dữ liệu ở thread nền, về main tạo node.
+    /// `.none`/`.sample` = địa hình sinh bằng code; `.url` = file .ply (thường hoặc Gaussian splatting).
+    func loadPointCloud(_ source: ModelSource) {
+        pointCloudNode?.removeFromParentNode()
+        pointCloudNode = nil
+        pointCloud = nil
+        pointCloudRequest += 1
+        let request = pointCloudRequest
         delegate?.demo(status: "Đang tạo point cloud…")
+
         Task.detached(priority: .userInitiated) { [weak self] in
-            guard let device = MTLCreateSystemDefaultDevice(),
-                  let cloud = MetalPointCloud.makeTerrain(device: device) else {
-                await MainActor.run { self?.delegate?.demo(status: "Không tạo được Metal device / buffer") }
-                return
-            }
-            await MainActor.run {
-                guard let self else { return }
-                // = SCNViewARContext.downloadDidFinish(... pointcloud:)
-                let node = SCNBuilder.createNode(cloud, program: self.program)
-                self.program.pointCount = Int32(cloud.count)
-                self.arNode.addChildNode(node)
-                self.pointCloudNode = node
-                self.pointCloud = cloud
-                self.delegate?.demo(didLoad: cloud.count)
+            do {
+                guard let device = MTLCreateSystemDefaultDevice() else { throw CloudError("Không có Metal device") }
+                let cloud: MetalPointCloud?
+                var info = "Địa hình mẫu"
+                var extent: SIMD3<Float>?
+                switch source {
+                case .none, .sample:
+                    cloud = MetalPointCloud.makeTerrain(device: device)
+                case .url(let url):
+                    let local = url.isFileURL ? url : try await ModelLoader.download(url)
+                    let ply = try PLYReader.load(url: local)
+                    cloud = MetalPointCloud(device: device, positions: ply.positions, colors: ply.colors)
+                    extent = ply.extent
+                    let e = ply.extent
+                    info = String(format: "%@ %d/%d điểm · %.1f × %.1f × %.1f m",
+                                  ply.isGaussianSplat ? "3DGS" : "PLY",
+                                  ply.positions.count, ply.totalVertices, e.x, e.y, e.z)
+                }
+                guard let cloud else { throw CloudError("Không tạo được MTLBuffer") }
+                await MainActor.run {
+                    // Bỏ kết quả cũ nếu trong lúc đọc đã có lệnh khác
+                    guard let self, request == self.pointCloudRequest else { return }
+                    // = SCNViewARContext.downloadDidFinish(... pointcloud:)
+                    let node = SCNBuilder.createNode(cloud, program: self.program)
+                    self.program.pointCount = Int32(cloud.count)
+                    self.arNode.addChildNode(node)
+                    self.pointCloudNode = node
+                    self.pointCloud = cloud
+                    self.pointCloudExtent = extent
+                    self.applyPointCloudSize()
+                    self.delegate?.demo(didLoad: cloud.count)
+                    self.delegate?.demo(status: info)
+                }
+            } catch {
+                await MainActor.run { self?.delegate?.demo(status: "Lỗi PLY: \(error.localizedDescription)") }
             }
         }
     }

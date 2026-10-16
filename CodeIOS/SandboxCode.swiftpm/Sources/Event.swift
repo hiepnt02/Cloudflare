@@ -37,6 +37,10 @@ protocol DemoEventContext: AnyObject {
     func loadModel(_ source: ModelSource)
     /// Cạnh dài nhất của model (m); nil = giữ kích thước gốc trong file.
     func setModelSize(_ meters: Float?)
+    /// Thay point cloud bằng file .ply (thường hoặc Gaussian splatting); .none = địa hình mẫu.
+    func loadPointCloud(_ source: ModelSource)
+    /// Cạnh dài nhất của point cloud (m); nil = giữ toạ độ gốc. 3DGS không có đơn vị mét nên cần cái này.
+    func setPointCloudSize(_ meters: Float?)
 }
 
 protocol DemoEvent: Event {
@@ -79,6 +83,18 @@ final class LoadModelEvent: EventIdentity, DemoEvent {
     let source: ModelSource
     init(_ source: ModelSource) { self.source = source; super.init() }
     func call(_ context: DemoEventContext) { context.loadModel(source) }
+}
+
+final class LoadPointCloudEvent: EventIdentity, DemoEvent {
+    let source: ModelSource
+    init(_ source: ModelSource) { self.source = source; super.init() }
+    func call(_ context: DemoEventContext) { context.loadPointCloud(source) }
+}
+
+final class ChangePointCloudSizeEvent: EventIdentity, DemoEvent {
+    let meters: Float?
+    init(_ meters: Float?) { self.meters = meters; super.init() }
+    func call(_ context: DemoEventContext) { context.setPointCloudSize(meters) }
 }
 
 final class ChangeModelSizeEvent: EventIdentity, DemoEvent {

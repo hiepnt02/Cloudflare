@@ -104,7 +104,8 @@ enum ModelLoader {
         return dest
     }
 
-    private static func download(_ url: URL) async throws -> URL {
+    /// Tải file về tmp, giữ đuôi file. Dùng chung cho model và PLY.
+    static func download(_ url: URL) async throws -> URL {
         let (tmp, response) = try await URLSession.shared.download(from: url)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw LoadError.http(http.statusCode)
