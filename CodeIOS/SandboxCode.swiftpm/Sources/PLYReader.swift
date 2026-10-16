@@ -23,6 +23,16 @@ enum PLYReader {
         let totalVertices: Int
         let isGaussianSplat: Bool
         let extent: SIMD3<Float>          // kích thước robust (phân vị 2%…98%) sau khi dời
+        /// Chỉ có ở mode .splats với file 3DGS đủ scale_*/rot_*: covariance 3D đối xứng tách 2 nửa + opacity.
+        let cov0: [SIMD3<Float>]          // Σxx Σxy Σxz
+        let cov1: [SIMD3<Float>]          // Σyy Σyz Σzz
+        let opacities: [Float]            // đã sigmoid
+        var hasSplats: Bool { !cov0.isEmpty }
+    }
+
+    enum Mode {
+        case points      // chấm tròn, bỏ splat gần trong suốt (opacity < 0.1)
+        case splats      // ellipse mờ, giữ tới opacity 1/255, đọc thêm scale/rot
     }
 
     enum ReadError: LocalizedError {
@@ -41,6 +51,26 @@ enum PLYReader {
 
     /// Giới hạn số điểm đưa lên GPU; file nhiều hơn sẽ được lấy mẫu đều.
     static let maxPoints = 1_000_000
+
+    /// Các file .ply đóng gói kèm app (thư mục Sources/Data, khai `resources:` trong Package.swift).
+    /// App Playground không sinh `Bundle.module`: tài nguyên nằm thẳng trong Bundle.main (hoặc một
+    /// *.bundle con tuỳ phiên bản Xcode), có thể giữ thư mục "Data" hoặc không → tìm hết.
+    static let bundled: [URL] = {
+        var bundles = [Bundle.main]
+        if let subs = Bundle.main.urls(forResourcesWithExtension: "bundle", subdirectory: nil) {
+            bundles += subs.compactMap { Bundle(url: $0) }
+        }
+        var found: [URL] = []
+        for bundle in bundles {
+            for sub in ["Data", nil] as [String?] {
+                found += bundle.urls(forResourcesWithExtension: "ply", subdirectory: sub) ?? []
+            }
+        }
+        var seen = Set<String>()
+        return found
+            .filter { seen.insert($0.lastPathComponent).inserted }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }()
     static let shC0: Float = 0.28209479
 
     private enum Format { case ascii, binaryLE, binaryBE }
@@ -64,7 +94,7 @@ enum PLYReader {
     // MARK: - API
 
     /// `flipYZ` nil = tự quyết: lật nếu là Gaussian splatting.
-    static func load(url: URL, flipYZ: Bool? = nil, minOpacity: Float = 0.1) throws -> Result {
+    static func load(url: URL, mode: Mode = .points, flipYZ: Bool? = nil) throws -> Result {
         let data = try Data(contentsOf: url, options: [.alwaysMapped])
         let header = try parseHeader(data)
 
@@ -74,25 +104,53 @@ enum PLYReader {
         }
         let dc = [index("f_dc_0"), index("f_dc_1"), index("f_dc_2")].compactMap { $0 }
         let rgb = [index("red") ?? index("r"), index("green") ?? index("g"), index("blue") ?? index("b")].compactMap { $0 }
+        let sc = [index("scale_0"), index("scale_1"), index("scale_2")].compactMap { $0 }
+        let rot = [index("rot_0"), index("rot_1"), index("rot_2"), index("rot_3")].compactMap { $0 }
         let isSplat = dc.count == 3
         let iOpacity = index("opacity")
         let flip = flipYZ ?? isSplat
+        let wantSplats = mode == .splats && isSplat && sc.count == 3 && rot.count == 4
+        let minOpacity: Float = wantSplats ? 1 / 255 : 0.1
+        // Lật Y, Z = F·R với F = diag(1, −1, −1); covariance Σ = (F R S)(F R S)ᵀ
+        let flipMatrix = simd_float3x3(diagonal: SIMD3(1, flip ? -1 : 1, flip ? -1 : 1))
 
         let step = max(1, Int((Double(header.vertexCount) / Double(maxPoints)).rounded(.up)))
         var positions: [SIMD3<Float>] = []
         var colors: [SIMD3<Float>] = []
+        var cov0: [SIMD3<Float>] = []
+        var cov1: [SIMD3<Float>] = []
+        var opacities: [Float] = []
         positions.reserveCapacity(header.vertexCount / step + 1)
         colors.reserveCapacity(header.vertexCount / step + 1)
+        if wantSplats {
+            cov0.reserveCapacity(header.vertexCount / step + 1)
+            cov1.reserveCapacity(header.vertexCount / step + 1)
+            opacities.reserveCapacity(header.vertexCount / step + 1)
+        }
 
         // Cùng một hàm xử lý một hàng cho cả binary lẫn ascii: `get(i)` trả giá trị property i
         func take(_ get: (Int) -> Float) {
+            var alpha: Float = 1
             if let iOpacity {
-                let a = 1 / (1 + exp(-get(iOpacity)))          // sigmoid
-                if a < minOpacity { return }
+                alpha = 1 / (1 + exp(-get(iOpacity)))          // sigmoid
+                if alpha < minOpacity { return }
             }
             var p = SIMD3(get(ix), get(iy), get(iz))
             if flip { p = SIMD3(p.x, -p.y, -p.z) }
             guard p.x.isFinite, p.y.isFinite, p.z.isFinite else { return }
+
+            if wantSplats {
+                // 3DGS lưu log(scale) và quaternion (w, x, y, z)
+                let s = SIMD3(exp(get(sc[0])), exp(get(sc[1])), exp(get(sc[2])))
+                var q = simd_quatf(ix: get(rot[1]), iy: get(rot[2]), iz: get(rot[3]), r: get(rot[0]))
+                guard s.x.isFinite, s.y.isFinite, s.z.isFinite, simd_length(q.vector) > 1e-6 else { return }
+                q = simd_normalize(q)
+                let m = flipMatrix * simd_float3x3(q) * simd_float3x3(diagonal: s)
+                let sigma = m * m.transpose
+                cov0.append(SIMD3(sigma.columns.0.x, sigma.columns.1.x, sigma.columns.2.x))
+                cov1.append(SIMD3(sigma.columns.1.y, sigma.columns.2.y, sigma.columns.2.z))
+                opacities.append(alpha)
+            }
             positions.append(p)
 
             if isSplat {
@@ -152,7 +210,8 @@ enum PLYReader {
         }
 
         return Result(positions: positions, colors: colors,
-                      totalVertices: header.vertexCount, isGaussianSplat: isSplat, extent: hi - lo)
+                      totalVertices: header.vertexCount, isGaussianSplat: isSplat, extent: hi - lo,
+                      cov0: cov0, cov1: cov1, opacities: opacities)
     }
 
     // MARK: - Header

@@ -28,9 +28,11 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Quick3DDemo",
-            path: "Sources"
-            // Shaders.metal nằm trong Sources được Xcode biên dịch thẳng vào
-            // default.metallib của app (không khai resources, không có Bundle.module)
+            path: "Sources",
+            // Shaders.metal nằm trong Sources được Xcode biên dịch thẳng vào default.metallib của app.
+            // Sources/Data/ = file dữ liệu đóng gói kèm app (PLY, USDZ…), đọc qua Bundle.main.
+            // KHÔNG được đặt tên thư mục là "Resources": codesign sẽ coi app là framework và báo lỗi.
+            resources: [.copy("Data")]
         )
     ]
 )

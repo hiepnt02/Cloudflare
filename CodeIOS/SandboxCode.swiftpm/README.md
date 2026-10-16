@@ -103,11 +103,22 @@ Bảng ⚙ có mục **Model**:
 Ô **PLY** trong bảng ⚙: **Tải** từ URL (cùng cách `python3 -m http.server`), **Chọn…** từ Files, **Địa hình** quay về
 mẫu sinh bằng code. `Sources/PLYReader.swift` đọc binary little/big-endian và ascii:
 - PLY thường: `x y z` + `red green blue` (uchar hoặc float). Không có màu → tô theo chiều cao.
-- **3D Gaussian splatting** (`f_dc_*`, `opacity`, `scale_*`, `rot_*`): màu = `0.5 + 0.2821·f_dc`, bỏ điểm
-  `sigmoid(opacity) < 0.1`, lật Y/Z (COLMAP Y xuống → SceneKit Y lên). Vẽ **dạng điểm**, không phải
-  ellipsoid trộn alpha, nên nhìn như scan màu chứ không mịn như viewer 3DGS thật.
+- **3D Gaussian splatting** (`f_dc_*`, `opacity`, `scale_*`, `rot_*`): màu = `0.5 + 0.2821·f_dc`,
+  lật Y/Z (COLMAP Y xuống → SceneKit Y lên). Mặc định vẽ **splat thật**: mỗi splat là một điểm
+  (`primitive .point`) nhưng `splatVertex` chiếu covariance 3D (`Σ = R·S·Sᵀ·Rᵀ`, tính sẵn trong
+  `PLYReader`) thành ellipse 2D theo công thức EWA của paper (`Σ' = J·W·Σ·Wᵀ·Jᵀ`), `point_size` =
+  đường kính 3σ, `splatFragment` tô `alpha = opacity·exp(−½ dᵀΣ'⁻¹d)`. `SplatCloud` sắp xếp lại index
+  buffer xa→gần (counting sort 16 bit, thread nền) mỗi khi camera dịch > 2 % hoặc xoay > 1.5°; material
+  blend alpha, không ghi depth. Tắt toggle "vẽ ellipse" → về chấm tròn (bỏ splat `opacity < 0.1`).
+  Code: `SplatCloud.swift`, `SplatProgram.swift`, `SCNBuilder.createSplatNode`, cuối `Shaders.metal`.
+  Giới hạn: splat quá gần camera bị kẹp ở 1024 px; splat có tâm ra khỏi màn biến mất cả cụm (đặc thù
+  point sprite); file 1 M splat sắp xếp ~50–100 ms/lần trên Simulator (bản Debug chậm hơn).
 - File > 1 triệu điểm được lấy mẫu đều xuống 1 triệu (`PLYReader.maxPoints`). Toạ độ được dời: tâm XZ về 0,
   sàn (phân vị 2 % của Y) về 0 — đặt lên mặt phẳng AR là đứng đúng.
+- **Kèm app**: file trong `Sources/Data/*.ply` được đóng gói theo app (`resources: [.copy("Data")]`
+  trong `Package.swift`; App Playground không có `Bundle.module` nên tìm trong `Bundle.main`; thư mục
+  không được tên `Resources` vì codesign iOS sẽ báo lỗi) và hiện thành nút trong bảng ⚙ — không cần server.
+  `lorem.ply` (5 MB) đã có sẵn; thêm file khác chỉ cần thả vào thư mục đó. Đừng bỏ file trăm MB vào.
 - Thử: `lorem.ply` (23k điểm) trước, rồi `mihama_0_optimized.ply` (3.4 M → 1 M, ~10 s đọc). Bản
   `mihama_combined_3dgs_10.ply` 810 MB cùng số điểm nhưng thừa 45 hệ số SH, không cần dùng.
 

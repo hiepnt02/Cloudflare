@@ -41,6 +41,8 @@ protocol DemoEventContext: AnyObject {
     func loadPointCloud(_ source: ModelSource)
     /// Cạnh dài nhất của point cloud (m); nil = giữ toạ độ gốc. 3DGS không có đơn vị mét nên cần cái này.
     func setPointCloudSize(_ meters: Float?)
+    /// 3DGS: true = vẽ ellipse mờ (splat thật), false = chấm tròn. Nạp lại file hiện tại.
+    func setSplatMode(_ on: Bool)
 }
 
 protocol DemoEvent: Event {
@@ -89,6 +91,12 @@ final class LoadPointCloudEvent: EventIdentity, DemoEvent {
     let source: ModelSource
     init(_ source: ModelSource) { self.source = source; super.init() }
     func call(_ context: DemoEventContext) { context.loadPointCloud(source) }
+}
+
+final class SetSplatModeEvent: EventIdentity, DemoEvent {
+    let on: Bool
+    init(_ on: Bool) { self.on = on; super.init() }
+    func call(_ context: DemoEventContext) { context.setSplatMode(on) }
 }
 
 final class ChangePointCloudSizeEvent: EventIdentity, DemoEvent {

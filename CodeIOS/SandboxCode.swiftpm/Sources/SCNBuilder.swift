@@ -64,4 +64,45 @@ enum SCNBuilder {
         )
         return node
     }
+
+    /// Gaussian splatting: cùng kiểu .point nhưng thêm 2 source covariance (texcoord0/1) và màu float4
+    /// (alpha = opacity). Không ghi depth vì trộn alpha; thứ tự vẽ do SplatCloud sắp lại index buffer.
+    static func createSplatNode(_ source: SplatCloud, program: SplatProgram) -> SCNNode {
+        let positionSource = SCNGeometrySource(
+            buffer: source.positions, vertexFormat: .float3, semantic: .vertex,
+            vertexCount: source.count, dataOffset: 0, dataStride: SplatCloud.stride3)
+        let colorSource = SCNGeometrySource(
+            buffer: source.colors, vertexFormat: .float4, semantic: .color,
+            vertexCount: source.count, dataOffset: 0, dataStride: SplatCloud.stride4)
+        let cov0Source = SCNGeometrySource(
+            buffer: source.cov0, vertexFormat: .float3, semantic: .texcoord,
+            vertexCount: source.count, dataOffset: 0, dataStride: SplatCloud.stride3)
+        let cov1Source = SCNGeometrySource(
+            buffer: source.cov1, vertexFormat: .float3, semantic: .texcoord,
+            vertexCount: source.count, dataOffset: 0, dataStride: SplatCloud.stride3)
+
+        let element = SCNGeometryElement(
+            buffer: source.indices, primitiveType: .point,
+            primitiveCount: source.count, bytesPerIndex: MemoryLayout<UInt32>.size)
+        element.pointSize = 1                               // shader quyết định cỡ thật
+        element.minimumPointScreenSpaceRadius = 0.5
+        element.maximumPointScreenSpaceRadius = 512         // = point_size tối đa 1024 px trong shader
+
+        let geometry = SCNGeometry(sources: [positionSource, colorSource, cov0Source, cov1Source], elements: [element])
+        geometry.program = program
+
+        let material = SCNMaterial()
+        material.blendMode = .alpha
+        material.readsFromDepthBuffer = true                // bị model/point cloud che
+        material.writesToDepthBuffer = false                // splat mờ không che nhau qua depth
+        geometry.materials = [material]
+
+        let node = SCNNode(geometry: geometry)
+        node.renderingOrder = 20                            // vẽ sau model để blend lên trên
+        node.boundingBox = (
+            SCNVector3(source.min.x, source.min.y, source.min.z),
+            SCNVector3(source.max.x, source.max.y, source.max.z)
+        )
+        return node
+    }
 }

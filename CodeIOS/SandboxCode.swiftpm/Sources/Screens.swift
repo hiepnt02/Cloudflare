@@ -133,6 +133,7 @@ struct ModelControls: View {
     @State private var showPLYImporter = false
     @State private var cloudSizeLog: Double = 0.7       // 10^0.7 ≈ 5 m
     @State private var cloudOriginal = true             // địa hình mẫu đã là mét
+    @State private var splatMode = true                 // 3DGS: ellipse mờ thay vì chấm tròn
     @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
     @State private var originalSize = false
 
@@ -201,6 +202,19 @@ struct ModelControls: View {
                 Button("Địa hình") { loadPLY(.none) }
                     .buttonStyle(.bordered)
             }
+            // File .ply đóng gói sẵn trong app (Sources/Resources) — không cần server
+            if !PLYReader.bundled.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        Text("Kèm app").font(.caption).foregroundStyle(.secondary)
+                        ForEach(PLYReader.bundled, id: \.self) { url in
+                            Button(url.lastPathComponent) { loadPLY(.url(url)) }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            }
             HStack {
                 Text("Cỡ cloud").frame(width: 90, alignment: .leading)
                 Slider(value: $cloudSizeLog, in: -0.5...1.7)          // 0.3 … 50 m
@@ -210,7 +224,9 @@ struct ModelControls: View {
                 Toggle("gốc", isOn: $cloudOriginal).labelsHidden()
                     .onChange(of: cloudOriginal) { _ in sendCloudSize() }
             }
-            Text("3DGS vẽ dạng điểm (màu từ f_dc, bỏ opacity thấp), tối đa \(PLYReader.maxPoints / 1000)k điểm. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud. Điểm to/nhỏ: Point size.")
+            Toggle("3DGS: vẽ ellipse mờ (splat thật)", isOn: $splatMode)
+                .onChange(of: splatMode) { on in perform(SetSplatModeEvent(on)) }
+            Text("Tối đa \(PLYReader.maxPoints / 1000)k splat. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud. Point size: splat = độ phình (14 = đúng file), điểm = pixel.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

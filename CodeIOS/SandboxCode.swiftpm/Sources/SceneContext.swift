@@ -86,6 +86,30 @@ class DemoSceneContext: NSObject, DemoEventContext {
     private var pointCloudRequest = 0
     private var pointCloudExtent: SIMD3<Float>?     // chỉ có khi nạp từ PLY
     private var pointCloudSize: Float?              // nil = giữ toạ độ gốc
+    private var lastCloudSource: ModelSource = .none
+
+    // Gaussian splatting: node riêng với SplatProgram, sắp xếp độ sâu trong SplatCloud
+    private(set) var splatCloud: SplatCloud?
+    private var splatProgram: SplatProgram?
+    private var splatMode = true
+    private var pointSizeValue: Float = 14
+
+    /// Kết quả đọc ở thread nền, về main mới tạo node
+    private enum BuiltCloud {
+        case points(MetalPointCloud)
+        case splats(SplatCloud)
+        var count: Int {
+            switch self {
+            case .points(let c): return c.count
+            case .splats(let c): return c.count
+            }
+        }
+    }
+
+    func setSplatMode(_ on: Bool) {
+        splatMode = on
+        if case .url = lastCloudSource { loadPointCloud(lastCloudSource) }
+    }
 
     func setPointCloudSize(_ meters: Float?) {
         pointCloudSize = meters
@@ -106,42 +130,80 @@ class DemoSceneContext: NSObject, DemoEventContext {
         pointCloudNode?.removeFromParentNode()
         pointCloudNode = nil
         pointCloud = nil
+        splatCloud = nil
+        splatProgram = nil
         pointCloudRequest += 1
         let request = pointCloudRequest
+        lastCloudSource = source
+        let wantSplats = splatMode
         delegate?.demo(status: "Đang tạo point cloud…")
 
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 guard let device = MTLCreateSystemDefaultDevice() else { throw CloudError("Không có Metal device") }
-                let cloud: MetalPointCloud?
+                let built: BuiltCloud
                 var info = "Địa hình mẫu"
                 var extent: SIMD3<Float>?
                 switch source {
                 case .none, .sample:
-                    cloud = MetalPointCloud.makeTerrain(device: device)
+                    guard let c = MetalPointCloud.makeTerrain(device: device) else { throw CloudError("Không tạo được MTLBuffer") }
+                    built = .points(c)
                 case .url(let url):
                     let local = url.isFileURL ? url : try await ModelLoader.download(url)
-                    let ply = try PLYReader.load(url: local)
-                    cloud = MetalPointCloud(device: device, positions: ply.positions, colors: ply.colors)
+                    let ply = try PLYReader.load(url: local, mode: wantSplats ? .splats : .points)
                     extent = ply.extent
+                    if ply.hasSplats {
+                        var rgba: [SIMD4<Float>] = []
+                        rgba.reserveCapacity(ply.colors.count)
+                        for i in ply.colors.indices {
+                            rgba.append(SIMD4(ply.colors[i], ply.opacities[i]))
+                        }
+                        guard let c = SplatCloud(device: device, positions: ply.positions, colors: rgba,
+                                                 cov0: ply.cov0, cov1: ply.cov1)
+                        else { throw CloudError("Không tạo được MTLBuffer") }
+                        built = .splats(c)
+                    } else {
+                        guard let c = MetalPointCloud(device: device, positions: ply.positions, colors: ply.colors)
+                        else { throw CloudError("Không tạo được MTLBuffer") }
+                        built = .points(c)
+                    }
                     let e = ply.extent
-                    info = String(format: "%@ %d/%d điểm · %.1f × %.1f × %.1f m",
-                                  ply.isGaussianSplat ? "3DGS" : "PLY",
+                    info = String(format: "%@ %d/%d · %.1f × %.1f × %.1f",
+                                  ply.hasSplats ? "3DGS splat" : (ply.isGaussianSplat ? "3DGS điểm" : "PLY"),
                                   ply.positions.count, ply.totalVertices, e.x, e.y, e.z)
                 }
-                guard let cloud else { throw CloudError("Không tạo được MTLBuffer") }
                 await MainActor.run {
                     // Bỏ kết quả cũ nếu trong lúc đọc đã có lệnh khác
                     guard let self, request == self.pointCloudRequest else { return }
                     // = SCNViewARContext.downloadDidFinish(... pointcloud:)
-                    let node = SCNBuilder.createNode(cloud, program: self.program)
-                    self.program.pointCount = Int32(cloud.count)
+                    let node: SCNNode
+                    switch built {
+                    case .points(let cloud):
+                        node = SCNBuilder.createNode(cloud, program: self.program)
+                        self.program.pointCount = Int32(cloud.count)
+                        self.pointCloud = cloud
+                    case .splats(let cloud):
+                        let program = SplatProgram()
+                        program.splatScale = self.pointSizeValue / 14
+                        program.opacity = self.program.opacity
+                        // Mỗi frame: đổi camera sang hệ local của node rồi hỏi SplatCloud có cần sắp lại không
+                        program.onFrame = { [weak cloud] splatNode, renderer in
+                            guard let cloud, let pov = renderer.pointOfView else { return }
+                            let camWorld = pov.simdWorldPosition
+                            let fwdWorld = -pov.simdWorldTransform.columns.2.xyz
+                            let camLocal = splatNode.simdConvertPosition(camWorld, from: nil)
+                            let dirLocal = simd_normalize(splatNode.simdConvertVector(fwdWorld, from: nil))
+                            cloud.requestSortIfNeeded(cameraLocal: camLocal, directionLocal: dirLocal)
+                        }
+                        node = SCNBuilder.createSplatNode(cloud, program: program)
+                        self.splatCloud = cloud
+                        self.splatProgram = program
+                    }
                     self.arNode.addChildNode(node)
                     self.pointCloudNode = node
-                    self.pointCloud = cloud
                     self.pointCloudExtent = extent
                     self.applyPointCloudSize()
-                    self.delegate?.demo(didLoad: cloud.count)
+                    self.delegate?.demo(didLoad: built.count)
                     self.delegate?.demo(status: info)
                 }
             } catch {
@@ -161,7 +223,9 @@ class DemoSceneContext: NSObject, DemoEventContext {
     // MARK: DemoEventContext — mỗi event cuối cùng chỉ là sửa property node/program
 
     func setPointSize(_ size: Float) {
+        pointSizeValue = size
         program.pointSize = size
+        splatProgram?.splatScale = size / 14        // 14 = mặc định slider → splat đúng cỡ file
     }
 
     func setPointCloudVisible(_ visible: Bool) {
@@ -170,6 +234,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
 
     func setOpacity(_ opacity: Float) {
         program.opacity = opacity
+        splatProgram?.opacity = opacity
         pointCloudNode?.isHidden = opacity == 0
         modelRoot.opacity = CGFloat(opacity)
     }
