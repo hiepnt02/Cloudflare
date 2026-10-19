@@ -208,7 +208,7 @@ struct ModelControls: View {
                     HStack(spacing: 6) {
                         Text("Kèm app").font(.caption).foregroundStyle(.secondary)
                         ForEach(PLYReader.bundled, id: \.self) { url in
-                            Button(url.lastPathComponent) { loadPLY(.url(url)) }
+                            Button(PLYReader.displayName(url)) { loadPLY(.url(url)) }
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
                         }

@@ -118,7 +118,14 @@ mẫu sinh bằng code. `Sources/PLYReader.swift` đọc binary little/big-endia
 - **Kèm app**: file trong `Sources/Data/*.ply` được đóng gói theo app (`resources: [.copy("Data")]`
   trong `Package.swift`; App Playground không có `Bundle.module` nên tìm trong `Bundle.main`; thư mục
   không được tên `Resources` vì codesign iOS sẽ báo lỗi) và hiện thành nút trong bảng ⚙ — không cần server.
-  `lorem.ply` (5 MB) đã có sẵn; thêm file khác chỉ cần thả vào thư mục đó. Đừng bỏ file trăm MB vào.
+  `lorem.ply` (5 MB) đã có sẵn; thêm file khác chỉ cần thả vào thư mục đó.
+  File **> 100 MB** GitHub chặn → cắt thành `ten.ply.part1`, `.part2`… (mỗi mảnh < 100 MB), app tự ghép
+  lại vào Caches ở lần dùng đầu (`PLYReader.assembleIfSplit`). `mihama_0_optimized.ply` (187 MB, 3.4 M
+  splat) đang ở dạng 2 mảnh. Cắt trên Windows (PowerShell), 95 MB một mảnh:
+  ```powershell
+  $src="in.ply"; $fs=[IO.File]::OpenRead($src); $b=New-Object byte[] 95MB; $i=1
+  while(($n=$fs.Read($b,0,$b.Length)) -gt 0){ $o=[IO.File]::Create("$src.part$i"); $o.Write($b,0,$n); $o.Close(); $i++ }; $fs.Close()
+  ```
 - Thử: `lorem.ply` (23k điểm) trước, rồi `mihama_0_optimized.ply` (3.4 M → 1 M, ~10 s đọc). Bản
   `mihama_combined_3dgs_10.ply` 810 MB cùng số điểm nhưng thừa 45 hệ số SH, không cần dùng.
 

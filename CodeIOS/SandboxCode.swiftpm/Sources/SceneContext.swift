@@ -149,7 +149,8 @@ class DemoSceneContext: NSObject, DemoEventContext {
                     guard let c = MetalPointCloud.makeTerrain(device: device) else { throw CloudError("Không tạo được MTLBuffer") }
                     built = .points(c)
                 case .url(let url):
-                    let local = url.isFileURL ? url : try await ModelLoader.download(url)
+                    var local = url.isFileURL ? url : try await ModelLoader.download(url)
+                    local = try PLYReader.assembleIfSplit(local)       // file cắt mảnh trong bundle → ghép lại
                     let ply = try PLYReader.load(url: local, mode: wantSplats ? .splats : .points)
                     extent = ply.extent
                     if ply.hasSplats {

@@ -64,6 +64,8 @@ enum PLYReader {
         for bundle in bundles {
             for sub in ["Data", nil] as [String?] {
                 found += bundle.urls(forResourcesWithExtension: "ply", subdirectory: sub) ?? []
+                // File > 100 MB bị GitHub chặn → cắt thành ten.ply.part1, .part2… ; chỉ liệt kê mảnh 1
+                found += bundle.urls(forResourcesWithExtension: "part1", subdirectory: sub) ?? []
             }
         }
         var seen = Set<String>()
@@ -71,6 +73,47 @@ enum PLYReader {
             .filter { seen.insert($0.lastPathComponent).inserted }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }()
+
+    /// Tên hiển thị: "mihama_0_optimized.ply.part1" → "mihama_0_optimized.ply"
+    static func displayName(_ url: URL) -> String {
+        url.pathExtension == "part1" ? url.deletingPathExtension().lastPathComponent : url.lastPathComponent
+    }
+
+    /// Nếu `url` là mảnh .part1 → ghép part1, part2… thành file nguyên trong Caches (một lần, lần sau dùng lại).
+    /// File thường trả về nguyên vẹn.
+    static func assembleIfSplit(_ url: URL) throws -> URL {
+        guard url.pathExtension == "part1" else { return url }
+        let fm = FileManager.default
+        let dir = url.deletingLastPathComponent()
+        let name = url.deletingPathExtension().lastPathComponent          // ten.ply
+
+        var parts: [URL] = []
+        var total = 0
+        var i = 1
+        while true {
+            let part = dir.appendingPathComponent(name).appendingPathExtension("part\(i)")
+            guard let size = try? fm.attributesOfItem(atPath: part.path)[.size] as? Int else { break }
+            parts.append(part)
+            total += size
+            i += 1
+        }
+        guard !parts.isEmpty else { throw ReadError.unsupported("không thấy \(name).part1") }
+
+        let caches = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let joined = caches.appendingPathComponent(name)
+        if let existing = try? fm.attributesOfItem(atPath: joined.path)[.size] as? Int, existing == total {
+            return joined                                                   // đã ghép từ trước
+        }
+        try? fm.removeItem(at: joined)
+        fm.createFile(atPath: joined.path, contents: nil)
+        let out = try FileHandle(forWritingTo: joined)
+        defer { try? out.close() }
+        for part in parts {
+            let data = try Data(contentsOf: part, options: [.alwaysMapped])
+            out.write(data)
+        }
+        return joined
+    }
     static let shC0: Float = 0.28209479
 
     private enum Format { case ascii, binaryLE, binaryBE }
