@@ -11,6 +11,9 @@ import Introspect
 import Alamofire
 
 struct StartView: View {
+    
+    @Environment(\.scenePhase) private var scenePhase
+    
     @Binding var navigateToProjectDetail: Bool
     @Binding var navigateCat: Cat?
     @Binding var isShowRenameAlert: Bool
@@ -159,5 +162,27 @@ struct StartView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                // Perform actions when the app becomes active
+                if RTKManager.shared.autoDisconnect {
+                    RTKAutoConnectionHelper.shared.start(scanTimeout: 10, timeout: 60)
+                }
+            } else if newPhase == .inactive {
+                // App is temporarily not receiving events (e.g., system alert is showing)
+            } else if newPhase == .background {
+                // Perform actions when the app goes to the background
+                var taskIdentifier: UIBackgroundTaskIdentifier = .invalid
+                taskIdentifier = UIApplication.shared.beginBackgroundTask {
+                    UIApplication.shared.endBackgroundTask(taskIdentifier)
+                    taskIdentifier = .invalid
+                }
+                RTKAutoConnectionHelper.shared.cancelRecovery()
+                RTKManager.shared.disconnect(true) {
+                    UIApplication.shared.endBackgroundTask(taskIdentifier)
+                    taskIdentifier = .invalid
+                }
+            }
+        }
     }
 }

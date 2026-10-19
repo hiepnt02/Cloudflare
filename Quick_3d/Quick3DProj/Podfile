@@ -5,8 +5,12 @@ plugin 'cocoapods-keys', {
   :project => "Quick3D",
   :keys => [
     "Pix4DKey",
+    "VidocKey",
+    "MapTilerKey",
+    "FirebaseKey"
   ]
 }
+
 
 target 'Quick3D' do
   # Comment the next line if you don't want to use dynamic frameworks
@@ -18,6 +22,11 @@ target 'Quick3D' do
   pod 'DeviceKit'
   # Pods for Quick3D
 
+  # Pods for Camera
+  pod 'tiff-ios', '~> 4.0.1'
+  pod 'Vigram', :git => 'https://github.com/vigram-sw/SDK_iOS_viDoc_Distribution.git', :tag => '2.0.0'
+  pod 'KDTree'
+  
 end
 
 post_install do |installer|
@@ -29,6 +38,7 @@ post_install do |installer|
   end
   target.build_configurations.each do |config|
     config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
   end
  end
 end

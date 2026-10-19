@@ -20,10 +20,20 @@ struct JobSiteFilterField: View {
     @FocusState var focusStateJobSite: Bool
     let isIPhone: Bool
     let onClearOrSubmit: () -> Void
-    
+
+    private var inputText: Binding<String> {
+        Binding(
+            get: { jobSiteInputText },
+            set: { typed in
+                jobSiteInputText = typed
+                jobSiteSearchText = typed
+            }
+        )
+    }
+
     var body: some View {
         HStack(alignment: .center) {
-            TextField("ALL".localized(userManager.userLanguage), text: $jobSiteInputText)
+            TextField("ALL".localized(userManager.userLanguage), text: inputText)
                 .font(.system(size: isIPhone ? 12 : 15))
                 .lineLimit(1)
                 .padding(.leading, 10)
@@ -51,7 +61,10 @@ struct JobSiteFilterField: View {
                 .deferredRendering(for: 0.5)
             }
             
-            Button(action: { isPopupJobSitesPresented.toggle() }) {
+            Button(action: {
+                if !isPopupJobSitesPresented { jobSiteSearchText = "" }
+                isPopupJobSitesPresented.toggle()
+            }) {
                 Image("arrowDown")
                     .renderingMode(.template)
                     .foregroundColor(userManager.setting.textColor)
@@ -80,11 +93,12 @@ struct JobSiteFilterField: View {
                     .onChange(of: geometry.frame(in: .global).origin) { newPos in
                         tfJobSitePosition = newPos
                     }
+                    .onChange(of: geometry.size) { newSize in
+                        tfJobSiteWidth = newSize.width
+                        tfJobSiteHeight = newSize.height
+                    }
             }
         )
-        .onChange(of: jobSiteInputText) { value in
-            jobSiteSearchText = value.isEmpty ? "" : value
-        }
         .onChange(of: focusStateJobSite) { value in
             if value { jobSiteSearchText = "" }
         }

@@ -26,8 +26,8 @@
 "Uploadphoto" = "Téléverser une image";
 "Correctposition" = "Position correcte";
 "UPLOAD_COMPLETE" = "Téléversement des données terminé";
-"COORDINATE_CHANGE_COMPLETE" = "Système de coordonnées ou coordonnées Conversion terminée";
-"COORDINATE_CHANGE_ERROR" = "Erreur de système de coordonnées ou de conversion de coordonnées";
+"COORDINATE_CHANGE_COMPLETE" = "Système de coordonnées ou\ncoordonnées Conversion terminée";
+"COORDINATE_CHANGE_ERROR" = "Erreur de système de coordonnées ou\nde conversion de coordonnées";
 "SFM_PROCESSING_ERROR" = "Erreur de traitement SfM";
 "PROCESSING_DONE" = "Traitement SfM terminé";
 "ACCURACY_VERIFY_COMP" = "Validation de la précision terminée";
@@ -140,7 +140,6 @@
 "PROJECT_NAME_INPUT" = "Nom du projet";
 "Uploading" = "Téléchargement";
 "UPLOAD_SUCCESS" = "Téléversement réussi";
-"UPLOAD_ERROR" = "Après un certain temps, veuillez vérifier la liste de projets.";
 "DEL_PROJECT_CONFIRM" = "Supprimer le projet sélectionné ?";
 "ITEM_SELECTED" = "Supprimer %d projets";
 "DELETE_LOCAL_DATA" = "Supprimer données locales";
@@ -269,7 +268,11 @@
 "PRIVACY_POLICY" = "Politique de confidentialité";
 "WHILE_EDIT" = "Lors de l'édition";
 "UPLOAD_ERROR" = "Erreur de téléversement";
+"UPLOAD_RESULT_TITLE" = "Résultat du téléversement";
 "AR_PIX4D_BOOT" = "Afficher en AR";
+"AR_PIX4D_SFM_NOT_COMPLETED" = "Le traitement SFM n'est pas encore terminé, il ne peut donc pas être affiché en AR";
+"AR_PIX4D_OPEN_ERROR" = "Échec du chargement des données AR. Veuillez réessayer";
+"PIX4D_APP_NOT_INSTALLED" = "Impossible d'ouvrir PIX4Dcatch. Veuillez vérifier que l'application est installée";
 "AR_PROJECT_OPEN_ERROR" = "Je ne peux pas l'ouvrir car c'est un projet AR";
 "DESIGN_DATA_UPLOAD" = "Télécharger les données de conception";
 "POINT_DATA_UPLOAD" = "Télécharger des données de nuage de points";
@@ -290,7 +293,8 @@
 "DETAIL_INFO" = "Informations détaillées";
 "SHOOTING_DATA_ZIP" = "Données de prise de vue (zip)";
 "DESIGN_DATA_IFC" = "Données de conception (IFC, LandXML)";
-"POINT_DATA_LAS" = "Données de nuages ​​de points (LAS)";
+"POINT_DATA_LAS" = "Données de nuages ​​de points (LAS, LAZ, CSV, TXT)";
+"DESIGN_DATA_FBX" = "Données de conception (FBX, GLB, DWG)";
 "DATA_TYPE" = "Type de données";
 "INSUFFICIENT_PHOTOS_NUMBER" = "Il n'y a pas assez d'images.";
 "TAKE_TEN_MORE_PICTURE" = "Veuillez prendre au moins 10 images";
@@ -311,6 +315,7 @@
 "PLEASE_SELECT_TIF_FILE" = "Veuillez sélectionner un fichier GeoTIFF";
 "PLEASE_SELECT_XML_FILE" = "Veuillez sélectionner un fichier de données de conception";
 "GEO_JSON" = "Carte thermique (GeoJSON)";
+"ALERT_GROUPWARE_PERMISSION" = "Les données ne seront pas enregistrées dans le Groupware. Voulez-vous continuer ? ";
 "IMPORT_SMART_CONSTRUCTION_DASHBOARD" = "Importer Smart Construction Dashboard";
 "IMPORT_SMART_CONSTRUCTION_DESIGN3D" = "Importer Smart Construction Design3D";
 "UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE" = "Téléverser depuis PC local ou Smart Construction Groupware";
@@ -319,13 +324,247 @@
 "SIZE" = "Taille";
 "NO_DATA" = "Aucune donnée";
 "UPLOAD_COMPLETED" = "Le téléchargement sur le serveur est terminé.";
-"FILE_NAME" = "Nom du fichier:";
-"PATH" = "Chemin:";
 "JOBSITE" = "Nom du chantier";
 "TYPE" = "Type";
 "OPEN_PIX_4D" = "Capturer [Pix4D Catch]";
-"NUMBER_OF_PHOTOS" = "Nombre de photos";
+"NUMBER_OF_PHOTOS" = "Images";
 "SORT_BY" = "Trier par";
 "SORT_CAPTURED_DATE" = "Date de capture";
 "SORT_UPLOAD_DATE" = "Date de téléversement";
-"NUMBER_OF_PHOTOS" = "Nombre d'images";
+"FILE_NAME" = "Nom du fichier:";
+"PATH" = "Chemin:";
+"PLEASE_SELECT_DXF_FILE" = "Veuillez sélectionner un fichier DXF (facultatif).";
+"DXF_FILE_NOTICE" = "Les couleurs du dxf sont fusionnées avec le nuage de points las et affichées. Si le dxf n’est pas sélectionné, seul le las est affiché.";
+
+
+// ===== Camera group (added from camera_localization.html) =====
+
+// --- Enum ---
+"ABORT_CAPTURE_MESSAGE" = "Si vous interrompez votre capture maintenant, vous perdrez toutes les données de cette session de capture";
+"ABORT_CAPTURE_TITLE" = "Abandonner la capture";
+"AR_CALCULATION_FAILED" = "Le calcul de la position AR a échoué";
+"BLUETOOTH_PERMISSION_POPUP_TITLE" = "Activez le Bluetooth pour permettre à « Quick3D » de se connecter aux accessoires";
+"CAMERA_PERMISSION_POPUP_MESSAGE" = "Une caméra est nécessaire pour capturer des images et la réalité augmentée";
+"CAMERA_PERMISSION_POPUP_TITLE" = "Autorisation de la caméra requise";
+"CONNECTION_FAILED" = "Échec de la connexion";
+"CUSTOM" = "Personnalisé";
+"DISSMISS_BTN" = "Rejeter";
+"DOWNLOAD_AR_FAILED_400" = "Échec du téléchargement du fichier";
+"DOWNLOAD_AR_FAILED_404" = "Non pris en charge";
+"DOWNLOAD_AR_FAILED_500" = "Fichier introuvable";
+"EXPORT_DATA_TITLE" = "Êtes-vous sûr de vouloir exporter les données ?";
+"LOCATION_PERMISSION_POPUP_MESSAGE" = "L'emplacement est nécessaire pour générer des reconstructions 3D géoréférencées";
+"LOCATION_PERMISSION_POPUP_TITLE" = "Autorisation de localisation requise";
+"MAXIMUM_RESOLUTION" = "Résolution maximale";
+"NORMAL" = "Normal";
+"OPEN_SETTING" = "Ouvrir les paramètres";
+"OUT_OF_MEMORY_MESSAGE" = "La RAM est pleine, veuillez enregistrer le projet.";
+"OUT_OF_MEMORY_TITLE" = "Mémoire insuffisante";
+"RTK_NO_NETWORK_MESSAGE" = "L'appareil est introuvable. Assurez-vous qu'il est correctement connecté, redémarrez l'appareil RTK et réessayez.";
+"SAVE_FAILED_BODY" = "Votre dernier projet n'a pas été sauvegardé correctement.";
+"SAVE_FAILED_TITLE" = "L'enregistrement du projet a échoué";
+"THERMAL_CRITICAL" = "La température de l’appareil est élevée. Veuillez laisser refroidir l’appareil.";
+"THERMAL_FAIR" = "La température de l’appareil augmente.";
+"THERMAL_SERIOUS" = "La température de l’appareil est élevée.";
+"WARNING" = "Avertissement";
+
+// --- Model ---
+"AR_TRACKING_EXCESSIVE_MOTION" = "Appareil en mouvement trop rapide";
+"AR_TRACKING_INITIALIZING" = "Initialisation";
+"AR_TRACKING_INSUFFICIENT_FEATURES" = "Trop peu de points caractéristiques";
+"AR_TRACKING_NOT_AVAILABLE" = "Le suivi n'a pas démarré";
+"AR_TRACKING_RELOCALIZING" = "Récupération de la session";
+"RTK_LOST_CONNECTION" = "Perte de la connexion RTK";
+"RTK_LOST_FIXED_QUALITY" = "Perte de la correction RTK";
+
+// --- UI - CaptureSettings ---
+"ALERT_SETTINGS" = "Paramètres d'alerte";
+"ALERT_SOUND" = "Son d'alerte";
+"CAPTURE_SETTING" = "Paramètres de capture";
+"CAPTURE_SETTING_DESC" = "Configurer les paramètres de prise de vue.\nVous pouvez modifier la résolution des photos et les paramètres de prise de vue en continu (taux de recouvrement) ici.";
+"CHANGES_NOT_SAVED" = "Les modifications n'ont pas été enregistrées";
+"DETAIL_CAPTURE_SETTING" = "Paramètres de capture détaillés";
+"ENABLE_MESH" = "Activer le maillage";
+"FEATURE_POINTS" = "Points caractéristiques";
+"FIRST_PERSON_VIEW" = "Vue à la première personne";
+"LIVE_PREVIEW_MODE" = "Mode d’aperçu en direct";
+"MESH" = "Maillage";
+"OVERLAP_DESC" = "Les photos sont automatiquement prises lorsque le taux de recouvrement spécifié est atteint.";
+"RESOLUTION" = "Résolution";
+"SAVED" = "Enregistré";
+"SAVE_MESH" = "Enregistrer le maillage";
+"DEBUG" = "Débogage";
+"CAPTURE_LOG" = "Journal de capture";
+"SETTINGS" = "Paramètres";
+"SHOW_MOVEMENT_UI" = "Afficher l’état de l’alerte de vitesse";
+"TOP_VIEW" = "Vue de dessus";
+"YES" = "Oui";
+
+// --- UI - Capture ---
+"CAPTURE_LIMIT_REACHED" = "Limite de photos atteinte. Vous ne pouvez plus en prendre.";
+"CAPTURE_MAX_LIMIT" = "Limite maximale : 4 000 photos.";
+"SAVING" = "Enregistrement";
+
+// --- UI - CommonUI ---
+"AR_ACCURACY_1" = "Afin d’améliorer la précision AR, déplacez-vous de quelques mètres lorsque le RTK est en état Fix.";
+"AR_ACCURACY_2" = "Une fois l’objet (nuage de points / données de conception) approximativement positionné :\n1．Désactivez Mise à jour automatique\n2．Appuyez sur l’icône d’engrenage pour ajuster";
+"AR_ACCURACY_3" = "Pour afficher un autre objet, revenez à l’écran d’accueil et relancez l’AR.";
+"AR_ACCURACY_HEADER" = "Remarques lors de l’utilisation de la fonction AR";
+"AR_QUICK3D_BOOT" = "Afficher en AR [Essai]";
+"DETECTING_VIDOC" = "Détection Bluetooth en cours";
+"GETTING_LOCATION_INFO" = "Récupération des informations de localisation";
+"GNSS_CONSTELLATIONS" = "Constellations GNSS";
+"IMAGE_CAPTURED_COUNT_IPHONE" = "%d images";
+"MINIMUM_ELEVATION" = "Élévation minimale";
+"MOVING_TOO_FAST" = "Veuillez vous déplacer lentement";
+"NO_NETWORK_ERROR" = "La connexion Internet semble hors ligne.";
+"OPEN_TRIAL_CAPTURE" = "Capture [Version d’essai]";
+"RTK_DISCONNECT_CONFIRM" = "Voulez-vous déconnecter le périphérique RTK ?";
+"RTK_STATUS_AUTONOMOUS" = "Autonomous GNSS fix";
+"RTK_STATUS_DGPS" = "DGNSS uniquement";
+"RTK_STATUS_FIXED" = "RTK Fixed";
+"RTK_STATUS_FLOAT" = "RTK Float";
+"RTK_STATUS_NO_FIX" = "Pas de fixation (FIX)";
+"RTK_STATUS_UNAVAILABLE" = "Indisponible";
+
+// --- UI - Preview (Export) ---
+"ERROR_DUPLICATE_FILE_NAME" = "Le nom du projet est dupliqué.\nVeuillez le modifier.";
+"GEOLOCATION" = "Géolocalisation";
+"GEOLOCATION_SOURCE" = "Source de géolocalisation";
+"IMAGE" = "Image";
+"LOW" = "Faible";
+"OPTIMAL" = "Optimale";
+"REDUCED" = "Réduit";
+"REPORT" = "Rapport";
+"SAVE_ERROR" = "Erreur d'enregistrement";
+"SAVE_LOCALLY" = "Enregistrer localement";
+"SAVE_THE_CAPTURED_IMAGE" = "Enregistrer l'image capturée";
+
+// --- UI - RTKSetting ---
+"DEVICE" = "Appareil:";
+"DEVICE_NOT_FOUND" = "Appareil introuvable";
+"ELEVATION_MASK_DESC" = "Le masque d’élévation limite l’utilisation des satellites et des signaux dont l’angle d’élévation (mesuré par rapport au plan horizontal et relatif à l’antenne de l’appareil RTK) est inférieur à un seuil spécifié.\nLes satellites à faible élévation sont plus sensibles aux effets des bâtiments, des arbres et du relief, ce qui peut provoquer des trajets multiples et des blocages de signal, réduisant ainsi la précision du positionnement.\nUn masque d’élévation de 15° est recommandé.";
+"GNSS_CONSTELLATIONS_DESC" = "Les constellations GNSS désignent les systèmes de positionnement par satellite utilisés pour le positionnement ainsi que l’organisation globale de leurs satellites.\nL’utilisation simultanée de plusieurs constellations augmente le nombre de satellites disponibles et améliore la précision et la stabilité du positionnement.";
+"RTK_BLUETOOTH_DEVICE_CONNECT" = "Connexion";
+"RTK_BLUETOOTH_DEVICE_CONNECT_TO" = "Connectez-vous à %@";
+"RTK_BLUETOOTH_DEVICE_DISCONNECT" = "Déconnecter";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_ACQUIRING_LOCATION" = "Acquisition de la position";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_BACK_TO_LIST" = "Retour à la liste des appareils";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_BLUETOOTH_ON" = "Veuillez activer le Bluetooth";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_FOUND" = "Dispositif RTK détecté";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_LAST_CONNECTED" = "Dernière connexion";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_NOT_FOUND" = "Périphérique RTK introuvable";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_POWER_ON" = "Veuillez allumer l'appareil";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_RETRY" = "Réessayer";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_SEARCHING" = "Recherche...";
+"RTK_CAMERA_OFFSET" = "DÉCALAGE DE LA CAMÉRA";
+"RTK_CAMERA_OFFSET_COORDINATE" = "Valeur de décalage entre le bas de l'antenne et l'objectif de la caméra";
+"RTK_CAMERA_OFFSET_CUSTOM" = "Coutume";
+"RTK_DEVICE_CONNECTION" = "Connexion au périphérique RTK";
+"RTK_DEVICE_TYPE" = "Appareil RTK:";
+"RTK_HOSTNAME_IP" = "Nom d'hôte/IP";
+"RTK_HOSTNAME_IP_PLACEHOLDER" = "Saisissez l'hôte ou l'adresse IP";
+"RTK_OFFSET_TYPE" = "Méthode:";
+"RTK_PASSWORD" = "Mot de passe";
+"RTK_PASSWORD_PLACEHOLDER" = "Saisissez le mot de passe";
+"RTK_PORT" = "Port";
+"RTK_PORT_PLACEHOLDER" = "Saisissez le port";
+"RTK_USERNAME" = "Nom d'utilisateur";
+"RTK_USERNAME_PLACEHOLDER" = "Saisissez le nom d'utilisateur";
+"RTK_VALIDATE_NTRIP" = "Valider NTRIP";
+"VALIDATION_FAILS" = "Échec de la validation";
+
+// --- UI - ViewAR ---
+"AR_DISPLAY_COMPLETE" = "Affichage AR terminé.";
+"AR_UPDATED" = "Mise à jour de la réalité augmentée";
+"CALCULATION_SETTING" = "Paramètres de calcul";
+"CHANGE_AMOUNT" = "Montant";
+"DESIGN" = "Conception";
+"DISPLAY_SETTINGS" = "Paramètres d’affichage";
+"DISTANCE" = "Distance";
+"HORIZONTAL" = "Horizontale";
+"LAS_LEVEL" = "Niveau Las";
+"LAYERS" = "Couches";
+"LOADING_PROJECT" = "Chargement du projet...";
+"OCCLUSION" = "Occlusion";
+"PLANE_GRID" = "Grille au sol";
+"POINTCLOUD_SIZE" = "Taille du nuage de points";
+"POINT_CLOUD" = "Nuage de points";
+"POSITION_SETTING" = "Paramètres de position";
+"RTK_CONNECT" = "Veuillez connecter RTK pour la correction automatique.";
+"RTK_WAIT_ACCURACY" = "Veuillez patienter pour une meilleure précision.";
+"RTK_WALK" = "Veuillez marcher un peu.";
+"SCALE" = "Échelle";
+"SEARCH_LAYER" = "Chercher couche";
+"SHADOW" = "Ombre";
+"SHOW_POINT_CLOUD" = "Afficher le LiDAR";
+
+// --- UI - RTKSetting (added from rtk-localizable.html) ---
+"RTK_BLUETOOTH_DEVICE" = "APPAREIL BLUETOOTH RTK";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_CONNECTED" = "Connecté";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_DISCONNECTED" = "Déconnecté";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_1" = "Vous ne trouvez pas votre appareil ?";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_2" = "Si vous ne trouvez pas votre appareil,";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_3" = "Veuillez vérifier que l'appareil est allumé et que le Bluetooth est activé.";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_RECORDING" = "Enregistrement";
+"RTK_BLUETOOTH_DEVICE_NOTICE" = "Assurez-vous que votre récepteur RTK est allumé. ";
+"RTK_BLUETOOTH_DEVICE_NOTICE2" = "S'il n'est pas trouvé, assurez-vous de vous connecter ici";
+"RTK_BLUETOOTH_DEVICE_NOTICE3" = "Pour acquérir des emplacements, assurez-vous que vous êtes à l'extérieur et que vous avez un bon signal pour obtenir une solution RTK";
+"RTK_BLUETOOTH_DEVICE_TITLE" = "Appareils découverts - Appuyez pour sélectionner";
+"RTK_CAMERA_OFFSET_DEVICE_NOT_SUPPORTED" = "L'appareil n'est pas pris en charge";
+"RTK_CONNECTION_LOST" = "Connexion RTK perdue";
+"RTK_DEVICE_SETTING" = "Paramètres du périphérique RTK";
+"RTK_MOUNTPOINT" = "MOUNTPOINT";
+"RTK_NTRIP_AUTH_ERROR" = "Erreur d'authentification";
+"RTK_NTRIP_INVALID_CHARACTER" = "Contient des caractères non autorisés";
+"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Défini par le fournisseur de services NTRIP";
+"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Sélectionner le système de coordonnées NTRIP";
+"RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "SYSTÈME DE RÉFÉRENCE DE COORDONNÉES D'ENTRÉE";
+"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE" = "Informations NTRIP non validées";
+"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE_MESSAGE" = "Valider les informations NTRIP pour recevoir la liste des points de montage";
+"RTK_NTRIP_MOUNTPOINT_SEARCH_AZ" = "Par nom (A-Z)";
+"RTK_NTRIP_MOUNTPOINT_SEARCH_LOCATION" = "Par emplacement (le plus proche en premier)";
+"RTK_NTRIP_MOUNTPOINT_RECENT_SELECTIONS" = "Sélections récentes";
+"RTK_NTRIP_MOUNTPOINT_ALL_SELECTION" = "Toutes les sélections";
+"RTK_NTRIP_PROVIDER_DETAILS" = "DÉTAILS DU FOURNISSEUR NTRIP";
+"RTK_NTRIP_SETTINGS" = "Paramètres NTRIP";
+"RTK_NTRIP_VALIDATE_FAIL" = "Valider l'échec de NTRIP";
+"RTK_SELECT" = "Sélectionner";
+
+// --- UI - Calibration ---
+"NEXT" = "Suivant";
+"CALIBRATION_PREVIEW" = "Aperçu";
+"CALIBRATION_REFERENCE_POINT" = "Pt. réf.";
+"CALIBRATION_DIRECTION_POINT" = "Pt. dir.";
+"CALIBRATION_POINTS_TOO_CLOSE" = "Le point de direction est trop proche du point de référence. Veuillez en sélectionner un autre.";
+"CALIBRATION_COMPLETE" = "Terminé";
+"CALIBRATION_BACK" = "Retour";
+"CALIBRATION_GUIDE_STEP1" = "Veuillez sélectionner le point de référence et le point de direction sur le modèle.";
+"CALIBRATION_GUIDE_STEP2" = "Veuillez indiquer où placer le point de référence et le point de direction.";
+
+/* QUICK-1012 — NTRIP service provider */
+"RTK_NTRIP_VRS_PROVIDER" = "Fournisseur VRS";
+"RTK_NTRIP_USERNAME_HINT" = "Saisissez les 8 derniers chiffres du numéro de série Ntrip Caster";
+"RTK_NTRIP_PROVIDER_DOCOMO" = "docomo";
+"RTK_NTRIP_PROVIDER_SOFTBANK" = "softbank";
+"RTK_NTRIP_PROVIDER_JENOBA" = "jenoba";
+"RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
+"RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
+"RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
+
+/* QUICK-971 — saved RTK connection profiles */
+"RTK_PROFILE_NAME" = "Nom";
+"RTK_PROFILE_NAME_PLACEHOLDER" = "Saisir un nom pour cette connexion";
+"RTK_PROFILE_CREATE" = "+ Créer";
+"RTK_PROFILE_LIST_TITLE" = "Profils de connexion";
+"RTK_PROFILE_EDIT" = "Modifier";
+"RTK_PROFILE_NEW" = "Nouveau profil";
+"RTK_PROFILE_EMPTY_TITLE" = "Aucun profil RTK créé";
+"RTK_PROFILE_EMPTY_DESC" = "Créez un profil RTK pour vous connecter à votre rover RTK avec le bon décalage de caméra et les identifiants NTRIP.";
+"RTK_PROFILE_DELETE_CONFIRM" = "Voulez-vous supprimer « %@ » ?";
+"RTK_MOUNTPOINT_LABEL" = "Point de montage";
+"RTK_COORDINATE_SYSTEM_LABEL" = "Système de coordonnées";
+"PROJECT_LIST_COLUMN_SETTINGS" = "Paramètres des colonnes de la liste de projets";
+
+/* SC_QUICK-1945 */
+"GAUSSIAN_SPLATTING_PLY" = "Projection Gaussienne (PLY)";

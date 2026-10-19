@@ -8,6 +8,29 @@
 import AVFoundation
 import UIKit
 
+/// `localized(_:)` is called dozens of times per project cell on every render.
+/// Looking up the ".lproj" path and creating a Bundle each time hits the file system,
+/// so the bundle of each language is resolved once and reused.
+final class LocalizationBundleCache {
+    static let shared = LocalizationBundleCache()
+
+    private let lock = NSLock()
+    private var bundles = [String: Bundle?]()
+
+    private init() {}
+
+    func bundle(for lang: String) -> Bundle? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let cached = bundles[lang] { return cached }
+
+        let bundle = Bundle.main.path(forResource: lang, ofType: "lproj").flatMap { Bundle(path: $0) }
+        bundles[lang] = bundle
+        return bundle
+    }
+}
+
 extension String {
     func width(with font: UIFont, maximumNumberOfLines: Int = 0) -> CGFloat {
         let size = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
@@ -29,19 +52,13 @@ extension String {
     }
     
     func toDate(format dateFormat: String, locale: Locale? = Locale(identifier: "en_US_POSIX"), timeZone: TimeZone? = nil) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.dateFormat = dateFormat
-        if let locale = locale { dateFormatter.locale = locale }
-        if let timeZone = timeZone { dateFormatter.timeZone = timeZone }
-        return dateFormatter.date(from: self)
+        DateFormatterCache.shared
+            .formatter(format: dateFormat, locale: locale, timeZone: timeZone)
+            .date(from: self)
     }
 
     func localized(_ lang: String) -> String {
-        guard
-            let path = Bundle.main.path(forResource: lang, ofType: "lproj"),
-            let bundle = Bundle(path: path)
-        else {
+        guard let bundle = LocalizationBundleCache.shared.bundle(for: lang) else {
             return self
         }
 
@@ -80,7 +97,14 @@ extension String {
             return false
         }
     }
-    
+
+    /// QUICK-1060: NTRIP fields (hostname/port/username/password) reject the same characters
+    /// as project names — backslash, slash, trailing space/dot — minus the leading-dash rule,
+    /// which doesn't apply to connection credentials.
+    var containsInvalidNtripCharacter: Bool {
+        rangeOfCharacter(from: CharacterSet(charactersIn: "\\/")) != nil || hasSuffix(" ") || hasSuffix(".")
+    }
+
     /// Returns the file extension of the string path, or nil if none exists.
     var fileExtension: String? {
         let url = URL(fileURLWithPath: self)

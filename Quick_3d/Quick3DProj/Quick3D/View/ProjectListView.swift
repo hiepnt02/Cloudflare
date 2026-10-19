@@ -15,17 +15,16 @@ struct ProjectListView: View {
     @Binding var isLoading: Bool
     @Binding var selectedItem: [String]
     @Binding var currentCat: Cat?
-    @Binding var renameCat: Cat
     @Binding var deleteCat: Cat?
     @Binding var showARListPopup: Bool
-    @Binding var selectCat: Cat
+    @Binding var selectCat: Cat?
     @Binding var isActiveContent: Bool
     @Binding var isShowCameraView: Bool
     @Binding var isShowPointCloudView: Bool
     @Binding var contentWidth: CGFloat
     @Binding var contentHeight: CGFloat
     @Binding var scrollToTopTrigger: Bool
-    @Binding var isListView: Bool
+    let isListView: Bool
     
     let onRefresh: () async -> Void
     
@@ -42,23 +41,22 @@ struct ProjectListView: View {
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                ForEach(productData.displayProduct.indices, id: \.self) { sectionIndex in
-                    let products = productData.displayProduct[sectionIndex]
-                    let visibleProducts = products.filter { shouldShowProject($0) }
-                    
+                // Sections are identified by their group date (stable across updates) so
+                // SwiftUI can diff them instead of rebuilding every section.
+                ForEach(productData.displayProduct) { section in
                     Section {
-                        sectionHeader(for: products)
+                        sectionHeader(for: section.items)
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
-                        
+
                         if isListView {
-                            listView(for: visibleProducts)
+                            listView(for: section.visibleItems)
                         } else {
-                            gridView(for: visibleProducts)
+                            gridView(for: section.gridRows)
                         }
                     }
-                    .id(sectionIndex == 0 ? "top_of_list" : "section_\(sectionIndex)")
+                    .id(isFirstSection(section) ? AnyHashable("top_of_list") : AnyHashable(section.id))
                 }
             }
             .listStyle(.plain)
@@ -91,10 +89,8 @@ private extension ProjectListView {
                 isShowRenameAlert: $isShowRenameAlert,
                 isSelected: isSelectedBinding(for: cat.id),
                 isActiveContent: $isActiveContent,
-                onLongPress: { handleLongPress(id: $0) },
                 onTapPress: { handleTapPress(id: $0) },
                 onNavigateToDetail: { navigateToDetail(cat: cat) },
-                renameCat: $renameCat,
                 deleteCat: $deleteCat,
                 jobSite: productData.jobSite,
                 isShowDeletePopup: $isShowSingleDeletePopup,
@@ -115,14 +111,13 @@ private extension ProjectListView {
         }
     }
     
-    /// Displays the products as a column-based grid (Grid Mode)
+    /// Displays the products as a column-based grid (Grid Mode).
+    /// The rows are already prepared by `ProductData` when the list data changes.
     @ViewBuilder
-    func gridView(for products: [Cat]) -> some View {
-        let chunkedRows = chunkedProducts(products, size: columnCount)
-        
+    func gridView(for chunkedRows: [[Cat]]) -> some View {
         ForEach(chunkedRows.indices, id: \.self) { rowIndex in
             let rowItems = chunkedRows[rowIndex]
-            
+
             HStack(spacing: 10) {
                 ForEach(rowItems, id: \.id) { cat in
                     ProjectItemCell(
@@ -132,10 +127,8 @@ private extension ProjectListView {
                         isShowRenameAlert: $isShowRenameAlert,
                         isSelected: isSelectedBinding(for: cat.id),
                         isActiveContent: $isActiveContent,
-                        onLongPress: { handleLongPress(id: $0) },
                         onTapPress: { handleTapPress(id: $0) },
                         onNavigateToDetail: { navigateToDetail(cat: cat) },
-                        renameCat: $renameCat,
                         deleteCat: $deleteCat,
                         jobSite: productData.jobSite,
                         isShowDeletePopup: $isShowSingleDeletePopup,
@@ -177,12 +170,10 @@ private extension ProjectListView {
         scrollToTopTrigger = false
     }
     
-    func chunkedProducts(_ products: [Cat], size: Int) -> [[Cat]] {
-        stride(from: 0, to: products.count, by: size).map {
-            Array(products[$0..<min($0 + size, products.count)])
-        }
+    func isFirstSection(_ section: ProjectSection) -> Bool {
+        productData.displayProduct.first?.id == section.id
     }
-    
+
     func sectionHeader(for products: [Cat]) -> some View {
         let format = LanguageMode(rawValue: userManager.userLanguage) == .ja ? productData.groupFormat : productData.enGroupFormat
         let dateString = products.first?.sortValueDate(for: productData.sortOption).toString(format: format) ?? ""
@@ -201,12 +192,6 @@ private extension ProjectListView {
 // MARK: - Logic Handlers
 private extension ProjectListView {
     
-    func shouldShowProject(_ cat: Cat) -> Bool {
-        if cat.statusList?.getIsAR == true { return true }
-        let isUnuploadedRemote = cat.projectId != nil && (cat.statusList?.isNotUploaded ?? false)
-        return !isUnuploadedRemote
-    }
-    
     func isSelectedBinding(for catId: String) -> Binding<Bool> {
         Binding(
             get: { selectedItem.contains(catId) },
@@ -222,13 +207,6 @@ private extension ProjectListView {
         )
     }
 
-    func handleLongPress(id: String) {
-        if !selectedItem.contains(id) {
-            selectedItem.append(id)
-        }
-        isEditing = true
-    }
-    
     func handleTapPress(id: String) {
         if let index = selectedItem.firstIndex(of: id) {
             selectedItem.remove(at: index)

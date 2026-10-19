@@ -11,6 +11,12 @@ import ZIPFoundation
 import Combine
 import Alamofire
 
+enum ARUploadSource {
+    case local(file1URL: URL, file2URL: URL?)
+    case groupware(GroupwareModel)
+    case groupwareWithLocalFile(GroupwareModel, file2URL: URL)
+}
+
 class ProductUtil {
     // 正規表現を一度だけコンパイルして再利用する
     private static let regexHead = try! NSRegularExpression(pattern: "^-")
@@ -36,21 +42,60 @@ class ProductUtil {
     }
 }
 
+/// One date group of the project list.
+///
+/// Everything the list needs is prepared here when the data changes (which items are
+/// visible, how they are split into grid rows) instead of being recomputed while
+/// rendering. `id` is the truncated group date, so it stays stable across updates and
+/// SwiftUI can diff the sections properly.
+struct ProjectSection: Identifiable, Equatable {
+    let id: Date
+    /// Every product of the group. The section header is derived from this list.
+    let items: [Cat]
+    /// The products listed as rows.
+    let visibleItems: [Cat]
+    /// `visibleItems` split into rows of the grid layout.
+    let gridRows: [[Cat]]
+
+    /// Number of grid columns, has to match the layout in `ProjectListView`.
+    static var gridColumnCount: Int {
+        UIDevice.current.userInterfaceIdiom == .phone ? 4 : 5
+    }
+}
+
 final class ProductData: ObservableObject {
     var products: [Cat] = UserSession.products
     @Published var jobSite: JobSite?
     @Published var displayARSelection = false
     @Published var groupIndex: GroupMode = .month
-    @Published var displayProduct = [[Cat]]()
+    @Published var displayProduct = [ProjectSection]()
     @Published var totalResult = 0
     @Published var hitsTotal = 0
     @Published var updatedCat: Cat?
     @Published var userList: [User] = []
     @Published var selectedUser: User? = User(userId: UserSession.shared.userInfo?.userId, name: "")
+
+    /// Bumped when something outside MainScreen needs the project list reloaded,
+    /// e.g. BaseUploadPopup finishing an upload. MainScreen refetches with the
+    /// filters the user currently has applied and shows its own loading overlay.
+    @Published private(set) var reloadListRequestID = 0
+
+    /// True while the displaying list is being re-grouped / re-sorted.
+    /// MainScreen shows its loading overlay so a big list does not look frozen.
+    @Published private(set) var isUpdatingList = false
+
+    /// Lists bigger than this are grouped on a background queue, so the UI keeps
+    /// responding (and the loading overlay can be shown) while grouping runs.
+    /// Smaller lists are grouped inline: hopping threads would only cause a flicker.
+    private static let asyncGroupingThreshold = 120
+
+    /// Identifies the newest grouping job so results of an outdated one are dropped.
+    private var groupingGeneration = 0
+
     private var cancelBag = Set<AnyCancellable>()
     var currentSearchStr = ""
     var currentSelectStatus: Status = .all
-    var sortOption: SortOption = UserSession.sortOption
+    var sortOption: SortOption = .capturedDate
     private var lastFetchedOnlineProjects: [Project] = []
     private var lastFetchStatus: Status = .all
     private var lastFetchFromDate: Date? = nil
@@ -60,6 +105,10 @@ final class ProductData: ObservableObject {
     private var lastFetchRtkFilterMode: Int = 2
     private var lastSearchResult = UserSession.products
     private var requests = [DataRequest]()
+    private var arUploadRequest: DataRequest?
+    /// Server projects whose DELETE request is still in flight — excluded from
+    /// fetch results so a refresh cannot resurrect a just-deleted row.
+    private var pendingDeleteProjectIds = Set<String>()
     
     @Published var lishDashboard: [GroupwareModel] = []
     @Published var listDesign: [GroupwareModel] = []
@@ -68,7 +117,7 @@ final class ProductData: ObservableObject {
     private let pjManifestFileName = "projectManifest.json"
     private let catchLogFileName = "catchLog.ndjson"
     private let thumbnailFileName = "thumbnail.png"
-    var uploadProjectQueue = ProjectUploadQueue()
+    var onProjectsRemoved: (([String]) -> Void)?
 
     var groupFormat: String {
         groupIndex.displayFormat
@@ -96,18 +145,80 @@ final class ProductData: ObservableObject {
     
     func updateDisplayProduct(_ mode: GroupMode? = nil) {
         let mode = mode ?? groupIndex
+        let snapshot = products
+        let sortOption = self.sortOption
+        // UIKit has to be read on the main thread, the grouping itself can run anywhere.
+        let gridColumnCount = ProjectSection.gridColumnCount
 
-        var result = [Date: [Cat]]()
-        switch mode {
-        case .year:
-            result = products.sliced(by: [.year], for: { $0.sortValueDate(for: sortOption) })
-        case .month:
-            result = products.sliced(by: [.year, .month], for: { $0.sortValueDate(for: sortOption) })
-        case .day:
-            result = products.sliced(by: [.year, .month, .day], for: { $0.sortValueDate(for: sortOption) })
+        hitsTotal = snapshot.count
+        groupingGeneration += 1
+        let generation = groupingGeneration
+
+        // Small list: group inline to keep the update in the same UI transaction.
+        guard snapshot.count > Self.asyncGroupingThreshold else {
+            displayProduct = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption, gridColumnCount: gridColumnCount)
+            isUpdatingList = false
+            return
         }
-        displayProduct = Array(result.values).sorted(by: { $0[0].sortValueDate(for: sortOption) > $1[0].sortValueDate(for: sortOption) })
-        hitsTotal = products.count
+
+        isUpdatingList = true
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let grouped = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption, gridColumnCount: gridColumnCount)
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // A newer grouping job started meanwhile, its result is the one to show.
+                guard generation == self.groupingGeneration else { return }
+                self.displayProduct = grouped
+                self.isUpdatingList = false
+            }
+        }
+    }
+
+    /// Groups the products by the selected group mode, newest group first, and prepares
+    /// everything the list needs to render a section.
+    /// Pure function so it can run on any queue.
+    private static func groupProducts(
+        _ products: [Cat],
+        mode: GroupMode,
+        sortOption: SortOption,
+        gridColumnCount: Int
+    ) -> [ProjectSection] {
+        guard !products.isEmpty else { return [] }
+
+        let dateComponents: Set<Calendar.Component>
+        switch mode {
+        case .year: dateComponents = [.year]
+        case .month: dateComponents = [.year, .month]
+        case .day: dateComponents = [.year, .month, .day]
+        }
+
+        // Resolve the calendar once: `Calendar.current` is expensive to read per item.
+        let calendar = Calendar.current
+        var groups = [Date: [Cat]]()
+
+        for product in products {
+            let date = product.sortValueDate(for: sortOption)
+            guard let groupDate = calendar.date(from: calendar.dateComponents(dateComponents, from: date)) else { continue }
+            groups[groupDate, default: []].append(product)
+        }
+
+        let columns = max(1, gridColumnCount)
+
+        // `products` is already sorted, so sorting the group keys keeps the item order.
+        return groups.keys.sorted(by: >).compactMap { groupDate in
+            guard let items = groups[groupDate] else { return nil }
+            let visibleItems = items.filter { $0.isShownInProjectList }
+            let gridRows = stride(from: 0, to: visibleItems.count, by: columns).map {
+                Array(visibleItems[$0..<min($0 + columns, visibleItems.count)])
+            }
+
+            return ProjectSection(
+                id: groupDate,
+                items: items,
+                visibleItems: visibleItems,
+                gridRows: gridRows
+            )
+        }
     }
 
     func updateTotalItemCount(isDelete: Bool, numChanged: Int) {
@@ -135,7 +246,14 @@ final class ProductData: ObservableObject {
                 }
                 self.products[index].statusList = status
                 self.lastSearchResult[indexAtLastSearch].statusList = status
-                UserSession.products = self.products.filter { $0.source == .local }
+                // Update the stored local list in place: rebuilding it from the
+                // filtered `products` list would drop any local project the
+                // current date/search filter is hiding.
+                var localProducts = UserSession.products
+                if let localIndex = localProducts.firstIndex(where: { $0.projectId == data.projectId }) {
+                    localProducts[localIndex].statusList = status
+                    UserSession.products = localProducts
+                }
                 dispatchGroup.leave()
             }
         }
@@ -359,10 +477,19 @@ final class ProductData: ObservableObject {
     func removeProducts(ids: [String]) {
         let needRemove = products.filter { ids.contains($0.id) && $0.projectId != nil }
         needRemove.forEach { project in
-            AF.request(URL(string: Constant.baseUrl + "api/v1/project/\(project.projectId!)")!, method: .delete)
+            let projectId = project.projectId!
+            pendingDeleteProjectIds.insert(projectId)
+            AF.request(URL(string: Constant.baseUrl + "api/v1/project/\(projectId)")!, method: .delete)
                 .validate()
-                .responseString { response in
+                .responseString { [weak self] response in
                     print("Delete response: " + (response.value ?? ""))
+                    Task { @MainActor in
+                        guard let self = self else { return }
+                        self.pendingDeleteProjectIds.remove(projectId)
+                        if case .failure = response.result {
+                            self.requestListReload()
+                        }
+                    }
                 }
         }
         
@@ -377,9 +504,9 @@ final class ProductData: ObservableObject {
         ids.forEach { id in
             products.removeAll(where: { $0.id == id })
             lastSearchResult.removeAll(where: { $0.id == id })
-            // Should also remove project in queue
-            uploadProjectQueue.dequeue(catId: id)
         }
+        // Should also remove project in queue
+        onProjectsRemoved?(Array(ids))
         UserSession.products =  UserSession.products.filter { !ids.contains($0.id) }
         updateDisplayProduct()
 
@@ -416,6 +543,11 @@ final class ProductData: ObservableObject {
         horizontalCoordinate: String
     ) -> Cat? {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        // Time when the upload starts.
+        // Use this for both createDate & captureDate instead of the time get from catchLog file
+        // to make sure the uploading project is sorted correctly by both sort options
+        // (upload date & captured date), same as the dates returned by server after upload completed.
+        let uploadStartDate = Date()
         let folderName = "\(NSUUID().uuidString)"
         let folder = documentsDirectory.appendingPathComponent(folderName)
         let copyZipFile = folder.appendingPathComponent(copyZipFileName)
@@ -482,8 +614,8 @@ final class ProductData: ObservableObject {
                         cat: cat,
                         title: title,
                         jobsiteId: jobsiteId,
-                        createDate: catchLogDatas.0,
-                        captureDate: catchLogDatas.0,
+                        createDate: uploadStartDate,
+                        captureDate: uploadStartDate,
                         useVidoc: catchLogDatas.1,
                         imageThumbnailURL: thumbnailURL,
                         coordinateSetting: coordinateSetting,
@@ -494,7 +626,6 @@ final class ProductData: ObservableObject {
                 }
             } else {
                 // Does not have file "projectManifest.json" then should get data from old zip file structure
-                var createDate = Date()
                 var useVidoc = false
                 // Create path of file "catchLog.ndjson"
                 let catchLogURL = folder.appendingPathComponent(catchLogFileName)
@@ -502,7 +633,6 @@ final class ProductData: ObservableObject {
                     _ = try archive.extract(catchLog, to: catchLogURL)
 
                     let catchLogDatas = getDataFromCatchLog(catchLogURL)
-                    createDate = catchLogDatas.0
                     useVidoc = catchLogDatas.1
                 }
 
@@ -520,8 +650,8 @@ final class ProductData: ObservableObject {
                     cat: cat,
                     title: title,
                     jobsiteId: jobsiteId,
-                    createDate: createDate,
-                    captureDate: createDate,
+                    createDate: uploadStartDate,
+                    captureDate: uploadStartDate,
                     useVidoc: useVidoc,
                     imageThumbnailURL: thumbnailURL,
                     coordinateSetting: coordinateSetting,
@@ -629,6 +759,8 @@ final class ProductData: ObservableObject {
                 coordinateSetting: coordinateSetting,
                 linkDashboard: linkDashboard
             )
+            // Keep the dates of the project in the displaying list in sync with this new upload
+            syncUploadDate(createDate, for: cat!)
             return newProduct
         } else{
             let newProduct = Cat(
@@ -832,6 +964,47 @@ final class ProductData: ObservableObject {
         updatedCat = products[index]
     }
     
+    // Update createDate & captureDate to the time the upload starts (re-upload case),
+    // so the uploading project is sorted correctly by both sort options
+    // (upload date & captured date), same as the new project upload case.
+    // Returns the updated Cat that should be used for the upload request.
+    @discardableResult
+    func refreshUploadDate(for cat: Cat, uploadStartDate: Date = Date()) -> Cat {
+        var newCat = cat
+        newCat.createDate = uploadStartDate
+        newCat.captureDate = uploadStartDate
+        syncUploadDate(uploadStartDate, for: cat)
+        return newCat
+    }
+
+    // Sync the upload dates to the displaying lists & the local (offline) products storage.
+    // Only apply for local project because dates of a remote project are always taken from server.
+    private func syncUploadDate(_ uploadStartDate: Date, for cat: Cat) {
+        guard cat.source == .local else { return }
+
+        if let index = products.firstIndex(where: { $0.id == cat.id }) {
+            products[index].createDate = uploadStartDate
+            products[index].captureDate = uploadStartDate
+            sortProducts(&products)
+            updatedCat = products.first(where: { $0.id == cat.id })
+        }
+
+        if let index = lastSearchResult.firstIndex(where: { $0.id == cat.id }) {
+            lastSearchResult[index].createDate = uploadStartDate
+            lastSearchResult[index].captureDate = uploadStartDate
+            sortProducts(&lastSearchResult)
+        }
+
+        var localProducts = UserSession.products
+        if let index = localProducts.firstIndex(where: { $0.id == cat.id }) {
+            localProducts[index].createDate = uploadStartDate
+            localProducts[index].captureDate = uploadStartDate
+            UserSession.products = localProducts
+        }
+
+        updateDisplayProduct()
+    }
+
     func updateJobSite(for cat: Cat, jobSiteId: String, coordinateSetting: Bool, linkDashboard: Bool) {
         guard
             let index = products.firstIndex(where: { $0.id == cat.id }),
@@ -868,7 +1041,14 @@ final class ProductData: ObservableObject {
         }
         products[index].imageBase64Str = imageBase64Str
         lastSearchResult[indexAtLastSearch].imageBase64Str = imageBase64Str
-        UserSession.products = products.filter { $0.source == .local }
+        // Update the stored local list in place: rebuilding it from the
+        // filtered `products` list would drop any local project the
+        // current date/search filter is hiding.
+        var localProject = UserSession.products
+        if let localIndex = localProject.firstIndex(where: { $0.id == cat.id }) {
+            localProject[localIndex].imageBase64Str = imageBase64Str
+            UserSession.products = localProject
+        }
         updateDisplayProduct()
     }
     
@@ -918,6 +1098,25 @@ final class ProductData: ObservableObject {
         }
     }
     
+    func checkGroupwarePermissions(siteId: String, completion: @escaping (Bool) -> Void) {
+        AF.request(URL(string: Constant.baseUrl + "api/v1/checkGroupware?site=\(siteId)")!)
+            .response { response in
+                debugPrint(response)
+                switch response.result {
+                case .success(_):
+                    if let statusCode = response.response?.statusCode, statusCode == 200 {
+                        completion(true)
+                    } else {
+                        completion(false)
+                    }
+                    
+                case .failure(let error):
+                    print("checkGroupwarePermissions Error: \(error)")
+                    completion(false)
+                }
+            }
+    }
+
     func getGroupwares(
         uploadCase: Int,
         siteId: String,
@@ -943,44 +1142,117 @@ final class ProductData: ObservableObject {
         requests.append(req)
     }
     
-    func uploadARGroupware(
+    func uploadARData(
         cat: Cat,
         jobsiteId: String,
-        groupware: GroupwareModel,
         arColor: String,
-        completion: @escaping (Bool) -> Void
+        source: ARUploadSource,
+        progress progressHandler: ((Double) -> Void)? = nil,
+        completion: @escaping (AFDataResponse<Any>) -> Void
     ) {
         let url = URL(string: Constant.baseUrl + "api/v1/project/\(cat.projectId ?? "")/ar")!
-        let parameters: [String: Any] = [
+
+        switch source {
+        case .groupware(let groupware):
+            let parameters: [String: Any] = [
+                "jobsiteId": jobsiteId,
+                "projectName": cat.title,
+                "timeStamp": cat.createDate.toString(format: Constant.rfcFormat, timeZone: .utc),
+                "timezone": TimeZone.current.secondsFromGMT() / 60,
+                "ARColor": arColor,
+                "key": groupware.key,
+                "bucketId": groupware.bucketId,
+                "nodeId": groupware.nodeId,
+                "name": groupware.name,
+                "uploadFileName": groupware.name
+            ]
+            let req = AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                .validate()
+                .responseJSON { response in
+                    debugPrint(response)
+                    completion(response)
+                }
+            requests.append(req)
+
+        case .local(let file1URL, let file2URL):
+            var fields = commonARFields(jobsiteId: jobsiteId, cat: cat, arColor: arColor)
+            fields["uploadFileName"] = file1URL.lastPathComponent
+            if let f2URL = file2URL { fields["uploadFileName2"] = f2URL.lastPathComponent }
+            let req = AF.upload(multipartFormData: { form in
+                form.appendTextFields(fields)
+                form.append(file1URL, withName: "uploadFile", fileName: file1URL.lastPathComponent, mimeType: "application/octet-stream")
+                if let f2URL = file2URL {
+                    form.append(f2URL, withName: "uploadFile2", fileName: f2URL.lastPathComponent, mimeType: "application/octet-stream")
+                }
+            }, to: url, method: .post)
+            .uploadProgress { progressHandler?($0.fractionCompleted) }
+            .responseJSON { [weak self] response in
+                debugPrint(response)
+                self?.arUploadRequest = nil
+                completion(response)
+            }
+            arUploadRequest = req
+            requests.append(req)
+
+        case .groupwareWithLocalFile(let groupware, let file2URL):
+            var fields = commonARFields(jobsiteId: jobsiteId, cat: cat, arColor: arColor)
+            fields["key"] = groupware.key
+            fields["bucketId"] = groupware.bucketId
+            fields["nodeId"] = groupware.nodeId
+            fields["name"] = groupware.name
+            fields["uploadFileName"] = groupware.name
+            fields["uploadFileName2"] = file2URL.lastPathComponent
+            AF.upload(multipartFormData: { form in
+                form.appendTextFields(fields)
+                form.append(file2URL, withName: "uploadFile2", fileName: file2URL.lastPathComponent, mimeType: "application/octet-stream")
+            }, to: url, method: .post)
+            .responseJSON { response in
+                debugPrint(response)
+                completion(response)
+            }
+        }
+    }
+
+    func cancelARUpload() {
+        arUploadRequest?.cancel()
+        arUploadRequest = nil
+    }
+
+    private func commonARFields(jobsiteId: String, cat: Cat, arColor: String) -> [String: String] {
+        [
             "jobsiteId": jobsiteId,
             "projectName": cat.title,
             "timeStamp": cat.createDate.toString(format: Constant.rfcFormat, timeZone: .utc),
-            "timezone": TimeZone.current.secondsFromGMT()/60,
-            "ARColor":arColor,
-            "key": groupware.key,
-            "bucketId": groupware.bucketId,
-            "nodeId": groupware.nodeId,
-            "name": groupware.name,
-            "uploadFileName": groupware.name
+            "timezone": "\(TimeZone.current.secondsFromGMT() / 60)",
+            "ARColor": arColor
         ]
-
-        let req = AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
-            .validate()
-            .responseData { response in
-                debugPrint(response)
-                switch response.result {
-                case .success(let value):
-                    completion(true)
-                case .failure(let error):
-                    completion(false)
-                }
-            }
-        requests.append(req)
     }
 }
 
 // MARK: Fetch Projects List from Server
 extension ProductData {
+    /// Asks MainScreen to reload the project list using its current filters.
+    @MainActor
+    func requestListReload() {
+        reloadListRequestID += 1
+    }
+
+    /// Re-runs the last list request with the filters the user currently has applied.
+    /// Callers outside MainScreen (upload finished, AR upload, AR file deleted...) do not
+    /// own the filter state, so passing fixed values here used to reset the RTK/GPS filter
+    /// to "both" and drop the date / job site filters on the reloaded list.
+    func refreshProjectListWithCurrentFilters() async throws {
+        try await fetchProjectList(
+            status: currentSelectStatus,
+            searchStr: currentSearchStr,
+            fromDate: lastFetchFromDate,
+            toDate: lastFetchToDate,
+            site: lastFetchSite,
+            isRemoved: lastFetchIsRemoved,
+            rtkFilterMode: lastFetchRtkFilterMode
+        )
+    }
+
     func fetchProjectList(
         status: Status,
         searchStr: String,
@@ -993,7 +1265,18 @@ extension ProductData {
         
         currentSearchStr = searchStr
         currentSelectStatus = status
-        
+
+        // Snapshot the requested filters up-front, not only on success: if this
+        // request fails or is cancelled, a later local re-sort (sort/group change)
+        // must still re-filter with the filters the user currently sees on screen —
+        // otherwise it silently falls back to the previous fetch's date range.
+        lastFetchStatus = status
+        lastFetchFromDate = fromDate
+        lastFetchToDate = toDate
+        lastFetchSite = site
+        lastFetchIsRemoved = isRemoved
+        lastFetchRtkFilterMode = rtkFilterMode
+
         let params = buildRequestParameters(
             status: status,
             searchStr: searchStr,
@@ -1063,7 +1346,8 @@ extension ProductData {
         rtkFilterMode: Int
     ) -> Parameters {
         var params: Parameters = [
-            "status": status == .uploadWating ? Status.all.value : status.value
+            "status": status == .uploadWating ? Status.all.value : status.value,
+            "sortBy": sortOption.rawValue
         ]
         if let userId = selectedUser?.userId {
             params["userId"] = userId
@@ -1094,21 +1378,16 @@ extension ProductData {
     // 2. Handling API failures (Local fallback filter on old datasets)
     private func handleFetchFailure(searchStr: String, fromDate: Date?, toDate: Date?, site: JobSite.Site?) {
         var fallbackProducts = self.lastSearchResult
-        
         if !searchStr.isEmpty {
             fallbackProducts = fallbackProducts.filter { $0.title.lowercased().contains(searchStr.lowercased()) }
         }
-        if let toDate = toDate {
-            fallbackProducts = fallbackProducts.filter { ($0.createDate) <= toDate }
-        }
+        fallbackProducts = filterByDateRange(fallbackProducts, fromDate: fromDate, toDate: toDate)
         if let jobsiteId = site?.id {
             fallbackProducts = fallbackProducts.filter { $0.jobsiteId == jobsiteId }
         }
-        if let fromDate = fromDate {
-            fallbackProducts = fallbackProducts.filter { ($0.createDate) >= fromDate }
-        }
-        
-        self.updateProductsInPlace(with: fallbackProducts)
+        sortProducts(&fallbackProducts)
+        self.replaceProducts(with: fallbackProducts)
+        self.updateDisplayProduct()
     }
     
     // 3. Handling API Success
@@ -1121,10 +1400,13 @@ extension ProductData {
         isRemoved: Bool,
         rtkFilterMode: Int
     ) {
-        self.totalResult = value.total
-        self.hitsTotal = value.hitsTotal
+        let fetchedProjects = value.projects.filter { !pendingDeleteProjectIds.contains($0.id) }
+        let droppedCount = value.projects.count - fetchedProjects.count
 
-        self.lastFetchedOnlineProjects = value.projects
+        self.totalResult = value.total - droppedCount
+        self.hitsTotal = value.hitsTotal - droppedCount
+
+        self.lastFetchedOnlineProjects = fetchedProjects
         self.lastFetchStatus = status
         self.lastFetchFromDate = fromDate
         self.lastFetchToDate = toDate
@@ -1142,7 +1424,7 @@ extension ProductData {
         )
         
         // Remove any offline projects that are duplicates of the project about to be downloaded from the server.
-        let projects = value.projects
+        let projects = fetchedProjects
         let needRemove = offlineProducts.filter { offlineItem in projects.contains { $0.id == offlineItem.projectId } }
         needRemove.forEach { project in
             self.remove(project)
@@ -1151,7 +1433,10 @@ extension ProductData {
         offlineProducts = offlineProducts.filter { $0.isLocalFolderExist }
         
         // Map data from the server to an array of Cat (Online) objects.
-        let onlineProducts = projects.map { mapToCat(from: $0) }
+        // Re-apply the from/to filter locally as well: the visible list must obey
+        // the date range the user selected even when the server returns items
+        // outside of it.
+        let onlineProducts = filterByDateRange(projects.map { mapToCat(from: $0) }, fromDate: fromDate, toDate: toDate)
         
         // Combine them for sorting.
         var combinedProducts = offlineProducts + onlineProducts
@@ -1169,15 +1454,28 @@ extension ProductData {
             finalCalculatedProducts = onlineProducts
         }
         
-        self.totalResult += offlineProducts.count
-        
-        // In-place updates prevent UI lag.
-        self.updateProductsInPlace(with: finalCalculatedProducts)
+
+        let offlineTotalCount = getOfflineProductsForTotal(isRemoved: isRemoved)
+            .filter { offlineItem in offlineItem.isLocalFolderExist && !projects.contains { $0.id == offlineItem.projectId } }
+            .count
+        self.totalResult += offlineTotalCount
+
+        self.replaceProducts(with: finalCalculatedProducts)
         self.lastSearchResult = self.products
         self.updateDisplayProduct()
     }
     
     // 4. Offline data list filtering logic
+    private func getOfflineProductsForTotal(isRemoved: Bool) -> [Cat] {
+        if isRemoved { return [] }
+
+        var list = UserSession.products
+        if let userId = self.selectedUser?.userId, userId != UserSession.shared.userInfo?.userId {
+            list = list.filter { $0.userId == userId }
+        }
+        return list
+    }
+
     private func getFilteredOfflineProducts(
         isRemoved: Bool,
         rtkFilterMode: Int,
@@ -1185,10 +1483,8 @@ extension ProductData {
         toDate: Date?,
         site: JobSite.Site?
     ) -> [Cat] {
-        if isRemoved { return [] }
-        
-        var list = UserSession.products
-        
+        var list = getOfflineProductsForTotal(isRemoved: isRemoved)
+
         // Filtering in RTK mode
         if rtkFilterMode == 0 {
             list = list.filter { !($0.useVidoc ?? false) }
@@ -1197,23 +1493,29 @@ extension ProductData {
         }
         
         // Filter based on UI input conditions.
-        if let userId = self.selectedUser?.userId, userId != UserSession.shared.userInfo?.userId {
-            list = list.filter { $0.userId == userId }
-        }
         if !self.currentSearchStr.isEmpty {
             list = list.filter { $0.title.lowercased().contains(self.currentSearchStr.lowercased()) }
         }
-        if let toDate = toDate {
-            list = list.filter { ($0.createDate) <= toDate }
-        }
+        list = filterByDateRange(list, fromDate: fromDate, toDate: toDate)
         if let jobsiteId = site?.id, !jobsiteId.isEmpty {
             list = list.filter { $0.jobsiteId == jobsiteId }
         }
-        if let fromDate = fromDate {
-            list = list.filter { ($0.createDate) >= fromDate }
-        }
-        
+
         return list
+    }
+
+    private func filterByDateRange(_ list: [Cat], fromDate: Date?, toDate: Date?) -> [Cat] {
+        // Cut by the same date field the server filters by (sortBy): capture date
+        // when sorting by captured date, upload date when sorting by upload date.
+        let sortOption = self.sortOption
+        var result = list
+        if let toDate = toDate, let endOfDay = toDate.endOfDay {
+            result = result.filter { $0.sortValueDate(for: sortOption) <= endOfDay }
+        }
+        if let fromDate = fromDate, let startOfDay = fromDate.startOfDay {
+            result = result.filter { $0.sortValueDate(for: sortOption) >= startOfDay }
+        }
+        return result
     }
     
     // 5. Map from API Model to UI Model (Cat)
@@ -1243,102 +1545,58 @@ extension ProductData {
         )
     }
     
-    // 6. Re-sort and re-group the current data locally without calling the API.
-    func reapplySortLocally() {
-        guard !lastFetchedOnlineProjects.isEmpty else { return }
+    // 6. List Sorting Function (Supports Japanese/English/Numbers in multiple languages)
+    //
+    // The date and the title sort value are computed once per item instead of on every
+    // comparison: getting the title sort value costs up to 5 regex evaluations, which the
+    // comparator used to redo O(n log n) times.
+    private func sortProducts(_ list: inout [Cat]) {
+        let sortOption = self.sortOption
 
-        var offlineProducts = getFilteredOfflineProducts(
-            isRemoved: lastFetchIsRemoved,
-            rtkFilterMode: lastFetchRtkFilterMode,
-            fromDate: lastFetchFromDate,
-            toDate: lastFetchToDate,
-            site: lastFetchSite
-        )
-
-        let projects = lastFetchedOnlineProjects
-        let needRemove = offlineProducts.filter { offlineItem in projects.contains { $0.id == offlineItem.projectId } }
-        needRemove.forEach { project in
-            self.remove(project)
-            offlineProducts.removeAll(where: { $0.projectId == project.projectId })
-        }
-        offlineProducts = offlineProducts.filter { $0.isLocalFolderExist }
-
-        let onlineProducts = projects.map { mapToCat(from: $0) }
-        var combinedProducts = offlineProducts + onlineProducts
-        sortProducts(&combinedProducts)
-
-        var finalProducts: [Cat] = []
-        if lastFetchStatus == .all {
-            finalProducts = combinedProducts
-        } else if lastFetchStatus == .uploadWating {
-            finalProducts = offlineProducts
-        } else {
-            finalProducts = onlineProducts
+        var sortKeys = list.map { cat in
+            (
+                date: cat.sortValueDate(for: sortOption),
+                titleSortValue: Self.titleSortValue(for: cat.title),
+                cat: cat
+            )
         }
 
-        self.updateProductsInPlace(with: finalProducts)
-        self.lastSearchResult = self.products
-        self.updateDisplayProduct()
+        sortKeys.sort { lhs, rhs in
+            if lhs.date == rhs.date {
+                if lhs.titleSortValue == rhs.titleSortValue {
+                    return lhs.cat.title < rhs.cat.title
+                }
+                return lhs.titleSortValue > rhs.titleSortValue
+            }
+            return lhs.date > rhs.date
+        }
+
+        list = sortKeys.map { $0.cat }
     }
 
-    // 7. List Sorting Function (Supports Japanese/English/Numbers in multiple languages)
-    private func sortProducts(_ list: inout [Cat]) {
-        list.sort(by: {
-            let lhsDate = sortOption == .capturedDate ? $0.captureDate : $0.createDate
-            let rhsDate = sortOption == .capturedDate ? $1.captureDate : $1.createDate
+    // Number, english, kanzi, katakana, hiragana - compiled once and reused.
+    private static let titleSortPredicates: [NSPredicate] = [
+        "[0-9]",
+        "[a-zA-Z]",
+        "^[一-龠]*$",
+        "^[ァ-ヶｱ-ﾝﾞﾟ]*$",
+        "^[ぁ-ん]*$"
+    ].map { NSPredicate(format: "SELF MATCHES %@", $0) }
 
-            if lhsDate == rhsDate {
-                let regexNumber = "[0-9]"
-                let regexEnglish = "[a-zA-Z]"
-                let regexKanzi = "^[一-龠]*$"
-                let regexKatakana = "^[ァ-ヶｱ-ﾝﾞﾟ]*$"
-                let regexHiragana = "^[ぁ-ん]*$"
-
-                func getSortValue(for str: String) -> Int {
-                    let sortOrder = [regexNumber, regexEnglish, regexKanzi, regexKatakana, regexHiragana]
-                    return sortOrder.firstIndex(where: { regex in str.validateRegex(regex) }) ?? 0
-                }
-
-                let aSortValue = getSortValue(for: $0.title[0])
-                let bSortValue = getSortValue(for: $1.title[0])
-                if aSortValue == bSortValue {
-                    return $0.title < $1.title
-                } else {
-                    return aSortValue > bSortValue
-                }
-            } else {
-                return lhsDate > rhsDate
-            }
-        })
+    private static func titleSortValue(for title: String) -> Int {
+        let firstCharacter = title[0]
+        return titleSortPredicates.firstIndex(where: { $0.evaluate(with: firstCharacter) }) ?? 0
     }
     
-    // 8. Perform an in-place update of the `self.products` array to optimize UI rendering.
-    private func updateProductsInPlace(with targetProducts: [Cat]) {
-        let targetIds = Set(targetProducts.map { $0.projectId })
-        self.products.removeAll { !targetIds.contains($0.projectId) }
-        
-        for (index, targetItem) in targetProducts.enumerated() {
-            if let currentIndex = self.products.firstIndex(where: { $0.projectId == targetItem.projectId }) {
-                self.products[currentIndex] = targetItem
-            } else {
-                if index < self.products.count {
-                    self.products.insert(targetItem, at: index)
-                } else {
-                    self.products.append(targetItem)
-                }
-            }
-        }
-        
-        // Ensure the order is perfectly synchronized after insertion/deletion.
-        let currentIds = self.products.map { $0.projectId }
-        let targetIdList = targetProducts.map { $0.projectId }
-        if currentIds != targetIdList {
-            self.products.sort { (a, b) -> Bool in
-                let indexA = targetProducts.firstIndex(where: { $0.projectId == a.projectId }) ?? 0
-                let indexB = targetProducts.firstIndex(where: { $0.projectId == b.projectId }) ?? 0
-                return indexA < indexB
-            }
-        }
+    // 8. Update `self.products` with the newly calculated list.
+    //
+    // This used to diff the array item by item and then re-sort it with a comparator
+    // that searched `targetProducts` on every comparison (O(n² log n), several seconds
+    // on a few hundred projects). The end result was always exactly `targetProducts`,
+    // and `products` is not @Published (the UI renders `displayProduct`), so there is
+    // nothing to gain from diffing here.
+    private func replaceProducts(with targetProducts: [Cat]) {
+        self.products = targetProducts
     }
 }
 
@@ -1415,6 +1673,16 @@ extension ProductData {
                 userList = response
             } catch {
                 // handle error
+            }
+        }
+    }
+}
+
+private extension MultipartFormData {
+    func appendTextFields(_ fields: [String: String]) {
+        fields.forEach { key, value in
+            if let data = value.data(using: .utf8) {
+                append(data, withName: key)
             }
         }
     }

@@ -9,6 +9,7 @@ struct ProjectItemCell: View {
     @EnvironmentObject var productData: ProductData
     @EnvironmentObject var uploadProject: UploadProject
     @EnvironmentObject var editProject: EditProject
+    @EnvironmentObject var uploadQueue: UploadQueueManager
 
     var cat: Cat
     @Binding var isEditing: Bool
@@ -17,18 +18,16 @@ struct ProjectItemCell: View {
     @Binding var isSelected: Bool
     @Binding var isActiveContent: Bool
 
-    let onLongPress: (String) -> Void
     let onTapPress: (String) -> Void
     let onNavigateToDetail: () -> Void
 
-    @Binding var renameCat: Cat
     @Binding var deleteCat: Cat?
     let jobSite: JobSite?
     @Binding var isShowDeletePopup: Bool
     @Binding var isShowExportCompleted: Bool
     @Binding var isLoading: Bool
     @Binding var showARListPopup: Bool
-    @Binding var selectCat: Cat
+    @Binding var selectCat: Cat?
     
     @Binding var isShowCameraView: Bool
     @Binding var isShowPointCloudView: Bool
@@ -54,8 +53,11 @@ struct ProjectItemCell: View {
         jobSite?.sites.first { $0.id == cat.jobsiteId }
     }
     
-    private var thumbnailImage: UIImage? {
-        (cat.source == .local ? cat.image : image) ?? image
+    /// Upload state of this project only. Handing it to the cells as a plain value keeps
+    /// them out of the queue's observers, so a progress change only re-renders the cell of
+    /// the project being uploaded.
+    private var uploadState: CellUploadState {
+        uploadQueue.states[cat.id] ?? .idle
     }
 
     // MARK: - Body
@@ -66,37 +68,40 @@ struct ProjectItemCell: View {
                     cat: cat,
                     isEditing: $isEditing,
                     isSelected: $isSelected,
-                    thumbnailImage: thumbnailImage,
+                    thumbnailImage: image,
                     jobSiteName: jobSiteName,
-                    actionMenuItems: AnyView(actionMenuItems),
+                    uploadState: uploadState,
+                    actionMenuItems: { AnyView(actionMenuItems) },
                     onTap: handleCellTap,
-                    onLongPress: {
-                        if !isEditing {
-                            isSelected = true
-                            onLongPress(cat.id)
-                        }
-                    },
                     isShowNoNetworkAlert: $isShowNoNetworkAlert,
-                    cellWidth: $cellWidth
+                    cellWidth: $cellWidth,
+                    visibleColumns: userManager.setting.visibleProjectColumns,
+                    contentWidth: contentWidth
                 )
+                .equatable()
             } else {
                 ProjectGridCell(
                     cat: cat,
                     isEditing: $isEditing,
                     isSelected: $isSelected,
-                    thumbnailImage: thumbnailImage,
+                    thumbnailImage: image,
                     jobSiteName: jobSiteName,
-                    actionMenuItems: AnyView(actionMenuItems),
+                    uploadState: uploadState,
+                    actionMenuItems: { AnyView(actionMenuItems) },
                     onTap: handleCellTap,
                     isShowNoNetworkAlert: $isShowNoNetworkAlert
                 )
+                .equatable()
             }
         }
         .allowsHitTesting(allowTap)
         .onAppear { setupCell() }
         .onDisappear { cancelRequests() }
         .onChange(of: contentWidth) { newWidth in
-            cellWidth = max(0, (newWidth - 150) / (UIDevice.current.isIphone ? 4 : 5))
+            cellWidth = ProjectListColumnLayout.Metrics.thumbnailWidth(
+                contentWidth: newWidth,
+                isIPhone: UIDevice.current.isIphone
+            )
         }
         .onChange(of: cat.projectId) { projectID in handleProjectIdChange(projectID) }
     }
@@ -131,16 +136,42 @@ extension ProjectItemCell {
                     }
                     
                     Button("AR_PIX4D_BOOT".localized(userManager.userLanguage)) {
-                        if let projectId = cat.projectId {
+                        // An AR project (`getIsAR`) is always handed over to Pix4D, whatever
+                        // its processing state. For every other project the SFM step has to
+                        // have been through processing first - completed (step 2 or later in
+                        // `statusIndicatorGroup`) or failed. From that point on neither a
+                        // failed SFM nor a failed AR conversion (`isARFail`) blocks Pix4D.
+                        if !status.getIsAR && !status.canOpenPix4DAR {
+                            showSfmNotCompletedAlert()
+                        } else if let projectId = cat.projectId {
                             Task {
-                                await Pix4DInfo().openPix4DViewAR(
-                                    projectId: projectId,
-                                    productData: productData
-                                )
+                                do {
+                                    try await Pix4DInfo().openPix4DViewAR(
+                                        projectId: projectId,
+                                        productData: productData
+                                    )
+                                } catch {
+                                    showPix4DOpenErrorAlert(error)
+                                }
                             }
                         } else {
                             print("Error: projectId nil")
+                            showPix4DOpenErrorAlert(Pix4DInfo.OpenError.featuresUnavailable)
                         }
+                    }
+                    
+                    CameraButton(type: .ar) {
+                        if !status.getIsAR && !status.canOpenPix4DAR {
+                            showSfmNotCompletedAlert()
+                        } else {
+                            viewAR()
+                        }
+                    } unsupportedAction: {
+                        APAlert.shared.showAlertWithTheme(
+                            title: "NOTICE".localized(userManager.userLanguage),
+                            message: "LIDAR_UNSUPPORTED".localized(userManager.userLanguage),
+                            userManager: userManager
+                        )
                     }
                 }
             } else if userManager.setting.isTester {
@@ -151,19 +182,71 @@ extension ProjectItemCell {
         }
     }
 
+    /// Tells the user why the project is not handed over to Pix4D.
+    private func showSfmNotCompletedAlert() {
+        showPix4DAlert(messageKey: "AR_PIX4D_SFM_NOT_COMPLETED")
+    }
+
+    /// Tells the user why the hand over to Pix4D failed, instead of letting it fail silently.
+    private func showPix4DOpenErrorAlert(_ error: Error) {
+        if case .appNotOpened? = error as? Pix4DInfo.OpenError {
+            showPix4DAlert(messageKey: "PIX4D_APP_NOT_INSTALLED")
+        } else {
+            showPix4DAlert(messageKey: "AR_PIX4D_OPEN_ERROR")
+        }
+    }
+
+    /// The alert runs on its own window, so it is shown once the menu has been dismissed.
+    private func showPix4DAlert(messageKey: String) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            APAlert.shared.showAlertWithTheme(
+                title: "",
+                message: messageKey.localized(userManager.userLanguage),
+                buttonTitle: "CLOSE".localized(userManager.userLanguage),
+                userManager: userManager
+            )
+        }
+    }
+
     private func setupCell() {
-        cellWidth = max(0, (contentWidth - 150) / (UIDevice.current.isIphone ? 4 : 5))
-        
-        NotificationCenter.default.addObserver(forName: .updateCell, object: nil, queue: .main) { _ in
-            self.isSelected = false
+        cellWidth = ProjectListColumnLayout.Metrics.thumbnailWidth(
+            contentWidth: contentWidth,
+            isIPhone: UIDevice.current.isIphone
+        )
+        loadThumbnail()
+    }
+
+    /// Loads the thumbnail once per cell and keeps it in `image`.
+    /// Reading it inside `body` (through `cat.image`) used to re-read and re-decode the
+    /// file from disk on every render - and every cell re-renders each time the upload
+    /// progress or the project list is published.
+    private func loadThumbnail() {
+        if cat.source == .local {
+            guard image == nil else { return }
+
+            if let cached = UserSession.shared.cacheThumbnail(for: cat.id) {
+                self.image = cached
+                return
+            }
+
+            guard let thumbnailURL = cat.zipFolder?.appendingPathComponent("thumbnail.png"),
+                  FileManager.default.fileExists(atPath: thumbnailURL.path) else { return }
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let loadedImage = UIImage.downsampled(from: thumbnailURL, maxPixelSize: 600) else { return }
+                DispatchQueue.main.async {
+                    UserSession.shared.saveCacheThumbnail(loadedImage, for: cat.id)
+                    self.image = loadedImage
+                }
+            }
+            return
         }
 
-        if cat.source == .remote, let projectID = cat.projectId {
-            if let cached = UserSession.shared.cacheThumbnail(for: projectID) {
-                self.image = cached
-            } else {
-                downloadImage(for: projectID)
-            }
+        guard let projectID = cat.projectId else { return }
+        if let cached = UserSession.shared.cacheThumbnail(for: projectID) {
+            self.image = cached
+        } else {
+            downloadImage(for: projectID)
         }
     }
 
@@ -195,7 +278,7 @@ extension ProjectItemCell {
     }
 
     private func handleLocalProjectTap() {
-        if uploadProject.isUploading && uploadProject.projectId == cat.id { return }
+        if uploadState.phase.isActive { return }
 
         if isEditing {
             onTapPress(cat.id)
@@ -236,8 +319,8 @@ extension ProjectItemCell {
 
     private func prepareDataForEdit(isShowUploadPopup: Bool) {
         editProject.resetData()
-        editProject.isInQueue = productData.uploadProjectQueue.isInQueue(catId: cat.id)
-        productData.uploadProjectQueue.dequeue(catId: cat.id)
+        editProject.isInQueue = uploadQueue.isBusy(catId: cat.id)
+        uploadQueue.remove(catId: cat.id)
 
         editProject.currentCat = cat
         editProject.projectName = cat.title

@@ -29,3 +29,9 @@ struct UserList: Decodable {
     let users: [User]
 }
 
+extension User: DropdownDisplayable {
+    /// User names come from the server as-is; the language is not consulted.
+    func dropdownTitle(in language: String) -> String {
+        name
+    }
+}

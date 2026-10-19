@@ -19,20 +19,20 @@ struct GroupwareInfoView: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text("FILE_NAME".localized(userManager.userLanguage))
-                .foregroundColor(userManager.userSetting.getTextColor().opacity(0.5))
+                .foregroundColor(userManager.setting.textColor.opacity(0.5))
                 .font(.caption)
             
             Text(fileName)
-                .foregroundColor(userManager.userSetting.getTextColor())
+                .foregroundColor(userManager.setting.textColor)
                 .font(.caption.bold())
                 .padding(.bottom, 5)
             
             Text("PATH".localized(userManager.userLanguage))
-                .foregroundColor(userManager.userSetting.getTextColor().opacity(0.5))
+                .foregroundColor(userManager.setting.textColor.opacity(0.5))
                 .font(.caption)
             
             Text(filePath)
-                .foregroundColor(userManager.userSetting.getTextColor())
+                .foregroundColor(userManager.setting.textColor)
                 .font(.caption.bold())
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -40,7 +40,7 @@ struct GroupwareInfoView: View {
         .padding(.all, 8)
         .background {
             RoundedRectangle(cornerRadius: 3)
-                .fill(userManager.userSetting.getThemeColor().opacity(0.3))
+                .fill(userManager.setting.themeColor.opacity(0.3))
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 3))
         }
         .overlay {

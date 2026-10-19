@@ -8,14 +8,16 @@
 import UIKit
 import SwiftUI
 
-enum AppEnvironment {
+enum AppEnvironment: String {
     case dev
     case stg
     case prod
 }
 
-let currentEnvironment: AppEnvironment = .dev
-
+let currentEnvironment: AppEnvironment = {
+    let type = Bundle.main.object(forInfoDictionaryKey: "ENV_TYPE") as? String
+    return AppEnvironment(rawValue: type ?? "dev") ?? .dev
+}()
 struct Constant {
     static let domainUrl: String = {
         switch currentEnvironment {
@@ -75,6 +77,23 @@ struct Constant {
     static let rfcFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     static let appstoreURL = "itms-apps://apple.com/app/id1627645913"
     static let llvURL = "https://web.viewer.landlog.info/organization/2Zbj4V1ZWXL3dwobBySX01/site/"
+
+    // MARK: - Help / legal URLs
+    private static let supportUrlJa = "https://support-quick3d.smartconstruction.com/hc/ja"
+    private static let supportUrlEn = "https://support-quick3d.smartconstruction.com/hc/en-us"
+    private static let termsOfUseUrlJa = "https://terms.smartconstruction.com/jp/terms-of-use"
+    private static let termsOfUseUrlGlobal = "https://terms.smartconstruction.com/na/terms-of-use"
+
+    static let userManualUrl = URL(string: "https://support-quick3d.smartconstruction.com/hc/ja/articles/11060723222937--Smart-Construction-Quick3D-%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E3%82%AC%E3%82%A4%E3%83%89")
+
+    /// Japanese users get the JA help center, everybody else the global one.
+    static func supportUrl(for language: String) -> URL? {
+        URL(string: language == LanguageMode.ja.rawValue ? supportUrlJa : supportUrlEn)
+    }
+
+    static func termsOfUseUrl(for language: String) -> URL? {
+        URL(string: language == LanguageMode.ja.rawValue ? termsOfUseUrlJa : termsOfUseUrlGlobal)
+    }
 }
 
 extension Notification.Name {
@@ -119,3 +138,5 @@ let denimBlue: Color = Color(hex: 0x1976D2)
 
 let mintBreeze = Color.init(hex: 0x68eeac)
 let pineGreen = Color(hex: 0x167E1E)
+
+let orange: Color = Color(hex: 0xFF9800)

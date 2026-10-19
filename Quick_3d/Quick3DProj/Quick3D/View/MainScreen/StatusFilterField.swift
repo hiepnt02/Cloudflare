@@ -9,26 +9,22 @@ import SwiftUI
 
 struct StatusFilterField: View {
     @EnvironmentObject var userManager: UserManager
-    
+
     @Binding var selectedStatus: Status
-    let statusList: [Status]
+    @Binding var isPopupStatusPresented: Bool
+    @Binding var tfStatusPosition: CGPoint
+    @Binding var tfStatusWidth: CGFloat
+    @Binding var tfStatusHeight: CGFloat
     let isIPhone: Bool
-    let onSelect: () -> Void
-    
+
+    private var title: String {
+        selectedStatus.dropdownTitle(in: userManager.userLanguage)
+    }
+
     var body: some View {
-        Menu {
-            ForEach(statusList, id: \.self) { value in
-                Button(value.rawValue.localized(userManager.userLanguage)) {
-                    self.selectedStatus = value
-                    // Defer the action so the Menu can close before calling onSelect()
-                    DispatchQueue.main.async {
-                        onSelect()
-                    }
-                }
-            }
-        } label: {
+        Button(action: { isPopupStatusPresented.toggle() }) {
             HStack(spacing: 0) {
-                Text("\(selectedStatus.rawValue.localized(userManager.userLanguage))")
+                Text(title)
                     .lineLimit(1)
                     .font(.system(size: isIPhone ? 12 : 15))
                     .foregroundColor(userManager.setting.textColor)
@@ -38,11 +34,17 @@ struct StatusFilterField: View {
                 Image("arrowDown")
                     .renderingMode(.template)
                     .foregroundColor(userManager.setting.textColor)
+                    .rotationEffect(.degrees(isPopupStatusPresented ? 180 : 0))
                     .padding(.trailing, isIPhone ? 0 : 10.0)
             }
+            .frame(width: isIPhone ? 115 : 190, height: isIPhone ? 32 : 42, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .frame(width: isIPhone ? 115 : 190, height: isIPhone ? 32 : 42, alignment: .leading)
         .border(.gray, width: 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("STATUS".localized(userManager.userLanguage)))
+        .accessibilityValue(Text(title))
+        .accessibilityAddTraits(.isButton)
         .overlay(alignment: .topLeading) {
             Text("STATUS".localized(userManager.userLanguage))
                 .font(.system(size: isIPhone ? 12 : 15))
@@ -50,6 +52,24 @@ struct StatusFilterField: View {
                 .background(userManager.setting.themeColor)
                 .font(.subheadline)
                 .offset(x: 10, y: -8)
+                .accessibilityHidden(true)
         }
+        .overlay(
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        tfStatusPosition = geometry.frame(in: .global).origin
+                        tfStatusWidth = geometry.size.width
+                        tfStatusHeight = geometry.size.height
+                    }
+                    .onChange(of: geometry.frame(in: .global).origin) { newPos in
+                        tfStatusPosition = newPos
+                    }
+                    .onChange(of: geometry.size) { newSize in
+                        tfStatusWidth = newSize.width
+                        tfStatusHeight = newSize.height
+                    }
+            }
+        )
     }
 }
