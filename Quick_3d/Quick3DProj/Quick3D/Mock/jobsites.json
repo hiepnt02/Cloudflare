@@ -1,0 +1,117 @@
+{
+    "total": 28,
+    "sites": [
+      {
+        "id": "d5fdb2d5-8d82-4d8a-8867-517f8e814702",
+        "name": "Quick3Dテスト"
+      },
+      {
+        "id": "0abf16b9-f930-4018-8c00-fb2b7e0bf3a6",
+        "name": "Q3D_test_teshima"
+      },
+      {
+        "id": "a9cdde9e-db0f-444e-97ed-4e6109bfbd29",
+        "name": "mihama_design"
+      },
+      {
+        "id": "d543cade-5c5b-4aab-b6d6-87f9c2d1a53d",
+        "name": "Q3Dテスト0607"
+      },
+      {
+        "id": "e057fb70-b973-433e-8dc8-6fa2f42469d7",
+        "name": "ARTESTーATOS"
+      },
+      {
+        "id": "0e0f5bc1-82a6-49e0-b98e-b5ee12504a92",
+        "name": "Testnew"
+      },
+      {
+        "id": "e94643fb-294f-479d-9577-8a64f3efee99",
+        "name": "nCircle_Test_4_yokuchi"
+      },
+      {
+        "id": "e1e50577-fcfb-426a-a07d-88ede46acc68",
+        "name": "Q3D鈴与検証（0912-0914）ステージング"
+      },
+      {
+        "id": "51a59272-7e99-4fbd-aaca-c6c22043d93a",
+        "name": "mihama-6677-0930"
+      },
+      {
+        "id": "4b41d3cb-7229-4038-89a9-5cb1eb43b2b8",
+        "name": "Quick3D test"
+      },
+      {
+        "id": "a9bdb816-399f-4838-8e5d-70ccda4c82a9",
+        "name": "Quick3D new site"
+      },
+      {
+        "id": "58de35a3-3473-49dc-b5c2-bb2b5d287df7",
+        "name": "CCT_test_mihama_1101"
+      },
+      {
+        "id": "a308f274-1335-4279-a6a4-eb1e31da8760",
+        "name": "test20221108"
+      },
+      {
+        "id": "f5a6ed5a-b554-42a6-b7e9-93bb9c1f48e1",
+        "name": "test20221110"
+      },
+      {
+        "id": "4f9b4917-b663-4dc8-a213-21ae30d3c495",
+        "name": "CCT_pointworks_kiyota_Dev"
+      },
+      {
+        "id": "1303e09c-d164-4644-ac78-6c1dcd1d6068",
+        "name": "DXC_CSPI小規模動画用"
+      },
+      {
+        "id": "a872dd4e-7241-4ebb-980e-ca890d7bee4d",
+        "name": "unit_test"
+      },
+      {
+        "id": "b3bd6af1-37de-40ea-87a6-c3a84f33bc6d",
+        "name": "Quick3D デジタルアーカイブ（vidoc）"
+      },
+      {
+        "id": "fa41832e-7230-474d-b520-c26a8bb93e02",
+        "name": "2023/02/13 Mihama Louis"
+      },
+      {
+        "id": "180bb3c7-0206-4ce2-914b-51201d598791",
+        "name": "脆弱性診断用現場-美浜"
+      },
+      {
+        "id": "5e6c76b9-073a-4574-a1d2-6d099310c2db",
+        "name": "0302Test"
+      },
+      {
+        "id": "3eb79410-3e82-4529-a22b-041c9908b538",
+        "name": "Quickテスト6676"
+      },
+      {
+        "id": "e9962db4-e8eb-42ae-81f1-5f8b44d7a520",
+        "name": "美浜座標系変換テスト用"
+      },
+      {
+        "id": "7f6e67f1-c7e2-40b9-ac51-bf000dc88bc6",
+        "name": "美浜　新規　現場座標"
+      },
+      {
+        "id": "4d265b93-00e7-4836-acea-9ad7f3beb461",
+        "name": "CTC-Sim_Share_Miyazaki"
+      },
+      {
+        "id": "1c426105-809a-4a24-beb9-5daa97c88257",
+        "name": "DXC_SCDesign3D_美浜"
+      },
+      {
+        "id": "2abfca9a-6340-4657-af08-76ca75376954",
+        "name": "DXC_SCDesign3D_三重中央8期"
+      },
+      {
+        "id": "20509bfd-a3c3-4022-b82e-1d396e4ccab4",
+        "name": "0525_DXC_CSPI大規模現場サンプル【南山城】"
+      }
+    ]
+  }

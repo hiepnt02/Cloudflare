@@ -1,0 +1,6 @@
+framework module Pods_Quick3D {
+  umbrella header "Pods-Quick3D-umbrella.h"
+
+  export *
+  module * { export * }
+}

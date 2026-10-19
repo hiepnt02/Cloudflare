@@ -1,0 +1,13 @@
+/* 
+  Localizable.strings
+  Quick3D
+
+  Created by 木皿直規 on 2022/04/19.
+  
+*/
+
+"Minutes" = "Min";
+"TimeRequired" = "Time Required";
+"SORT_BY" = "Lajitteluperuste";
+"SORT_CAPTURED_DATE" = "Kuvauspäivä";
+"SORT_UPLOAD_DATE" = "Lähetyksen päivämäärä";

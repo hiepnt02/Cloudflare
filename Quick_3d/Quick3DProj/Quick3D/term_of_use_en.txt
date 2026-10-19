@@ -1,0 +1,337 @@
+APPLICATION TERMS OF USE
+ 
+Chapter 1. General Provisions
+ 
+Article 1.1 (Purpose of the Terms of Use) 
+These Terms of Use (hereinafter referred to as these “Terms”) set forth matters to be complied with upon using the software licensed on the application sales websites operated by EARTHBRAIN Ltd. (hereinafter referred to as the “Company”) (such websites, including but not limited to those named “DX-Gateway”, “MarketPlace” and “LL Market Place”, are hereinafter referred to as the “Website”). 
+ 
+Article 1.2 (Definitions)
+In these Terms, the definitions of the words listed in the following items shall be as set forth in the respective items.
+(i)         Application
+The software that may be licensed for use on the Website as listed in the attached List of Software
+(ii)       License Agreement
+The license agreement concerning the Application
+(iii)      User
+A person who has entered into a License Agreement
+(iv)      Licensed Application
+An Application for which a License Agreement with a User has been formed
+(v)        The Company, Etc.
+The Company and third parties that may be entrusted by the Company with all or a part of the development and operation of the Application or software that may be provided to Users 
+　
+Article 1.3 (Amendment to these Terms) 
+1.     The Company may amend these Terms at any time to conform to the general interests of Users or when there are reasonable circumstances, in accordance with Article 548-4 of the Civil Code.
+2.     If the Terms are amended in accordance with the preceding Paragraph, Users agree in advance that they will agree to the contents of the Terms after the amendment. 
+3.     If these Terms are amended in accordance with Paragraph 1, such amendment shall come into effect at the time specified by the Company as of the effective date; provided, however, if Users have not been informed that these Terms will be amended and of the contents of the Terms after amendment as well as the effective date of such amendment in an appropriate manner, the amendment shall come into effect when they have been informed. 
+4.     If a User continues to use the Licensed Application after the effective date of the amendment to these Terms as set forth in the preceding Paragraph, the User shall be deemed to have agreed to the contents of the amended Terms, and the contents of the License Agreement of the Licensed Application shall be amended in accordance with such agreement. 
+ 
+Chapter 2. Formation of Agreement
+ 
+Article 2.1 (Creation and Deletion, Etc., of Account)
+1.     A person who wishes to enter into a License Agreement shall create an account in the manner prescribed by the Company through the Website in advance. 
+2.     A person who has received approval of the account created in accordance with the preceding Paragraph (hereinafter referred to as the “Account Holder”) may apply for a License Agreement in accordance with the following Article. 
+3.     Account Holders may not divulge information concerning the approved account (including, but not limited to, address, trade name or name, ID granted by the Company, registered password, etc.) to others. 
+4.     No person may create an account for others, or grant the use of an account he or she is authorized to use to others or allow others to substantially use such account. 
+ 
+Article 2.2 (Formation of Agreement)       
+1.     The License Agreement shall be formed only when a User applies for the use of a specific software in the manner prescribed by the Company through the Website, and the Company gives its consent through the Website. 
+2.     The License Agreement under the preceding Paragraph shall be made for each software for which the User has applied to use.
+3.     Paragraph 1 shall not preclude the Company from refusing all or a part of the application from a User. 
+ 
+Article 2.3 (Preparation, etc., of Devices) 
+1.     To use the Application pursuant to the License Agreement, Users shall prepare the necessary devices for using the Application at its responsibility and expense, connect the device to the internet and configure the settings necessary for using the Application.
+2.     The details of the devices and settings necessary for using the Application shall be determined separately.
+3.     If any circumstance arises where the Application cannot be used due to natural disaster, large-scale disaster or other force majeure as well as defects in the device, internet connection failure or setting failure, the Company shall not be in any way liable for compensating the damage incurred by Users. In the latter case, Users shall not be relieved of the obligation to pay the license fee. 
+ 
+Chapter 3. Use of Software
+ 
+Article 3.1 (Use of the Application)
+1.     Users may use the Licensed Application licensed by the Company only under the conditions set forth in these Terms.
+2.     The Company shall license the use of the Licensed Application on an as-is basis. Even if there is any bug or other defect in the Licensed Application, the Company shall be relieved of its obligation if it licenses the use of the Licensed Application.
+3.     Users shall pay the prescribed license fee in the manner prescribed by the Company as consideration for the use of the Licensed Application. Provided, however, Users who have purchased the right to use the Licensed Application from the Company or a person duly authorized by the Company (including persons who were further authorized by such persons) shall be subject to the conditions set forth upon such purchase.
+4.     In addition to the preceding Paragraph, Users shall comply with the content of these Terms upon using the Licensed Application.
+ 
+Article 3.2 (Compliance and Prohibitions) 
+1.     Users may not engage in the acts set forth below upon using the Licensed Application:
+(i)         Acts which infringe or may infringe the intellectual property rights or other rights of the Company or a third party;
+(ii)       Acts of modifying or erasing the contents of the Licensed Application or information that may be used through the Licensed Application;
+(iii)      Acts of checking retained information provided by an anonymous User against other information for the purpose of identifying the User or other individual or client concerning the retained information provided by an anonymous User, acts of identifying the User or attempting to check or identify the same;
+(iv)      Acts of modifying, reverse engineering, decompiling or disassembling all or a part of the Licensed Application, creating derivatives of the Licensed Application or otherwise deciphering the source code, etc.;
+(v)        Acts of using the Licensed Application with the purpose or in the manner other than those set forth in these Terms; 
+(vi)      Acts of using the Licensed Application in a manner that breaches these Terms or the License Agreement of the Licensed Application or in a manner which the Company considers inappropriate;
+(vii)     Acts of allowing a third party to use the Licensed Application in breach of these Terms or the License Agreement of the Licensed Application;
+(viii)   Acts of using the Licensed Application by impersonating a third party;
+(ix)      Acts against laws and regulations or public policy;
+(x)        Acts of discriminating or slandering others, or damaging the honor or credit of others;
+(xi)      Acts which link to or may link to fraud or other crimes;
+(xii)     Acts of registering images and documents, etc., that constitute obscenity, child pornography or child abuse;
+(xiii)   Acts of establishing or soliciting pyramid schemes;
+(xiv)    Acts of registering harmful data or computer programs such as computer viruses;
+(xv)     Acts of using the Licensed Application for advertising, promotion or solicitation, or registering information in the Licensed Application which may contain expressions that are or may be develop a negative feeling in a third party;
+(xvi)    Acts which hinder or may hinder access to or the behavior of the Licensed Application;
+(xvii)  Acts of registering information with the purpose of meeting with an unspecified number of people or unacquainted persons;
+(xviii)  Knowing that an act by itself or a third party falls under any of the preceding items, acts of registering information with the purpose of or in a manner that encourages such act; and
+(xix)    In addition to the preceding eighteen (18) items, acts which are considered inappropriate such as necessary for the protection of the life, body or property of the Company or a third party.
+2.     If a User engages in any act that falls under any of the items under the preceding Paragraph (hereinafter referred to as “Violating Act”), the Company may immediately suspend the use of the Licensed Application as well as require such Violating Act to be discontinued.
+3.     If, despite a request for discontinuation in accordance with the preceding Paragraph, such Violating Act has not been discontinued even after a reasonable period of time, or where the Violating Act has been discontinued but there is a possibility that the Violating Act will be conducted again, the License Agreement concerning the Licensed Application may be terminated. 
+ 
+Chapter 4. Handling of User-Provided Retained Information
+ 
+Article 4.1 (Collection, Etc., of User-Provided Retained Information)
+1.       In connection with the use of the Application, Users shall agree in advance that the Company will collect and retain information set forth in the items below concerning the User or provided by the User (including, but not limited to, “personal information” defined in Article 2, Paragraph 1 of the Act on the Protection of Personal Information):
+(i)         Information such as name, email address, login ID registered by the User upon creating an account;
+(ii)       Information registered or uploaded by the User through the Website or the Application; 
+(iii)      History of downloading and using the Application; 
+(iv)      Device information of the device used (including the individual identification information and the name of the connecting telecommunications carrier); 
+(v)        Location information of the device used; and 
+(vi)      Other information necessary for the Licensed Application to accomplish the prescribed purpose; 
+2.       Users shall agree in advance that the Company, Etc., will handle information retained by the Company in accordance with the preceding Paragraph (hereinafter referred to as “User-Provided Retained Information”) to the extent necessary for accomplishing the purposes set forth below: 
+(i)         Development (including, but not limited to, addition and deletion of functions, enhancement of usability and other improvements) or operation of the Application, development of other software that may be provided to Users and the maintenance thereof (including, but not limited to, fixing bugs and security measures); 
+(ii)       Improvement of the way software is developed or operated (systems, organization, procedures, service levels, etc.);
+(iii)      Prevention of unauthorized use of the Application such as impersonating by a third party; and
+(iv)      Resolution of disputes concerning the Application (including, but not limited to, negotiations, mediations and litigations).
+3.       Users shall agree in advance that the Company will handle User-Provided Retained Information within the scope necessary for accomplishing the purposes set forth in the items below in addition to those set forth under the preceding Paragraph:
+(i)         Planning and product development for digital transformation of the smart construction business or business in general; and
+(ii)       Application support provided to Users.
+4.     Users shall agree in advance that the Company, Etc., will provide pseudonymous information which cannot identify a specific User obtained by processing User-Provided Retained Information. 
+5.     Users shall agree in advance that where the status of the Company, Etc., the holder of the rights in the Application or the provider of the services concerning the Application has been changed due to reorganization such as merger, company split or business transfer, the party subject to the reorganization will provide the User-Provided Retained Information to the successor of such status, etc., after such reorganization to the extent necessary for the use of the Application or the provision of the services concerned.
+6.     Notwithstanding Paragraphs 1 to 5, personal information and other information entered by a User at the application software download store operated by Google Inc. or Apple Inc. upon downloading the smartphone app software provided in connection with the Licensed Application will be managed by Google or Apple, and any questions, disputes or litigations, etc., concerning such information shall be resolved between the User and Google or Apple, and no claim or complaint shall be made against the Company, Etc. The Company, Etc., shall not be in any way liable for any damage incurred by a User by Google or Apple’s disclosure or provision of such information to a third party.
+7.     The Company, Etc., shall not be in any way liable for the loss or damage, etc., of information by Users, and shall not be required to disclose the User-Provided Retained Information to enable the Users to recover, etc., the lost or damaged information. 
+ 
+Article 4.2 (Protection of Personal Information)
+1.     The Company shall use personal information concerning Users collected by or provided to it within the scope of the purpose of use set forth in the preceding Article, and shall provide the same to a third party in accordance with the preceding Article. 
+2.     The Company shall appropriately handle personal information set forth in the preceding Paragraph in accordance with the “Personal Information Protection Policy” and the document titled “To Our Customers (regarding the shared use of personal information)” published on the Company’s Website and the policy concerning the protection of personal information separately established by the Company. 
+ 
+Article 4.3 (Obtaining, Etc., the Consent of Interested Persons)
+1.     If the User-Provided Retained Information contains information concerning a third party other than the User, the User shall obtain the consent of such third party on the contents of Article 3.1 prior to providing such information. 
+2.     Users warrant the matters set forth below during the term of using the Application:
+(i)         The consent under the preceding Paragraph has been obtained;
+(ii)       The User holds legitimate rights with respect to the User-Provided Retained Information; and
+(iii)      The handling of the User-Provided Retained Information in the manner set forth in Article 4.1 will not infringe the rights or other interests of third parties. 
+3.     If any dispute arises between a User and a third party due to a breach or a suspected breach of the matters set forth in the preceding Paragraph, the User shall resolve the same at its responsibility and expense, and shall reimburse the Company, Etc., for any expenses incurred by the Company, Etc., that are considered necessary for the resolution thereof.
+4.     The preceding Paragraph shall not preclude the Company, Etc., from claiming compensation for damage incurred under the cases set forth in the preceding Paragraph.
+5.     Users shall agree in advance not to exercise intellectual property rights, including moral rights, concerning the User-Provided Retained Information against the Company or persons who have assumed, succeeded to, or been granted rights by the Company.
+ 
+Chapter 5. Scope of Liability of the Company
+ 
+Article 5.1 (Warranties)
+1.     The Company makes no warranty to Users as to the completeness, usefulness, reliability, truthfulness, accuracy (including the accuracy of the data aggregated or processed through the Licensed Application), appropriateness, guaranteed operation (including but not limited to the display of information and actions taken in the display, same applies to the rest of this Article), fitness for a specific purpose, compatibility with the device used, legality, non-infringement of third-party rights or any other functions or characteristics of the Licensed Application.
+2.     Users shall use the Licensed Application after accepting the contents of the preceding Paragraph, and shall agree in advance that the measurement results, location information and travel route information of the Licensed Application may not be displayed or have errors due to Users' vehicle type, functionality and location of the device used or installed, the road environment, the radio wave conditions of GPS satellites, or the radio wave base station conditions, etc. 
+3.     The Company makes no warranty to Users that the information exchanged upon using the Licensed Application does not contain anything, such as computer viruses, that may cause the device, etc., to behave improperly. 
+4.     Users shall use the Licensed Application after accepting the contents of the preceding Paragraph, and agree in advance that there may be circumstances where information may be altered or cannot be viewed due to improper behavior of the device caused by computer viruses contained in the exchanged data. 
+5.     The Company makes no warranty to Users that both the Licensed Application and other software used by Users will behave appropriately.
+6.     Users shall use the Licensed Application after accepting the conditions set out by the preceding Paragraph, and agree in advance that there is a risk that both or either of the Licensed Application and other software used by Users may not behave properly, impede the smooth execution of their business, or cause damages. 
+7.     The Company makes no warranty to Users as to the completeness, usefulness, reliability, truthfulness, accuracy, appropriateness, guaranteed operation, fitness for a specific purpose, compatibility with the device used, legality, non-infringement of third-party rights or any other functions or characteristics of the third-party services which are provided as part of the services provided through the use of Licensed Application.
+8.     Users shall use the Licensed Application after accepting the contents of the preceding Paragraph, and shall agree in advance that the said third party may not be able to provide the said service or the said third-party service contains errors or other misfunctions that may cause interruptions in the execution of Users' own business whereby Users may incur damages. 
+ 
+Article 5.2 (Natural Disasters, Etc.)
+1.     In the event that a User is unable to use the Licensed Application due to natural disaster or other force majeure as well as overload or other malfunction of the system providing access to the Application, failure of equipment constituting such system, power failure, abnormalities in communication lines or other failure, the Company shall not be liable to the User for compensating the damage incurred thereby. 
+2.     Users shall use the Licensed Application with the understanding that all or a part of the information registered by Users may be lost or damaged, or the transmission of such information may be impossible or delayed due to the factors set forth in the preceding Paragraph, and agree in advance that the smooth execution of its business may be hindered and damage may be caused thereby. 
+ 
+Article 5.3 (Modification of the Contents of the Licensed Application)
+1.     The Company has a right to modify the contents of the Licensed Application at any time without notice to Users if it considers it necessary. Users may not refuse modification of the contents of the Licensed Application by the Company. 
+2.     The Company may temporarily suspend or terminate access to the Licensed Application without prior notice to the extent necessary for exercising the right under the preceding Paragraph.
+3.     If access to the Licensed Application is suspended or terminated in accordance with the preceding Paragraph, the Company shall not be liable for compensating Users for damage incurred thereby. 
+ 
+Article 5.4 (Information Management)
+1.     The Company shall take reasonable measures (including, but not limited to, security measures) considering socially-accepted business practices for the safe management of User-Provided Retained Information. 
+2.     If any damage is caused due to unauthorized access, theft, destruction or alteration, etc., by a third party despite the measures under the preceding Paragraph being taken, the Company shall not be liable for compensating Users for damage incurred thereby. 
+ 
+Article 5.5 (Claim for Damage Compensation From the Company) 
+1.     If any damage is caused to a User due to causes attributable to the Company, the User may claim damage compensation from the Company in accordance with the Paragraphs below, provided, however, that the Company shall not be liable against damages attributable to the Users themselves or to the force majeure event, or damages caused by a third party, regardless of the existence of the causes attributable to such a third party as set out in Section 7 or the Article 5.1., and the same applies to the rest of this Article.
+2.     The damages for which a claim for compensation can be made in accordance with the preceding Paragraph shall be limited only to the damages directly and actually caused to the User by reasons attributable solely to the Company. This does not include lost profits (including, but not limited to, lost business profits due to delay in construction or interruption of business), special, incidental, indirect, or consequential damages, or damages incurred by the User's business partners or other contractors.
+3.     Notwithstanding the preceding Paragraph, the amount payable by the Company to the User as damage compensation shall be limited to the amount of license fees paid by the User to the Company under the License Agreement concerning the Licensed Application during the twelve (12) months prior to the date of the claim.
+4.     If the User does not notify the Company that any damage has occurred due to causes attributable to the Company within three (3) months of becoming aware of such damage, the User may not claim damage compensation under Paragraph 1.
+5.     The notice under the preceding Paragraph shall be made in writing stating the specific details of the damage, cause of the damage, the amount claimed as damage compensation and the basis of calculation thereof.
+6.     The preceding five (5) Paragraphs shall apply to all damage compensation by the User from the Company, for default liability or tort liability, or in any other name or for any other cause.
+ 
+Chapter 6. Suspension of Use, Etc.
+ 
+Article 6.1 (Measures by the Company) 
+1.     The Company may immediately take the measures set forth in the following Paragraph if it considers that a User falls under any of the following items: 
+(i)         Where the User is currently engaging in a Violating Act or other acts in violation of these Terms;
+(ii)       Where the User may engage in acts set forth in the preceding Item; and
+(iii)      Where the User is suspected of falling under the preceding two (2) Items.
+2.     The measures that the Company may take in the case of the preceding Paragraph shall be those set forth below. The measures taken by the Company shall not be limited to one, nor is the Company required to take multiple measures simultaneously. 
+(i)         To request the User to report the facts;
+(ii)       To request the User to immediately cease the act;
+(iii)      To suspend the use of the Licensed Application;
+(iv)      To provide all or a part of such information to the Company, Etc. (other than the Company, the right holder of the Application, the provider of these services concerning the Application; and
+(v)        To report to the police or other authorities.
+3.     If the Company takes the measures described in Item 1 or 2 of the preceding Paragraph and the User does not comply with such measures even after the lapse of a reasonable period of time, the Company may terminate the License Agreement concerning the Licensed Application.
+4.     The preceding three (3) Paragraphs shall not preclude the Company from immediately terminating the License Agreement for destruction of relationship of trust that is the basis of the contractual relationship through the acts of the User.
+5.     If the Company takes the measures set forth in Paragraph 2 pursuant to Paragraph 1, the Company shall not be liable for compensating damage to the User or otherwise even if the User incurs any damage from such measures. The same shall apply where it is found that the User has not engaged in any Violating Act or other acts in violation of these Terms, and is not likely to engage in such acts.
+ 
+Article 6.2 (Damage Compensation Claim, Etc.)
+1.     If a User engages in any Violating Act or other acts in violation of these Terms and the Company incurs damage thereby, the Company may claim damage compensation incurred thereby against the User even if it has terminated the License Agreement. 
+2.     The scope of damage for which the Company may claim compensation in accordance with the preceding Paragraph shall be the damage set forth in Article 416, Paragraphs 1 and 2 of the Civil Code as well as those set forth in the Items below, and the User agrees to the same in advance:
+(i)         The expenses required for investigating whether the User has engaged in a Violating Act or other acts in violation of these Terms, or to identify the details or scope of the Violating Act by the User; 
+(ii)       Any monies paid by the Company for compensating any damage incurred by a third party due to the act of the User (including those paid in the pretext of settlement money); 
+(iii)      Expenses required for resolving any dispute between the Company and a third party due to the acts of the User (including, but not limited to, attorneys’ fees); and
+(iv)      Any damage incurred by the Company, Etc. (other than the Company) by the acts of the User.
+3.     Notwithstanding the preceding Paragraph, if a User engages in any Violating Act or other acts in violation of these Terms, and a third party incurs damage thereby or a dispute with a third party arises therefrom, the User shall directly compensate the damage incurred by the third party or resolve the dispute between the third party
+ 
+Article 6.3 (Damages Due to User-Provided Retained Information) 
+1.     If the Company determines that information held by the Company will be lost or damaged, the operation of servers and other communication equipment held or managed by the Company or the devices used for the operations of the Company is or is likely to be hindered due to the User-Provided Retained Information, the Company shall have the right to delete all or a part of the User-Provided Retained Information at any time without notice to the User, or otherwise take the appropriate measures to prevent such circumstances.  If the Company shall delete all or a part of the User-Provided Retained Information, Users may not refuse the same. 
+2.     Even if a User incurs damage due to the Company taking the measures set forth in the preceding Paragraph (including the deletion of all or a part of the User-Provided Retained Information), the Company shall not be liable for compensating the damage incurred by the User or otherwise. 
+3.     The preceding Article shall apply muatis mutandis to the case under Paragraph 1.
+ 
+Chapter 7. Termination of Agreement
+ 
+Article 7.1 (Termination of Agreement)
+1.     The License Agreement shall terminate upon any of the following:
+(i)         Request for termination by the User or the Company; and
+(ii)       Termination of the agreement by the Company.
+2.     Unless there is any cause listed in the preceding Paragraph, the License Agreement shall continue.
+ 
+Article 7.2 (Request for Termination by Users)
+1.     Users may request termination of the License Agreement concerning the relevant agreement at any time by notice to the Company in the prescribed method. 
+2.     The request for termination under the preceding Paragraph shall come into effect upon such notice arriving at the Company.
+3.     If the License Agreement is terminated pursuant to a request for termination under Paragraph 1, the Company shall not be required to return the license fee received from the User. 
+ 
+Article 7.3 (Request for Termination by the Company)
+1.     The Company may request termination of the License Agreement concerning the relevant agreement at any time by notice to the User in the prescribed method.
+2.     In the case of the preceding Paragraph, the License Agreement concerning the relevant agreement shall terminate upon the lapse of three (3) months from the date of request of such termination.
+3.     Notwithstanding the preceding Paragraph, if there is any unavoidable cause, the request for termination shall come into effect upon the arrival of such notice to the User.
+ 
+Article 7.4 (Termination of Agreement by the Company)
+1.     If there is any cause set forth below with respect to a User, the Company may terminate all or a part of the License Agreement with the User by written or email notice to the User without making any demand for performance:
+(i)         Where the User has breached the obligation under Article 2.1, Paragraphs 3 or 4;
+(ii)       Where the User has suspended payments or become unable to make payments;
+(iii)      Where a bill or a cheque has not been honored;
+(iv)      Where a petition for seizure, provisional seizure or auction has been filed, or where the User has become subject to coercive collection of taxes and public dues;
+(v)        Where a petition for bankruptcy, commencement of corporate reorganization proceedings or commencement of civil rehabilitation proceedings has been filed; or where there is a serious concern about to his or her credit status;
+(vi)      In the event that the business license is revoked or suspended, etc., by the supervisory authority;
+(vii)     In the event the User resolves to dissolve, reduce its capital or transfer all or a significant part of the business, etc.; and
+(viii)   Where there is other cause similar to the foregoing Items.
+2.     Even if any damage is caused to the User by the termination of the License Agreement by the Company in accordance with these Terms, the Company shall not be liable to the User for compensation of the damage incurred by the User.
+3.     If the Company terminates the License Agreement in accordance with these Terms, the Company shall not be required to return the license fee received from the User.
+ 
+Article 7.5 (Handling After Termination of Agreement)
+If all License Agreements with a User have been terminated, the Company, Etc., shall delete or otherwise handle the User-Provided Retained Information appropriately in accordance with the handling procedures prescribed by the Company; provided, however, this shall not apply to information that the contents thereof itself does not identify a specific User (including, but not limited to, information obtained by the Company through the processing the User-Provided Retained Information). 
+ 
+Chapter 8. Other
+ 
+Article 8.1 (Confidentiality)
+1.     Users and the Company shall use technical, business or other operational information of the counterparty known in connection with the Licensed Application (excluding User-Provided Retained Information, and the Company’s operational information shall include the operational information of the Company, Etc., other than the Company; hereinafter referred to as “Confidential Information”) within the scope of the purpose of using the Licensed Application, and shall not disclose or divulge the same to a third party without the prior written consent of the counterparty; provided, however, information which can be proved to fall under any of the following Items shall not be included in Confidential Information: 
+(i)         Information already in possession without any obligation of confidentiality;
+(ii)       Information duly obtained from a third party without any obligation of confidentiality;
+(iii)      Information independently developed without relying on the information provided by the counterparty;
+(iv)      Information that became public, whether before or after receipt, without breaching these Terms or the License Agreement of the Licensed Application.
+2.     Notwithstanding the preceding Paragraph, Users and the Company may disclose Confidential Information that is required to be disclosed in accordance with laws and regulations or at the request of the competent government agencies to the recipient under such laws and regulations or to such government agency. In such case, Users and the Company shall notify the counterparty of the disclosure in advance unless it is contrary to laws and regulations, and if such notification cannot be made prior to the disclosure, a notification shall be made promptly after the disclosure. 
+3.     Notwithstanding Paragraph 1, if the Company considers necessary, the Company may disclose Confidential Information of a User to the extent necessary to a contractor without the prior written consent of the User on condition that it causes the contractor to comply with the obligations set forth in this Article. 
+ 
+Article 8.2 (Elimination of Anti-Social Force) 
+1.     For the purpose of these Terms, “Anti-Social Force” shall mean a person that falls under any of the Items below: 
+(i)         Organized crime groups defined under Article 2, Item 2 of the Act on Prevention of Unjust Acts by Organized Crime Group Members, and affiliated organizations;
+(ii)       Members of the organized crime groups and their affiliated organizations under the preceding Item;
+(iii)      Groups or individuals that are “corporate racketeers”, “forces claiming to be social movements”, “forces claiming to be political movements”, “violent special interest groups, etc.;
+(iv)      In addition to the preceding Items, groups or individuals who make unjust requests using violence, force, intimidating language and fraudulent means to pursue economic profit; and
+(v)        Groups or individuals who make unjust requests by implying relationship with any group, member or individual who falls under the preceding Items to pursue economic profit.
+2.     Users represent and warrant to the Company that: 
+(i)         They are not an Anti-Social Force;
+(ii)       They have never been an Anti-Social Force;
+(iii)      They will not use an Anti-Social Force;
+(iv)      None of their directors, executives, executive officers or other persons substantially involved in their management is an Anti-Social Force, or have relationships with an Anti-Social Force; and
+(v)        None of their major shareholders or investors is an Anti-Social Force, or have relationships with an Anti-Social Force.
+3.     If a User breaches the preceding Paragraph, the Company shall immediately delete the account created by the User as well as take measures not to allow any creation of accounts by said User in the future.
+4.     If a User is suspected of breaching Paragraph 2, the account created by the User may be frozen until it becomes clear that there was no breach.
+5.     If an account is deleted in accordance with Paragraph 3, all of the License Agreement with the User shall automatically terminate at that time.
+6.     During the period an account is frozen pursuant to Paragraph 3, the User may not use the Licensed Application under the License Agreement.
+7.     In the event that damages are caused to a User by the deletion or freezing of an account, the Company shall not be liable to the User for compensating the damage incurred or otherwise. 
+ 
+Article 8.3 (Survival Clause)
+Article 5.5 (Claim for Damage Compensation from the Company), Article 6.2 (Claim, Etc., for Damage Compensation), Article 8.1 (Confidentiality), Article 8.6 (Exclusive Jurisdiction) and Article 8.7 (Governing Law) shall survive the termination of the License Agreement. 
+ 
+Article 8.4 (No Assignment of Position, Etc.)         
+Users may not assign the position under these Terms or all or a part of the rights and obligations under these Terms to a third party without the prior written consent of the Company. 
+ 
+Article 8.5 (Severability)
+The provisions of these Terms shall be construed in such a manner as to make it as valid as possible to the extent permitted by law, and if any provision of these Terms shall be held to be contrary to law or unenforceable, such provision shall be invalid or unenforceable only to the extent of its violation of law, without invalidating or rendering unenforceable the remainder of such provision or any other provision. 
+            
+Article 8.6 (Exclusive Jurisdiction)
+The Tokyo District Court shall have exclusive jurisdiction over the first instance with respect to any dispute between a User and the Company under these Terms. 
+            
+Article 8.7 (Governing Law)        
+The law governing the formation, effect, performance and interpretation of these Terms shall be the laws of Japan.
+            
+Article 8.8 (Good Faith Discussions)        
+Matters not provided herein or any questions arising with respect to the interpretation of the matters set forth herein shall be resolved upon good faith discussions between the parties.
+
+(Attachment)　List of Software
+ 
+[Name of Software]
+SMART CONSTRUCTION Dashboard
+[Purpose]
+"Visualization" of the customer's construction site in three dimensions by organically capturing everything existing at the site through the use of IOT.
+[Functions]
+(i)      Creation of 3D topography of the site: A function to generate and view 3D topography of the site by converting the point cloud data gathered by drones and 3D laser scanners into 3D topography data and removing obstacles (man-made objects and trees, etc.);
+(ii)     3D design data viewer: a function to view 3D design data with PCs, smartphones, and tablets which do not have CAD software installed;
+(iii)    Real-time monitoring: A function to generate real time topographical data from the coordinate data of the cutting edge of an ICT construction machine in operation and the 3D point cloud data measured by a stereo camera, and to display it in 3D;
+(iv)    Construction simulation: A function to confirm the flow of construction operation based on 3D topographic data (amount of soil for construction) and transportation route of soil, and to analyze the construction performance at the site in operation by accumulated operational performance data in the cloud;
+(v)     Cost calculation: A function to automatically calculate daily costs based on construction data such as daily construction soil volume, machines operating at the site (number of construction machines, number of dump trucks, etc.) and the workers; and 
+(iv)    Calculation of completed volume: A function to centrally save and manage survey data at groundbreaking, 3D design data and topography data during construction, allowing for calculation of completed volume.
+ 
+[Name of Software]
+SMART CONSTRUCTION Fleet
+[Purpose]
+Visualization of location information of construction machinery, dump trucks, and other transportation vehicles (hereinafter referred to as "Work Vehicles") and workers (hereinafter referred to as "Workers") at the customer's construction site, management of loading amount and transportation by the Work Vehicles, and management of actual loading and unloading of soil, etc. 
+[Functions]
+(i)      Track scale integration: A function to manage on the cloud weight of the Work Vehicles before and after loading, etc. by linking with the truck scale installed at the construction site;
+(ii)     Payload meter integration: A function to manage on the cloud the load amount, etc. loaded by the construction machine to the dump truck, etc. by linking with the payload meter mounted on the construction machine; and
+(iii)    Dynamic management tool: A function to view and manage information of location and history on the cloud of the loading position, unloading position, location in transit, etc. of the Work Vehicles and the Workers based on GPS information (hereinafter referred to as " Dynamic management tool”).
+ 
+[Name of Software]
+SMART CONSTRUCTION Pilot
+[Purpose]
+Provide 3D machine guidance capability to conventional construction machinery by displaying on this terminal the cutting-edge information of the construction machines, etc. obtained from the construction site design drawings and SMART CONSTRUCTION retrofit kit.
+[Functions]
+(i)      3D machine guidance (function of application for this terminal): By displaying drawings of the construction site prepared in advance on this terminal and superimposing the cutting-edge information of the construction machine on them, a function to assist the pilot of the construction machine to operate accurately and easily during construction work such as excavation and embankment; 
+(ii)     Acquisition of construction history data (function of application for this terminal): A function to save the location information of the cutting edge of construction machines on this terminal and transmit it to SMART CONSTRUCTION by its communication function.  The acquired data (location information) can be viewed with this web application;
+(iii)    Design plain corrective compass function (function of application for this terminal): A function to display on the terminal whether the line connecting one side of the design drawing selected by the customer and the two ends of the bucket of the construction machine are directly opposite, or parallel; 
+(iv)    Plain view display (function of application for this terminal): A function on this terminal to display a design drawing or a floor plan that serves as a landmark for construction（Function of application for this terminal;
+(v)     Design plain offset (function of application for this terminal): A function to arbitrarily move the display and calculation positions of the design drawings displayed on this terminal; and
+(vi)    Construction machinery management (function of this web application): By registering construction machines with SMART CONSTRUCTION Retrofit Kit to SMART CONSTRUCTION website, a function to display a list of the registered machines and bulk manage them on SMART CONSTRUCTION website; and
+(vii)   Remote view (function of this web application): By installing a separate screen sharing application on this terminal, a function to view the screen of the terminal from this web application.
+ 
+[Name of Software]
+LANDLOG Viewer
+[Purpose]
+Transformation of customers’ business processes by making it easier to build digital twins to represent IoT data such as models, sensors, and analysis results created in construction production and management processes on 3D maps.
+[Functions]
+(i)      3D viewing of topographic data: A function to display and view on a 3D map the point cloud data measured by drones, 3D laser scanners, etc.; 
+(ii)     3D viewing of design data: A function to display 3D design data a 3D map to view on PCs, smartphones, and tablets which do not have CAD software installed;
+(iii)    Asset data display: A function to display and view images, markers and objects with location information on a 3D map;
+(iv)    Annotation: A function to add and view shapes and texts on a 3D map;
+(v)     IoT device information display: A function to display and view device information related to the LANDLOG/SC platform on a 3D map; and
+(vi)    Measurement: A function to calculate distance, area, and volume of topographic and design data.
+ 
+[Name of Software]
+SMART CONSTRUCTION Field
+[Purpose]
+Optimization of cost tracking (performance of machinery, labor, materials, and fuel), task management, and communication at construction sites.
+[Functions]
+(i)      Cost tracking: A function to view and manage on the cloud the cost of machinery, labor and materials generated at construction sites by collecting daily on-site information such as vehicle operation status, worker attendance status, and use and procurement status of materials and fuel;
+(ii)     Task management: A function to digitize each work based on the construction plan with information on the person in charge, quantity, procedure, etc., and to manage the daily construction progress on the cloud by updating the work performance at the site view; and
+(iii)    Communication: Functions aimed at improving the convenience of communication between the office and the site, or at the site, by a group and one-on-one chat function, safety inspection instructions, on-site status reports, etc.
+ 
+[Name of Software]
+SMART CONSTRUCTION Quick3D
+[Purpose]
+Create a 3D model by photographing the customer's construction site with a mobile device, and check the accuracy of the topography on the mobile device and the web.
+[Functions]
+(i)      Creation of 3D model on the site: A function to generate a 3D model of the construction site by photographing the current terrain with a mobile terminal and performing SfM processing.
+(ii)    Inport coordinate data: A function that can import coordinate data from Web cloud, storage media such as USB, SC rover, and display it in 3D space.
+(iii)   3D Helmert transformation: A function that can correct the position using the imported coordinates and 3D Helmert transformation of the position of the created 3D model.
+(iv)   Verification point accuracy confirmation: A function that uses the imported coordinates as verification points, calculates the error on the 3D model, and outputs the verification point accuracy confirmation table.
+(v)     3D model download function: A function that allows you to download the created 3D model and the 3D Helmert-converted 3D model on your mobile device or on the web.
+(vi)   Upload 3D model to SMART CONSTRUCTION Dashboard: A function that can upload a 3D model that has undergone 3D Helmert conversion to the SMART CONSTRUCTION Dashboard.
+ 
+[Name of Software]
+SMART CONSTRUCTION Simulation
+[Purpose]
+Converting customer construction sites to IOT, organically connecting everything existing on the site, and simulating and examining the construction plan on the site that is "visualized" in 3D.
+[Functions]
+(i)      Current terrain 3D conversion function: A function that can be viewed by converting point cloud data obtained by removing obstacles such as artificial objects and trees from the current terrain measured by drones and 3D laser scanners into 3D data.
+(ii)    Design data 3D viewer: A function that allows viewing of 3D design data from PCs, smartphones, and tablets that do not have CAD software.
+(iii)   Construction simulation function: Based on 3D terrain data (construction soil volume) and soil transportation routes, the flow of construction can be confirmed, and the operation performance data accumulated on the cloud can be used to function to analyze
+(iv)   Cost calculation: A function that automatically calculates daily costs based on construction data such as daily construction soil volume, machines (number of construction machines, number of dump trucks, etc.) and workers.

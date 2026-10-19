@@ -1,0 +1,1550 @@
+[
+  {
+    "CZM:5705": "5705 / Baltic 1977 height"
+  },
+  {
+    "CZM:GCG2016": "GCG2016 / GCG2016 geoid model heights"
+  },
+  {
+    "CZM:GEOID03": "GEOID03 / GEOID03 geoid model heights"
+  },
+  {
+    "CZM:GEOID06": "GEOID06 / GEOID06 geoid model heights"
+  },
+  {
+    "CZM:GEOID09": "GEOID09 / GEOID09 geoid model heights"
+  },
+  {
+    "CZM:GEOID12": "GEOID12 / GEOID12 geoid model heights"
+  },
+  {
+    "CZM:GEOID12A": "GEOID12A / GEOID12A geoid model heights"
+  },
+  {
+    "CZM:GEOID12B": "GEOID12B / GEOID12B geoid model heights"
+  },
+  {
+    "CZM:GEOID96": "GEOID96 / GEOID96 geoid model heights"
+  },
+  {
+    "CZM:GEOID99": "GEOID99 / GEOID99 geoid model heights"
+  },
+  {
+    "CZM:JGD2024": "JGD2024 / (EPSG Undefined) JGD2024(vertical) height"
+  },
+  {
+    "CZM:LIT20G": "LIT20G / LIT20G model"
+  },
+  {
+    "CZM:LV14": "LV14 / LV14"
+  },
+  {
+    "CZM:OSGM02": "OSGM02 / OSGM02"
+  },
+  {
+    "CZM:OSGM15": "OSGM15 / OSGM15"
+  },
+  {
+    "CZM:RAC09": "RAC09 / RAC09 geoid model heights"
+  },
+  {
+    "CZM:RAF09": "RAF09 / RAF09 geoid model heights"
+  },
+  {
+    "CZM:RAF18": "RAF18 / RAF18 geoid model heights"
+  },
+  {
+    "CZM:RAF20": "RAF20 / RAF20 geoid model heights"
+  },
+  {
+    "CZM:RAF98": "RAF98 / RAF98 geoid model heights"
+  },
+  {
+    "CZM:RIGA20": "RIGA20 / RIGA20"
+  },
+  {
+    "CZM:SGEOID09": "SGEOID09 / SGEOID09"
+  },
+  {
+    "CZM:TGM2017": "TGM2017 / TGM2017 vertical CRS"
+  },
+  {
+    "CZM:hBG03": "hBG03 / hBG03 geoid model heights"
+  },
+  {
+    "CZM:hBG18": "hBG18 / hBG18 geoid model heights"
+  },
+  {
+    "EPSG:3855": "EPSG: 3855 / EGM2008 height"
+  },
+  {
+    "EPSG:3886": "EPSG: 3886 / Fao 1979 height"
+  },
+  {
+    "EPSG:3900": "EPSG: 3900 / N2000 height"
+  },
+  {
+    "EPSG:4440": "EPSG: 4440 / NZVD2009 height"
+  },
+  {
+    "EPSG:4458": "EPSG: 4458 / Dunedin-Bluff 1960 height"
+  },
+  {
+    "EPSG:5193": "EPSG: 5193 / Incheon height"
+  },
+  {
+    "EPSG:5195": "EPSG: 5195 / Trieste height"
+  },
+  {
+    "EPSG:5214": "EPSG: 5214 / Genoa 1942 height"
+  },
+  {
+    "EPSG:5237": "EPSG: 5237 / SLVD height"
+  },
+  {
+    "EPSG:5317": "EPSG: 5317 / FVR09 height"
+  },
+  {
+    "EPSG:5336": "EPSG: 5336 / Black Sea depth"
+  },
+  {
+    "EPSG:5597": "EPSG: 5597 / FCSVR10 height"
+  },
+  {
+    "EPSG:5600": "EPSG: 5600 / NGPF height"
+  },
+  {
+    "EPSG:5601": "EPSG: 5601 / IGN 1966 height"
+  },
+  {
+    "EPSG:5602": "EPSG: 5602 / Moorea SAU 1981 height"
+  },
+  {
+    "EPSG:5603": "EPSG: 5603 / Raiatea SAU 2001 height"
+  },
+  {
+    "EPSG:5604": "EPSG: 5604 / Maupiti SAU 2001 height"
+  },
+  {
+    "EPSG:5605": "EPSG: 5605 / Huahine SAU 2001 height"
+  },
+  {
+    "EPSG:5606": "EPSG: 5606 / Tahaa SAU 2001 height"
+  },
+  {
+    "EPSG:5607": "EPSG: 5607 / Bora Bora SAU 2001 height"
+  },
+  {
+    "EPSG:5608": "EPSG: 5608 / IGLD 1955 height"
+  },
+  {
+    "EPSG:5609": "EPSG: 5609 / IGLD 1985 height"
+  },
+  {
+    "EPSG:5610": "EPSG: 5610 / HVRS71 height"
+  },
+  {
+    "EPSG:5611": "EPSG: 5611 / Caspian height"
+  },
+  {
+    "EPSG:5612": "EPSG: 5612 / Baltic 1977 depth"
+  },
+  {
+    "EPSG:5613": "EPSG: 5613 / RH2000 height"
+  },
+  {
+    "EPSG:5614": "EPSG: 5614 / KOC WD depth (ft)"
+  },
+  {
+    "EPSG:5615": "EPSG: 5615 / RH00 height"
+  },
+  {
+    "EPSG:5616": "EPSG: 5616 / IGN 1988 LS height"
+  },
+  {
+    "EPSG:5617": "EPSG: 5617 / IGN 1988 MG height"
+  },
+  {
+    "EPSG:5618": "EPSG: 5618 / IGN 1992 LD height"
+  },
+  {
+    "EPSG:5619": "EPSG: 5619 / IGN 1988 SB height"
+  },
+  {
+    "EPSG:5620": "EPSG: 5620 / IGN 1988 SM height"
+  },
+  {
+    "EPSG:5621": "EPSG: 5621 / EVRF2007 height"
+  },
+  {
+    "EPSG:5701": "EPSG: 5701 / ODN height"
+  },
+  {
+    "EPSG:5702": "EPSG: 5702 / NGVD29 height (ftUS)"
+  },
+  {
+    "EPSG:5703": "EPSG: 5703 / NAVD88 height"
+  },
+  {
+    "EPSG:5704": "EPSG: 5704 / Yellow Sea"
+  },
+  {
+    "EPSG:5705": "EPSG: 5705 / Baltic 1977 height"
+  },
+  {
+    "EPSG:5706": "EPSG: 5706 / Caspian depth"
+  },
+  {
+    "EPSG:5709": "EPSG: 5709 / NAP height"
+  },
+  {
+    "EPSG:5710": "EPSG: 5710 / Ostend height"
+  },
+  {
+    "EPSG:5711": "EPSG: 5711 / AHD height"
+  },
+  {
+    "EPSG:5712": "EPSG: 5712 / AHD (Tasmania) height"
+  },
+  {
+    "EPSG:5713": "EPSG: 5713 / CGVD28 height"
+  },
+  {
+    "EPSG:5714": "EPSG: 5714 / MSL height"
+  },
+  {
+    "EPSG:5715": "EPSG: 5715 / MSL depth"
+  },
+  {
+    "EPSG:5716": "EPSG: 5716 / Piraeus height"
+  },
+  {
+    "EPSG:5717": "EPSG: 5717 / N60 height"
+  },
+  {
+    "EPSG:5718": "EPSG: 5718 / RH70 height"
+  },
+  {
+    "EPSG:5719": "EPSG: 5719 / NGF Lallemand height"
+  },
+  {
+    "EPSG:5720": "EPSG: 5720 / NGF-IGN69 height"
+  },
+  {
+    "EPSG:5721": "EPSG: 5721 / NGF-IGN78 height"
+  },
+  {
+    "EPSG:5722": "EPSG: 5722 / Maputo height"
+  },
+  {
+    "EPSG:5723": "EPSG: 5723 / JSLD69 height"
+  },
+  {
+    "EPSG:5724": "EPSG: 5724 / PHD93 height"
+  },
+  {
+    "EPSG:5725": "EPSG: 5725 / Fahud HD height"
+  },
+  {
+    "EPSG:5726": "EPSG: 5726 / Ha Tien 1960 height"
+  },
+  {
+    "EPSG:5727": "EPSG: 5727 / Hon Dau 1992 height"
+  },
+  {
+    "EPSG:5728": "EPSG: 5728 / LN02 height"
+  },
+  {
+    "EPSG:5729": "EPSG: 5729 / LHN95 height"
+  },
+  {
+    "EPSG:5730": "EPSG: 5730 / EVRF2000 height"
+  },
+  {
+    "EPSG:5731": "EPSG: 5731 / Malin Head height"
+  },
+  {
+    "EPSG:5732": "EPSG: 5732 / Belfast height"
+  },
+  {
+    "EPSG:5733": "EPSG: 5733 / DNN height"
+  },
+  {
+    "EPSG:5734": "EPSG: 5734 / AIOC95 depth"
+  },
+  {
+    "EPSG:5735": "EPSG: 5735 / Black Sea height"
+  },
+  {
+    "EPSG:5736": "EPSG: 5736 / Yellow Sea 1956 height"
+  },
+  {
+    "EPSG:5737": "EPSG: 5737 / Yellow Sea 1985 height"
+  },
+  {
+    "EPSG:5738": "EPSG: 5738 / HKPD height"
+  },
+  {
+    "EPSG:5739": "EPSG: 5739 / HKCD depth"
+  },
+  {
+    "EPSG:5740": "EPSG: 5740 / ODN Orkney height"
+  },
+  {
+    "EPSG:5741": "EPSG: 5741 / Fair Isle height"
+  },
+  {
+    "EPSG:5742": "EPSG: 5742 / Lerwick height"
+  },
+  {
+    "EPSG:5743": "EPSG: 5743 / Foula height"
+  },
+  {
+    "EPSG:5744": "EPSG: 5744 / Sule Skerry height"
+  },
+  {
+    "EPSG:5745": "EPSG: 5745 / North Rona height"
+  },
+  {
+    "EPSG:5746": "EPSG: 5746 / Stornoway height"
+  },
+  {
+    "EPSG:5747": "EPSG: 5747 / St. Kilda height"
+  },
+  {
+    "EPSG:5748": "EPSG: 5748 / Flannan Isles height"
+  },
+  {
+    "EPSG:5749": "EPSG: 5749 / St. Marys height"
+  },
+  {
+    "EPSG:5750": "EPSG: 5750 / Douglas height"
+  },
+  {
+    "EPSG:5751": "EPSG: 5751 / Fao height"
+  },
+  {
+    "EPSG:5752": "EPSG: 5752 / Bandar Abbas height"
+  },
+  {
+    "EPSG:5753": "EPSG: 5753 / NGNC69 height"
+  },
+  {
+    "EPSG:5754": "EPSG: 5754 / Poolbeg height (ft(Br36))"
+  },
+  {
+    "EPSG:5755": "EPSG: 5755 / NGG1977 height"
+  },
+  {
+    "EPSG:5756": "EPSG: 5756 / Martinique 1987 height"
+  },
+  {
+    "EPSG:5757": "EPSG: 5757 / Guadeloupe 1988 height"
+  },
+  {
+    "EPSG:5758": "EPSG: 5758 / Reunion 1989 height"
+  },
+  {
+    "EPSG:5759": "EPSG: 5759 / Auckland 1946 height"
+  },
+  {
+    "EPSG:5760": "EPSG: 5760 / Bluff 1955 height"
+  },
+  {
+    "EPSG:5761": "EPSG: 5761 / Dunedin 1958 height"
+  },
+  {
+    "EPSG:5762": "EPSG: 5762 / Gisborne 1926 height"
+  },
+  {
+    "EPSG:5763": "EPSG: 5763 / Lyttelton 1937 height"
+  },
+  {
+    "EPSG:5764": "EPSG: 5764 / Moturiki 1953 height"
+  },
+  {
+    "EPSG:5765": "EPSG: 5765 / Napier 1962 height"
+  },
+  {
+    "EPSG:5766": "EPSG: 5766 / Nelson 1955 height"
+  },
+  {
+    "EPSG:5767": "EPSG: 5767 / One Tree Point 1964 height"
+  },
+  {
+    "EPSG:5768": "EPSG: 5768 / Tararu 1952 height"
+  },
+  {
+    "EPSG:5769": "EPSG: 5769 / Taranaki 1970 height"
+  },
+  {
+    "EPSG:5770": "EPSG: 5770 / Wellington 1953 height"
+  },
+  {
+    "EPSG:5771": "EPSG: 5771 / Chatham Island 1959 height"
+  },
+  {
+    "EPSG:5772": "EPSG: 5772 / Stewart Island 1977 height"
+  },
+  {
+    "EPSG:5773": "EPSG: 5773 / EGM96 height"
+  },
+  {
+    "EPSG:5774": "EPSG: 5774 / NG95 height"
+  },
+  {
+    "EPSG:5775": "EPSG: 5775 / Antalya height"
+  },
+  {
+    "EPSG:5776": "EPSG: 5776 / NN54 height"
+  },
+  {
+    "EPSG:5777": "EPSG: 5777 / Durres height"
+  },
+  {
+    "EPSG:5778": "EPSG: 5778 / GHA height"
+  },
+  {
+    "EPSG:5779": "EPSG: 5779 / SVS2000 height"
+  },
+  {
+    "EPSG:5780": "EPSG: 5780 / Cascais height"
+  },
+  {
+    "EPSG:5781": "EPSG: 5781 / Constanta height"
+  },
+  {
+    "EPSG:5782": "EPSG: 5782 / Alicante height"
+  },
+  {
+    "EPSG:5783": "EPSG: 5783 / DHHN92 height"
+  },
+  {
+    "EPSG:5784": "EPSG: 5784 / DHHN85 height"
+  },
+  {
+    "EPSG:5785": "EPSG: 5785 / SNN76 height"
+  },
+  {
+    "EPSG:5786": "EPSG: 5786 / Baltic 1982 height"
+  },
+  {
+    "EPSG:5787": "EPSG: 5787 / EOMA 1980 height"
+  },
+  {
+    "EPSG:5788": "EPSG: 5788 / Kuwait PWD height"
+  },
+  {
+    "EPSG:5789": "EPSG: 5789 / KOC WD depth"
+  },
+  {
+    "EPSG:5790": "EPSG: 5790 / KOC CD height"
+  },
+  {
+    "EPSG:5791": "EPSG: 5791 / NGC 1948 height"
+  },
+  {
+    "EPSG:5792": "EPSG: 5792 / Danger 1950 height"
+  },
+  {
+    "EPSG:5793": "EPSG: 5793 / Mayotte 1950 height"
+  },
+  {
+    "EPSG:5794": "EPSG: 5794 / Martinique 1955 height"
+  },
+  {
+    "EPSG:5795": "EPSG: 5795 / Guadeloupe 1951 height"
+  },
+  {
+    "EPSG:5796": "EPSG: 5796 / Lagos 1955 height"
+  },
+  {
+    "EPSG:5797": "EPSG: 5797 / AIOC95 height"
+  },
+  {
+    "EPSG:5798": "EPSG: 5798 / EGM84 height"
+  },
+  {
+    "EPSG:5799": "EPSG: 5799 / DVR90 height"
+  },
+  {
+    "EPSG:5829": "EPSG: 5829 / Instantaneous Water Level height"
+  },
+  {
+    "EPSG:5831": "EPSG: 5831 / Instantaneous Water Level depth"
+  },
+  {
+    "EPSG:5843": "EPSG: 5843 / Ras Ghumays height"
+  },
+  {
+    "EPSG:5861": "EPSG: 5861 / LAT depth"
+  },
+  {
+    "EPSG:5862": "EPSG: 5862 / LLWLT depth"
+  },
+  {
+    "EPSG:5863": "EPSG: 5863 / ISLW depth"
+  },
+  {
+    "EPSG:5864": "EPSG: 5864 / MLLWS depth"
+  },
+  {
+    "EPSG:5865": "EPSG: 5865 / MLWS depth"
+  },
+  {
+    "EPSG:5866": "EPSG: 5866 / MLLW depth"
+  },
+  {
+    "EPSG:5867": "EPSG: 5867 / MLW depth"
+  },
+  {
+    "EPSG:5868": "EPSG: 5868 / MHW height"
+  },
+  {
+    "EPSG:5869": "EPSG: 5869 / MHHW height"
+  },
+  {
+    "EPSG:5870": "EPSG: 5870 / MHWS height"
+  },
+  {
+    "EPSG:5871": "EPSG: 5871 / HHWLT height"
+  },
+  {
+    "EPSG:5872": "EPSG: 5872 / HAT height"
+  },
+  {
+    "EPSG:5873": "EPSG: 5873 / Low Water depth"
+  },
+  {
+    "EPSG:5874": "EPSG: 5874 / High Water height"
+  },
+  {
+    "EPSG:5941": "EPSG: 5941 / NN2000 height"
+  },
+  {
+    "EPSG:6130": "EPSG: 6130 / GCVD54 height (ft)"
+  },
+  {
+    "EPSG:6131": "EPSG: 6131 / LCVD61 height (ft)"
+  },
+  {
+    "EPSG:6132": "EPSG: 6132 / CBVD61 height (ft)"
+  },
+  {
+    "EPSG:6178": "EPSG: 6178 / Cais da Pontinha - Funchal height"
+  },
+  {
+    "EPSG:6179": "EPSG: 6179 / Cais da Vila - Porto Santo height"
+  },
+  {
+    "EPSG:6180": "EPSG: 6180 / Cais das Velas height"
+  },
+  {
+    "EPSG:6181": "EPSG: 6181 / Horta height"
+  },
+  {
+    "EPSG:6182": "EPSG: 6182 / Cais da Madalena height"
+  },
+  {
+    "EPSG:6183": "EPSG: 6183 / Santa Cruz da Graciosa height"
+  },
+  {
+    "EPSG:6184": "EPSG: 6184 / Cais da Figueirinha - Angra do Heroismo height"
+  },
+  {
+    "EPSG:6185": "EPSG: 6185 / Santa Cruz das Flores height"
+  },
+  {
+    "EPSG:6186": "EPSG: 6186 / Cais da Vila do Porto height"
+  },
+  {
+    "EPSG:6187": "EPSG: 6187 / Ponta Delgada height"
+  },
+  {
+    "EPSG:6357": "EPSG: 6357 / NAVD88 depth"
+  },
+  {
+    "EPSG:6358": "EPSG: 6358 / NAVD88 depth (ftUS)"
+  },
+  {
+    "EPSG:6359": "EPSG: 6359 / NGVD29 depth (ftUS)"
+  },
+  {
+    "EPSG:6360": "EPSG: 6360 / NAVD88 height (ftUS)"
+  },
+  {
+    "EPSG:6638": "EPSG: 6638 / Tutuila 1962 height"
+  },
+  {
+    "EPSG:6639": "EPSG: 6639 / Guam 1963 height"
+  },
+  {
+    "EPSG:6640": "EPSG: 6640 / NMVD03 height"
+  },
+  {
+    "EPSG:6641": "EPSG: 6641 / PRVD02 height"
+  },
+  {
+    "EPSG:6642": "EPSG: 6642 / VIVD09 height"
+  },
+  {
+    "EPSG:6643": "EPSG: 6643 / ASVD02 height"
+  },
+  {
+    "EPSG:6644": "EPSG: 6644 / GUVD04 height"
+  },
+  {
+    "EPSG:6647": "EPSG: 6647 / CGVD2013(CGG2013) height"
+  },
+  {
+    "EPSG:6693": "EPSG: 6693 / JSLD72 height"
+  },
+  {
+    "EPSG:6694": "EPSG: 6694 / JGD2000 (vertical) height"
+  },
+  {
+    "EPSG:6695": "EPSG: 6695 / JGD2011 (vertical) height"
+  },
+  {
+    "EPSG:6916": "EPSG: 6916 / SHD height"
+  },
+  {
+    "EPSG:7446": "EPSG: 7446 / Famagusta 1960 height"
+  },
+  {
+    "EPSG:7447": "EPSG: 7447 / PNG08 height"
+  },
+  {
+    "EPSG:7651": "EPSG: 7651 / Kumul 34 height"
+  },
+  {
+    "EPSG:7652": "EPSG: 7652 / Kiunga height"
+  },
+  {
+    "EPSG:7699": "EPSG: 7699 / DHHN12 height"
+  },
+  {
+    "EPSG:7700": "EPSG: 7700 / Latvia 2000 height"
+  },
+  {
+    "EPSG:7707": "EPSG: 7707 / ODN (Offshore) height"
+  },
+  {
+    "EPSG:7832": "EPSG: 7832 / POM96 height"
+  },
+  {
+    "EPSG:7837": "EPSG: 7837 / DHHN2016 height"
+  },
+  {
+    "EPSG:7839": "EPSG: 7839 / NZVD2016 height"
+  },
+  {
+    "EPSG:7841": "EPSG: 7841 / POM08 height"
+  },
+  {
+    "EPSG:7888": "EPSG: 7888 / Jamestown 1971 height"
+  },
+  {
+    "EPSG:7889": "EPSG: 7889 / St. Helena Tritan 2011 height"
+  },
+  {
+    "EPSG:7890": "EPSG: 7890 / SHVD2015 height"
+  },
+  {
+    "EPSG:7962": "EPSG: 7962 / Poolbeg height (m)"
+  },
+  {
+    "EPSG:7968": "EPSG: 7968 / NGVD29 height (m)"
+  },
+  {
+    "EPSG:7976": "EPSG: 7976 / HKPD depth"
+  },
+  {
+    "EPSG:7979": "EPSG: 7979 / KOC WD height"
+  },
+  {
+    "EPSG:8050": "EPSG: 8050 / MSL height (ft)"
+  },
+  {
+    "EPSG:8051": "EPSG: 8051 / MSL depth (ft)"
+  },
+  {
+    "EPSG:8052": "EPSG: 8052 / MSL height (ftUS)"
+  },
+  {
+    "EPSG:8053": "EPSG: 8053 / MSL depth (ftUS)"
+  },
+  {
+    "EPSG:8089": "EPSG: 8089 / ISH2004 height"
+  },
+  {
+    "EPSG:8228": "EPSG: 8228 / NAVD88 height (ft)"
+  },
+  {
+    "EPSG:8266": "EPSG: 8266 / GVR2000 height"
+  },
+  {
+    "EPSG:8267": "EPSG: 8267 / GVR2016 height"
+  },
+  {
+    "EPSG:8357": "EPSG: 8357 / Baltic 1957 height"
+  },
+  {
+    "EPSG:8358": "EPSG: 8358 / Baltic 1957 depth"
+  },
+  {
+    "EPSG:8378": "EPSG: 8378 / EPSG example wellbore local vertical CRS"
+  },
+  {
+    "EPSG:8434": "EPSG: 8434 / Macao height"
+  },
+  {
+    "EPSG:8675": "EPSG: 8675 / N43 height"
+  },
+  {
+    "EPSG:8690": "EPSG: 8690 / SVS2010 height"
+  },
+  {
+    "EPSG:8691": "EPSG: 8691 / SRB_VRS12 height"
+  },
+  {
+    "EPSG:8841": "EPSG: 8841 / MVGC height"
+  },
+  {
+    "EPSG:8881": "EPSG: 8881 / Vienna height"
+  },
+  {
+    "EPSG:8897": "EPSG: 8897 / EPSG example wellbore local vertical CRS (ft)"
+  },
+  {
+    "EPSG:8904": "EPSG: 8904 / TWVD 2001 height"
+  },
+  {
+    "EPSG:8911": "EPSG: 8911 / DACR52 height"
+  },
+  {
+    "EPSG:9130": "EPSG: 9130 / IGN 2008 LD height"
+  },
+  {
+    "EPSG:9245": "EPSG: 9245 / CGVD2013a(2010) height"
+  },
+  {
+    "EPSG:9255": "EPSG: 9255 / SRVN16 height"
+  },
+  {
+    "EPSG:9274": "EPSG: 9274 / EVRF2000 Austria height"
+  },
+  {
+    "EPSG:9279": "EPSG: 9279 / SA LLD height"
+  },
+  {
+    "EPSG:9287": "EPSG: 9287 / LAT NL depth"
+  },
+  {
+    "EPSG:9288": "EPSG: 9288 / MSL NL depth"
+  },
+  {
+    "EPSG:9303": "EPSG: 9303 / HS2-VRF height"
+  },
+  {
+    "EPSG:9335": "EPSG: 9335 / KSA-VRF14 height"
+  },
+  {
+    "EPSG:9351": "EPSG: 9351 / NGNC08 height"
+  },
+  {
+    "EPSG:9389": "EPSG: 9389 / EVRF2019 height"
+  },
+  {
+    "EPSG:9390": "EPSG: 9390 / EVRF2019 mean-tide height"
+  },
+  {
+    "EPSG:9392": "EPSG: 9392 / Mallorca height"
+  },
+  {
+    "EPSG:9393": "EPSG: 9393 / Menorca height"
+  },
+  {
+    "EPSG:9394": "EPSG: 9394 / Ibiza height"
+  },
+  {
+    "EPSG:9395": "EPSG: 9395 / Lanzarote height"
+  },
+  {
+    "EPSG:9396": "EPSG: 9396 / Fuerteventura height"
+  },
+  {
+    "EPSG:9397": "EPSG: 9397 / Gran Canaria height"
+  },
+  {
+    "EPSG:9398": "EPSG: 9398 / Tenerife height"
+  },
+  {
+    "EPSG:9399": "EPSG: 9399 / La Gomera height"
+  },
+  {
+    "EPSG:9400": "EPSG: 9400 / La Palma height"
+  },
+  {
+    "EPSG:9401": "EPSG: 9401 / El Hierro height"
+  },
+  {
+    "EPSG:9402": "EPSG: 9402 / Ceuta 2 height"
+  },
+  {
+    "EPSG:9451": "EPSG: 9451 / BI height"
+  },
+  {
+    "EPSG:9458": "EPSG: 9458 / AVWS height"
+  },
+  {
+    "EPSG:9471": "EPSG: 9471 / INAGeoid2020 v1 height"
+  },
+  {
+    "EPSG:9650": "EPSG: 9650 / Baltic 1986 height"
+  },
+  {
+    "EPSG:9651": "EPSG: 9651 / EVRF2007-PL height"
+  },
+  {
+    "EPSG:9663": "EPSG: 9663 / EH2000 height"
+  },
+  {
+    "EPSG:9666": "EPSG: 9666 / LAS07 height"
+  },
+  {
+    "EPSG:9669": "EPSG: 9669 / BGS2005 height"
+  },
+  {
+    "EPSG:9672": "EPSG: 9672 / CD Norway depth"
+  },
+  {
+    "EPSG:9675": "EPSG: 9675 / Pago Pago 2020 height"
+  },
+  {
+    "EPSG:9681": "EPSG: 9681 / NVD 1992 height"
+  },
+  {
+    "EPSG:9721": "EPSG: 9721 / Catania 1965 height"
+  },
+  {
+    "EPSG:9722": "EPSG: 9722 / Cagliari 1956 height"
+  },
+  {
+    "EPSG:9923": "EPSG: 9923 / GNTRANS height"
+  },
+  {
+    "EPSG:9927": "EPSG: 9927 / GNTRANS2016 height"
+  },
+  {
+    "EPSG:20000": "EPSG: 20000 / SVD2006 height"
+  },
+  {
+    "EPSG:20034": "EPSG: 20034 / CGVD2013a(2002) height"
+  },
+  {
+    "EPSG:20035": "EPSG: 20035 / CGVD2013a(1997) height"
+  },
+  {
+    "EPSG:20036": "EPSG: 20036 / INAGeoid2020 v2 height"
+  },
+  {
+    "ESRI:9650": "ESRI: 9650 / Baltic_1986_height"
+  },
+  {
+    "ESRI:9651": "ESRI: 9651 / EVRF_2007_PL_height"
+  },
+  {
+    "ESRI:9721": "ESRI: 9721 / Catania_1965_height"
+  },
+  {
+    "ESRI:9722": "ESRI: 9722 / Cagliari_1956_height"
+  },
+  {
+    "ESRI:105603": "ESRI: 105603 / REDNAP_height"
+  },
+  {
+    "ESRI:105700": "ESRI: 105700 / WGS_1984_Geoid"
+  },
+  {
+    "ESRI:105701": "ESRI: 105701 / DVR90"
+  },
+  {
+    "ESRI:105702": "ESRI: 105702 / RH2000"
+  },
+  {
+    "ESRI:105703": "ESRI: 105703 / NAVD88_height_(ftUS)"
+  },
+  {
+    "ESRI:105704": "ESRI: 105704 / LAS07_height"
+  },
+  {
+    "ESRI:105790": "ESRI: 105790 / EGM2008_Geoid"
+  },
+  {
+    "ESRI:105791": "ESRI: 105791 / Fao_1979"
+  },
+  {
+    "ESRI:105792": "ESRI: 105792 / NZVD2009_height"
+  },
+  {
+    "ESRI:105793": "ESRI: 105793 / N2000_height"
+  },
+  {
+    "ESRI:105794": "ESRI: 105794 / Dunedin_Bluff_1960_height"
+  },
+  {
+    "ESRI:115700": "ESRI: 115700 / WGS_1984"
+  },
+  {
+    "ESRI:115701": "ESRI: 115701 / ETRS_1989"
+  },
+  {
+    "ESRI:115702": "ESRI: 115702 / NAD_1983"
+  },
+  {
+    "ESRI:115703": "ESRI: 115703 / Australian_Antarctic_1998"
+  },
+  {
+    "ESRI:115704": "ESRI: 115704 / Cadastre_1997"
+  },
+  {
+    "ESRI:115705": "ESRI: 115705 / China_Geodetic_Coordinate_System_2000"
+  },
+  {
+    "ESRI:115706": "ESRI: 115706 / Swiss_TRF_1995"
+  },
+  {
+    "ESRI:115707": "ESRI: 115707 / CIGD11"
+  },
+  {
+    "ESRI:115708": "ESRI: 115708 / CR05"
+  },
+  {
+    "ESRI:115709": "ESRI: 115709 / DB_REF"
+  },
+  {
+    "ESRI:115710": "ESRI: 115710 / DGN_1995"
+  },
+  {
+    "ESRI:115711": "ESRI: 115711 / DRUKREF_03"
+  },
+  {
+    "ESRI:115712": "ESRI: 115712 / Estonia_1997"
+  },
+  {
+    "ESRI:115713": "ESRI: 115713 / EUREF_FIN"
+  },
+  {
+    "ESRI:115714": "ESRI: 115714 / FEH2010"
+  },
+  {
+    "ESRI:115715": "ESRI: 115715 / GDA_1994"
+  },
+  {
+    "ESRI:115716": "ESRI: 115716 / GDBD2009"
+  },
+  {
+    "ESRI:115717": "ESRI: 115717 / GDM_2000"
+  },
+  {
+    "ESRI:115718": "ESRI: 115718 / Greenland_1996"
+  },
+  {
+    "ESRI:115719": "ESRI: 115719 / Hartebeesthoek_1994"
+  },
+  {
+    "ESRI:115720": "ESRI: 115720 / IGD05"
+  },
+  {
+    "ESRI:115721": "ESRI: 115721 / IG05_Intermediate_CRS"
+  },
+  {
+    "ESRI:115722": "ESRI: 115722 / IGD05(2012)"
+  },
+  {
+    "ESRI:115723": "ESRI: 115723 / IG05(2012)_Intermediate_CRS"
+  },
+  {
+    "ESRI:115724": "ESRI: 115724 / IGM_1995"
+  },
+  {
+    "ESRI:115725": "ESRI: 115725 / IGRS"
+  },
+  {
+    "ESRI:115726": "ESRI: 115726 / IRENET95"
+  },
+  {
+    "ESRI:115727": "ESRI: 115727 / ISN_1993"
+  },
+  {
+    "ESRI:115728": "ESRI: 115728 / ISN_2004"
+  },
+  {
+    "ESRI:115729": "ESRI: 115729 / ITRF_1988"
+  },
+  {
+    "ESRI:115730": "ESRI: 115730 / ITRF_1989"
+  },
+  {
+    "ESRI:115731": "ESRI: 115731 / ITRF_1990"
+  },
+  {
+    "ESRI:115732": "ESRI: 115732 / ITRF_1991"
+  },
+  {
+    "ESRI:115733": "ESRI: 115733 / ITRF_1992"
+  },
+  {
+    "ESRI:115734": "ESRI: 115734 / ITRF_1993"
+  },
+  {
+    "ESRI:115735": "ESRI: 115735 / ITRF_1996"
+  },
+  {
+    "ESRI:115736": "ESRI: 115736 / ITRF_1997"
+  },
+  {
+    "ESRI:115737": "ESRI: 115737 / ITRF_2000"
+  },
+  {
+    "ESRI:115738": "ESRI: 115738 / ITRF_2005"
+  },
+  {
+    "ESRI:115739": "ESRI: 115739 / JAD_2001"
+  },
+  {
+    "ESRI:115740": "ESRI: 115740 / JGD_2000"
+  },
+  {
+    "ESRI:115741": "ESRI: 115741 / JGD_2011"
+  },
+  {
+    "ESRI:115742": "ESRI: 115742 / Korea_2000"
+  },
+  {
+    "ESRI:115743": "ESRI: 115743 / Lao_1997"
+  },
+  {
+    "ESRI:115744": "ESRI: 115744 / LGD2006"
+  },
+  {
+    "ESRI:115745": "ESRI: 115745 / LKS_1992"
+  },
+  {
+    "ESRI:115746": "ESRI: 115746 / LKS_1994"
+  },
+  {
+    "ESRI:115747": "ESRI: 115747 / MACAO_2008"
+  },
+  {
+    "ESRI:115748": "ESRI: 115748 / MAGNA"
+  },
+  {
+    "ESRI:115749": "ESRI: 115749 / MARCARIO_SOLIS"
+  },
+  {
+    "ESRI:115750": "ESRI: 115750 / MARGEN"
+  },
+  {
+    "ESRI:115751": "ESRI: 115751 / Mexico_ITRF2008"
+  },
+  {
+    "ESRI:115752": "ESRI: 115752 / MOLDREF99"
+  },
+  {
+    "ESRI:115753": "ESRI: 115753 / MONREF_1997"
+  },
+  {
+    "ESRI:115754": "ESRI: 115754 / Moznet"
+  },
+  {
+    "ESRI:115755": "ESRI: 115755 / NAD_1983_2011"
+  },
+  {
+    "ESRI:115756": "ESRI: 115756 / NAD_1983_CORS96"
+  },
+  {
+    "ESRI:115757": "ESRI: 115757 / North_American_1983_CSRS"
+  },
+  {
+    "ESRI:115758": "ESRI: 115758 / North_American_1983_HARN"
+  },
+  {
+    "ESRI:115759": "ESRI: 115759 / NAD_1983_MA11"
+  },
+  {
+    "ESRI:115760": "ESRI: 115760 / NAD_1983_MARP00"
+  },
+  {
+    "ESRI:115761": "ESRI: 115761 / NAD_1983_NSRS2007"
+  },
+  {
+    "ESRI:115762": "ESRI: 115762 / NAD_1983_PA11"
+  },
+  {
+    "ESRI:115763": "ESRI: 115763 / NAD_1983_PACP00"
+  },
+  {
+    "ESRI:115764": "ESRI: 115764 / Nepal_Nagarkot"
+  },
+  {
+    "ESRI:115765": "ESRI: 115765 / NZGD_2000"
+  },
+  {
+    "ESRI:115766": "ESRI: 115766 / Peru96"
+  },
+  {
+    "ESRI:115767": "ESRI: 115767 / PNG94"
+  },
+  {
+    "ESRI:115768": "ESRI: 115768 / POSGAR"
+  },
+  {
+    "ESRI:115769": "ESRI: 115769 / POSGAR_1994"
+  },
+  {
+    "ESRI:115770": "ESRI: 115770 / POSGAR_1998"
+  },
+  {
+    "ESRI:115771": "ESRI: 115771 / PRS_1992"
+  },
+  {
+    "ESRI:115772": "ESRI: 115772 / PTRA08"
+  },
+  {
+    "ESRI:115773": "ESRI: 115773 / PZ_1990"
+  },
+  {
+    "ESRI:115774": "ESRI: 115774 / RDN2008"
+  },
+  {
+    "ESRI:115775": "ESRI: 115775 / REGCAN95"
+  },
+  {
+    "ESRI:115776": "ESRI: 115776 / REGVEN"
+  },
+  {
+    "ESRI:115777": "ESRI: 115777 / RGAF09"
+  },
+  {
+    "ESRI:115778": "ESRI: 115778 / RGF_1993"
+  },
+  {
+    "ESRI:115779": "ESRI: 115779 / RGFG_1995"
+  },
+  {
+    "ESRI:115780": "ESRI: 115780 / RGM_2004"
+  },
+  {
+    "ESRI:115781": "ESRI: 115781 / RGNC_1991"
+  },
+  {
+    "ESRI:115782": "ESRI: 115782 / RGNC_1991-93"
+  },
+  {
+    "ESRI:115783": "ESRI: 115783 / RGPF"
+  },
+  {
+    "ESRI:115784": "ESRI: 115784 / RGR_1992"
+  },
+  {
+    "ESRI:115785": "ESRI: 115785 / RGRDC_2005"
+  },
+  {
+    "ESRI:115786": "ESRI: 115786 / RGSPM_2006"
+  },
+  {
+    "ESRI:115787": "ESRI: 115787 / RRAF_1991"
+  },
+  {
+    "ESRI:115788": "ESRI: 115788 / RSRGD2000"
+  },
+  {
+    "ESRI:115789": "ESRI: 115789 / SIRGAS_2000"
+  },
+  {
+    "ESRI:115790": "ESRI: 115790 / SIRGAS-Chile"
+  },
+  {
+    "ESRI:115791": "ESRI: 115791 / SIRGAS_ES2007.8"
+  },
+  {
+    "ESRI:115792": "ESRI: 115792 / SIRGAS-ROU98"
+  },
+  {
+    "ESRI:115793": "ESRI: 115793 / SLD99"
+  },
+  {
+    "ESRI:115794": "ESRI: 115794 / Slovenia_1996"
+  },
+  {
+    "ESRI:115795": "ESRI: 115795 / SREF98"
+  },
+  {
+    "ESRI:115796": "ESRI: 115796 / S_JTSK/05"
+  },
+  {
+    "ESRI:115797": "ESRI: 115797 / S_JTSK/05_Ferro"
+  },
+  {
+    "ESRI:115798": "ESRI: 115798 / SWEREF99"
+  },
+  {
+    "ESRI:115799": "ESRI: 115799 / TGD2005"
+  },
+  {
+    "ESRI:115800": "ESRI: 115800 / TWD_1997"
+  },
+  {
+    "ESRI:115801": "ESRI: 115801 / Ukraine_2000"
+  },
+  {
+    "ESRI:115802": "ESRI: 115802 / Yemen_NGN_1996"
+  },
+  {
+    "ESRI:115803": "ESRI: 115803 / ITRF_2008"
+  },
+  {
+    "ESRI:115804": "ESRI: 115804 / TUREF"
+  },
+  {
+    "ESRI:115805": "ESRI: 115805 / GDA2020"
+  },
+  {
+    "ESRI:115806": "ESRI: 115806 / BGS2005"
+  },
+  {
+    "ESRI:115807": "ESRI: 115807 / Unknown_height_system_(meters)"
+  },
+  {
+    "ESRI:115808": "ESRI: 115808 / Unknown_height_system_(US_survey_feet)"
+  },
+  {
+    "ESRI:115809": "ESRI: 115809 / Unknown_height_system_(Intl_Feet)"
+  },
+  {
+    "ESRI:115810": "ESRI: 115810 / ITRF2014"
+  },
+  {
+    "ESRI:115811": "ESRI: 115811 / SHGD2015"
+  },
+  {
+    "ESRI:115812": "ESRI: 115812 / St_Helena_Tritan"
+  },
+  {
+    "ESRI:115813": "ESRI: 115813 / GSK-2011"
+  },
+  {
+    "ESRI:115814": "ESRI: 115814 / PZ-90.11"
+  },
+  {
+    "ESRI:115815": "ESRI: 115815 / PZ-90.02"
+  },
+  {
+    "ESRI:115816": "ESRI: 115816 / WGS_1984_(Transit)"
+  },
+  {
+    "ESRI:115817": "ESRI: 115817 / WGS_1984_(G1762)"
+  },
+  {
+    "ESRI:115818": "ESRI: 115818 / WGS_1984_(G1674)"
+  },
+  {
+    "ESRI:115819": "ESRI: 115819 / WGS_1984_(G1150)"
+  },
+  {
+    "ESRI:115820": "ESRI: 115820 / WGS_1984_(G873)"
+  },
+  {
+    "ESRI:115821": "ESRI: 115821 / WGS_1984_(G730)"
+  },
+  {
+    "ESRI:115822": "ESRI: 115822 / ETRF90"
+  },
+  {
+    "ESRI:115823": "ESRI: 115823 / ETRF91"
+  },
+  {
+    "ESRI:115824": "ESRI: 115824 / ETRF92"
+  },
+  {
+    "ESRI:115825": "ESRI: 115825 / ETRF93"
+  },
+  {
+    "ESRI:115826": "ESRI: 115826 / ETRF94"
+  },
+  {
+    "ESRI:115827": "ESRI: 115827 / ETRF96"
+  },
+  {
+    "ESRI:115828": "ESRI: 115828 / ETRF97"
+  },
+  {
+    "ESRI:115829": "ESRI: 115829 / ETRF2000"
+  },
+  {
+    "ESRI:115830": "ESRI: 115830 / NAD83(CSRS96)"
+  },
+  {
+    "ESRI:115831": "ESRI: 115831 / NAD83(CSRS)v2"
+  },
+  {
+    "ESRI:115832": "ESRI: 115832 / NAD83(CSRS)v3"
+  },
+  {
+    "ESRI:115833": "ESRI: 115833 / NAD83(CSRS)v4"
+  },
+  {
+    "ESRI:115834": "ESRI: 115834 / NAD83(CSRS)v5"
+  },
+  {
+    "ESRI:115835": "ESRI: 115835 / NAD83(CSRS)v6"
+  },
+  {
+    "ESRI:115836": "ESRI: 115836 / NAD83(CSRS)v7"
+  },
+  {
+    "ESRI:115837": "ESRI: 115837 / IGS14"
+  },
+  {
+    "ESRI:115838": "ESRI: 115838 / ISN2016"
+  },
+  {
+    "ESRI:115839": "ESRI: 115839 / Hong_Kong_Geodetic_CS"
+  },
+  {
+    "ESRI:115840": "ESRI: 115840 / NAD_1983_(FBN)"
+  },
+  {
+    "ESRI:115841": "ESRI: 115841 / NAD_1983_(HARN_Corrected)"
+  },
+  {
+    "ESRI:115842": "ESRI: 115842 / SRB_ETRS89"
+  },
+  {
+    "ESRI:115843": "ESRI: 115843 / MTRF-2000"
+  },
+  {
+    "ESRI:115844": "ESRI: 115844 / California_SRS_Epoch_2017.50_(NAD83)"
+  },
+  {
+    "ESRI:115845": "ESRI: 115845 / GGD"
+  },
+  {
+    "ESRI:115846": "ESRI: 115846 / ONGD14"
+  },
+  {
+    "ESRI:115847": "ESRI: 115847 / ONGD17"
+  },
+  {
+    "ESRI:115848": "ESRI: 115848 / S-JTSK_[JTSK03]"
+  },
+  {
+    "ESRI:115849": "ESRI: 115849 / CR-SIRGAS"
+  },
+  {
+    "ESRI:115850": "ESRI: 115850 / RGWF96"
+  },
+  {
+    "ESRI:115851": "ESRI: 115851 / SIRGAS-CON_DGF00P01"
+  },
+  {
+    "ESRI:115852": "ESRI: 115852 / SIRGAS-CON_DGF01P01"
+  },
+  {
+    "ESRI:115853": "ESRI: 115853 / SIRGAS-CON_DGF01P02"
+  },
+  {
+    "ESRI:115854": "ESRI: 115854 / SIRGAS-CON_DGF02P01"
+  },
+  {
+    "ESRI:115855": "ESRI: 115855 / SIRGAS-CON_DGF04P01"
+  },
+  {
+    "ESRI:115856": "ESRI: 115856 / SIRGAS-CON_DGF05P01"
+  },
+  {
+    "ESRI:115857": "ESRI: 115857 / SIRGAS-CON_DGF06P01"
+  },
+  {
+    "ESRI:115858": "ESRI: 115858 / SIRGAS-CON_DGF07P01"
+  },
+  {
+    "ESRI:115859": "ESRI: 115859 / SIRGAS-CON_DGF08P01"
+  },
+  {
+    "ESRI:115860": "ESRI: 115860 / SIRGAS-CON_SIR09P01"
+  },
+  {
+    "ESRI:115861": "ESRI: 115861 / SIRGAS-CON_SIR10P01"
+  },
+  {
+    "ESRI:115862": "ESRI: 115862 / SIRGAS-CON_SIR11P01"
+  },
+  {
+    "ESRI:115863": "ESRI: 115863 / SIRGAS-CON_SIR13P01"
+  },
+  {
+    "ESRI:115864": "ESRI: 115864 / SIRGAS-CON_SIR14P01"
+  },
+  {
+    "ESRI:115865": "ESRI: 115865 / SIRGAS-CON_SIR15P01"
+  },
+  {
+    "ESRI:115866": "ESRI: 115866 / SIRGAS-CON_SIR17P01"
+  },
+  {
+    "ESRI:115867": "ESRI: 115867 / IGS97"
+  },
+  {
+    "ESRI:115868": "ESRI: 115868 / IGS00"
+  },
+  {
+    "ESRI:115869": "ESRI: 115869 / IGb00"
+  },
+  {
+    "ESRI:115870": "ESRI: 115870 / IGS05"
+  },
+  {
+    "ESRI:115871": "ESRI: 115871 / IGb08"
+  },
+  {
+    "ESRI:115872": "ESRI: 115872 / KOSOVAREF01"
+  },
+  {
+    "ESRI:115873": "ESRI: 115873 / ETRF2005"
+  },
+  {
+    "ESRI:115874": "ESRI: 115874 / ETRF2014"
+  },
+  {
+    "ESRI:115875": "ESRI: 115875 / CH1903+"
+  },
+  {
+    "ESRI:115876": "ESRI: 115876 / ATRF2014"
+  },
+  {
+    "ESRI:115877": "ESRI: 115877 / Australian_1984"
+  },
+  {
+    "ESRI:115878": "ESRI: 115878 / Australian_1966"
+  },
+  {
+    "ESRI:115879": "ESRI: 115879 / ITRF_1994"
+  },
+  {
+    "IGNF:BORA01": "IGNF: BORA01 / BORA_SAU 2001"
+  },
+  {
+    "IGNF:BOURD": "IGNF: BOURD / NGF-BOURDALOUE"
+  },
+  {
+    "IGNF:EVRF2000": "IGNF: EVRF2000 / EVRF2000 (UELN-95/98)(EUROPEAN VERTICAL REFERENCE FRAME)"
+  },
+  {
+    "IGNF:EVRF2007": "IGNF: EVRF2007 / EVRF2007 (EUROPEAN VERTICAL REFERENCE FRAME 2007)"
+  },
+  {
+    "IGNF:FUTUNA1997": "IGNF: FUTUNA1997 / NGWF ILES HORN (FUTUNA ET ALOFI)"
+  },
+  {
+    "IGNF:GLOR77": "IGNF: GLOR77 / SHOM 1977 (ILES GLORIEUSES - CANAL DE MOZAMBIQUE)"
+  },
+  {
+    "IGNF:GUAD2008LD": "IGNF: GUAD2008LD / IGN 2008 LD (GUADELOUPE / LA DESIRADE)"
+  },
+  {
+    "IGNF:GUAD88": "IGNF: GUAD88 / IGN 1988 (GUADELOUPE)"
+  },
+  {
+    "IGNF:GUAD88LS": "IGNF: GUAD88LS / IGN 1988 LS (GUADELOUPE / LES SAINTES)"
+  },
+  {
+    "IGNF:GUAD88MG": "IGNF: GUAD88MG / IGN 1988 MG (GUADELOUPE / MARIE-GALANTE)"
+  },
+  {
+    "IGNF:GUAD88SB": "IGNF: GUAD88SB / IGN 1988 SB (GUADELOUPE / SAINT-BARTHELEMY)"
+  },
+  {
+    "IGNF:GUAD88SM": "IGNF: GUAD88SM / IGN 1988 SM (GUADELOUPE / SAINT-MARTIN)"
+  },
+  {
+    "IGNF:GUAD92LD": "IGNF: GUAD92LD / IGN 1992 LD (GUADELOUPE / LA DESIRADE)"
+  },
+  {
+    "IGNF:GUYA77": "IGNF: GUYA77 / NIVELLEMENT GENERAL DE GUYANE (NGG) 1977"
+  },
+  {
+    "IGNF:HUAH01": "IGNF: HUAH01 / HUAHINE_SAU 2001"
+  },
+  {
+    "IGNF:IGN69": "IGNF: IGN69 / NGF-IGN 1969"
+  },
+  {
+    "IGNF:IGN78C": "IGNF: IGN78C / NGF-IGN 1978"
+  },
+  {
+    "IGNF:KERG62": "IGNF: KERG62 / IGN 1962 (KERGUELEN)"
+  },
+  {
+    "IGNF:LIFOU91": "IGNF: LIFOU91 / NIVELLEMENT GENERAL DE LIFOU (IGN 1991 LF)"
+  },
+  {
+    "IGNF:MARE91": "IGNF: MARE91 / NIVELLEMENT GENERAL DE MARE (IGN 1991 MR)"
+  },
+  {
+    "IGNF:MART87": "IGNF: MART87 / IGN 1987 (MARTINIQUE)"
+  },
+  {
+    "IGNF:MAUPITI01": "IGNF: MAUPITI01 / MAUPITI_SAU 2001"
+  },
+  {
+    "IGNF:MAYO53": "IGNF: MAYO53 / SHOM 1953 (MAYOTTE)"
+  },
+  {
+    "IGNF:MOOREA81": "IGNF: MOOREA81 / MOOREA 1981 (MOOREA_SAU 2001)"
+  },
+  {
+    "IGNF:NCAL69": "IGNF: NCAL69 / NIVELLEMENT GENERAL DE NOUVELLE-CALEDONIE (NGNC)"
+  },
+  {
+    "IGNF:NGC48": "IGNF: NGC48 / NIVELLEMENT GENERAL DE LA CORSE (NGC)"
+  },
+  {
+    "IGNF:NGF84": "IGNF: NGF84 / NGF-LALLEMAND"
+  },
+  {
+    "IGNF:NNLUX": "IGNF: NNLUX / NIVELLEMENT GENERAL DU LUXEMBOURG"
+  },
+  {
+    "IGNF:PETRELS52": "IGNF: PETRELS52 / EPF 1952 (ILE DES PETRELS)"
+  },
+  {
+    "IGNF:PINS78": "IGNF: PINS78 / SHOM 1978 (ILE DES PINS)"
+  },
+  {
+    "IGNF:RAIA01": "IGNF: RAIA01 / RAIATEA_SAU 2001"
+  },
+  {
+    "IGNF:REUN89": "IGNF: REUN89 / IGN 1989 (REUNION)"
+  },
+  {
+    "IGNF:SHOM1984WF": "IGNF: SHOM1984WF / SHOM 1984 (WALLIS ET FUTUNA)"
+  },
+  {
+    "IGNF:STPM50_V": "IGNF: STPM50_V / DANGER 1950 (SAINT-PIERRE-ET-MIQUELON)"
+  },
+  {
+    "IGNF:TAHAA01": "IGNF: TAHAA01 / TAHAA_SAU 2001"
+  },
+  {
+    "IGNF:TAHITI66": "IGNF: TAHITI66 / IGN 1966 (TAHITI)"
+  },
+  {
+    "IGNF:UVEA84": "IGNF: UVEA84 / IGN 1984 (ILE UVEA)"
+  },
+  {
+    "IGNF:WALLIS96": "IGNF: WALLIS96 / NGWF WALLIS (MOP 1996)"
+  }
+]
