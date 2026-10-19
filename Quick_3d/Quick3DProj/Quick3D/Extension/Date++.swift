@@ -7,14 +7,40 @@
 
 import Foundation
 
+/// Creating a DateFormatter is expensive and both `Date.toString` and `String.toDate`
+/// are called for every project cell on every render, so the formatters are created
+/// once per (format, locale, timeZone) and reused.
+final class DateFormatterCache {
+    static let shared = DateFormatterCache()
+
+    private let lock = NSLock()
+    private var formatters = [String: DateFormatter]()
+
+    private init() {}
+
+    func formatter(format: String, locale: Locale?, timeZone: TimeZone?) -> DateFormatter {
+        let key = "\(format)|\(locale?.identifier ?? "")|\(timeZone?.identifier ?? "")"
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let cached = formatters[key] { return cached }
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = format
+        if let locale = locale { formatter.locale = locale }
+        if let timeZone = timeZone { formatter.timeZone = timeZone }
+        formatters[key] = formatter
+        return formatter
+    }
+}
+
 extension Date {
     func toString(format dateFormat: String, locale: Locale = Locale(identifier: "en_US"), timeZone: TimeZone? = nil) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.dateFormat = dateFormat
-        dateFormatter.locale = locale
-        if timeZone != nil { dateFormatter.timeZone = timeZone }
-        return dateFormatter.string(from: self)
+        DateFormatterCache.shared
+            .formatter(format: dateFormat, locale: locale, timeZone: timeZone)
+            .string(from: self)
     }
 
     func addingMonth(_ month: Int) -> Date? {

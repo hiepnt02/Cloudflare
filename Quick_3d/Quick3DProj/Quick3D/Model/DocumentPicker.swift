@@ -16,6 +16,14 @@ enum FileType {
     case zip
     case tif
     case json
+    case dxf
+    case laz
+    case csv
+    case txt
+    case ply
+    case fbx
+    case glb
+    case dwg
 }
 
 let FileTypes: [FileType: UTType] = [
@@ -24,7 +32,15 @@ let FileTypes: [FileType: UTType] = [
     FileType.xml: UTType.xml,
     FileType.zip: UTType.zip,
     FileType.tif: UTType(tag: "tif", tagClass: .filenameExtension, conformingTo: UTType.data)!,
-    FileType.json: UTType.json
+    FileType.json: UTType.json,
+    FileType.dxf: UTType(tag: "dxf", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.laz: UTType(tag: "laz", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.csv: UTType(tag: "csv", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.txt: UTType(tag: "txt", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.ply: UTType(tag: "ply", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.fbx: UTType(filenameExtension: "fbx") ?? UTType(tag: "fbx", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.glb: UTType(filenameExtension: "glb") ?? UTType(tag: "glb", tagClass: .filenameExtension, conformingTo: UTType.data)!,
+    FileType.dwg: UTType(filenameExtension: "dwg") ?? UTType(tag: "dwg", tagClass: .filenameExtension, conformingTo: UTType.data)!
 ]
 
 struct DocumentPicker: UIViewControllerRepresentable {

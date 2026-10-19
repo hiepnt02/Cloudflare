@@ -26,8 +26,8 @@
 "Uploadphoto" = "画像アップロード";
 "Correctposition" = "位置補正";
 "UPLOAD_COMPLETE" = "データアップロード完了";
-"COORDINATE_CHANGE_COMPLETE" = "座標系変換または座標変換完了";
-"COORDINATE_CHANGE_ERROR" = "座標系変換または座標変換エラー";
+"COORDINATE_CHANGE_COMPLETE" = "座標系変換または\n座標変換完了";
+"COORDINATE_CHANGE_ERROR" = "座標系変換または\n座標変換エラー";
 "SFM_PROCESSING_ERROR" = "SfM処理エラー";
 "PROCESSING_DONE" = "SfM処理完了";
 "ACCURACY_VERIFY_COMP" = "精度検証完了";
@@ -140,7 +140,6 @@
 "PROJECT_NAME_INPUT" = "プロジェクト名";
 "Uploading" = "データアップロード";
 "UPLOAD_SUCCESS" = "アップロード成功";
-"UPLOAD_ERROR" = "一定時間経過後、プロジェクト一覧画面で確認してください。";
 "DEL_PROJECT_CONFIRM" = "選択したプロジェクトを削除しますか？";
 "ITEM_SELECTED" = "%d 件のプロジェクトを削除";
 "DELETE_LOCAL_DATA" = "ローカルのデータを削除";
@@ -266,9 +265,13 @@
 "UPLOADING_WATING_ALERT_2" = "アップロード待ちとして保存されます。";
 "SIGN_IN" = "サインイン";
 "PRIVACY_POLICY" = "プライバシーポリシー";
-"WHILE_EDIT" = "処理中";
+"WHILE_EDIT" = "編集中";
 "UPLOAD_ERROR" = "アップロードエラー";
+"UPLOAD_RESULT_TITLE" = "アップロード結果";
 "AR_PIX4D_BOOT" = "ARで表示";
+"AR_PIX4D_SFM_NOT_COMPLETED" = "SFM処理が完了していないため、ARで表示できません";
+"AR_PIX4D_OPEN_ERROR" = "ARデータの取得に失敗しました。もう一度お試しください";
+"PIX4D_APP_NOT_INSTALLED" = "PIX4Dcatchを開けませんでした。アプリがインストールされているかご確認ください";
 "AR_PROJECT_OPEN_ERROR" = "AR用のプロジェクトのため開けません";
 "DESIGN_DATA_UPLOAD" = "設計データをアップロード";
 "POINT_DATA_UPLOAD" = "点群データをアップロード";
@@ -289,7 +292,8 @@
 "DETAIL_INFO" = "詳細情報";
 "SHOOTING_DATA_ZIP" = "撮影データ(zip)";
 "DESIGN_DATA_IFC" = "設計データ(IFC, LandXML)";
-"POINT_DATA_LAS" = "点群データ(LAS)";
+"POINT_DATA_LAS" = "点群データ(LAS, LAZ, CSV, TXT)";
+"DESIGN_DATA_FBX" = "設計データ(FBX, GLB, DWG)";
 "DATA_TYPE" = "データの種類";
 "INSUFFICIENT_PHOTOS_NUMBER" = "画像枚数が不足しています。";
 "TAKE_TEN_MORE_PICTURE" = "10枚以上撮影してください。";
@@ -310,6 +314,7 @@
 "PLEASE_SELECT_TIF_FILE" = "GeoTIFFファイルを選択してください";
 "PLEASE_SELECT_XML_FILE" = "設計データファイルを選択してください";
 "GEO_JSON" = "ヒートマップ(GeoJSON)";
+"ALERT_GROUPWARE_PERMISSION" = "権限が不足しているため、Groupwareにデータが保存されません。\n処理を開始しますか？";
 "IMPORT_SMART_CONSTRUCTION_DASHBOARD" = "Smart Construction Dashboard からアップロード";
 "IMPORT_SMART_CONSTRUCTION_DESIGN3D" = "Smart Construction Design3D からアップロード";
 "UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE" = "PCローカル or Smart Construction Groupwareからアップロード";
@@ -318,13 +323,248 @@
 "SIZE" = "サイズ";
 "NO_DATA" = "データなし";
 "UPLOAD_COMPLETED" = "アップロードが完了しました。";
-"FILE_NAME" = "ファイル名：";
-"PATH" = "パス：";
 "JOBSITE" = "現場名";
 "TYPE" = "種類";
 "OPEN_PIX_4D" = "撮影[Pix4D Catch]";
-"NUMBER_OF_PHOTOS" = "写真枚数";
+"NUMBER_OF_PHOTOS" = "画像枚数";
 "SORT_BY" = "並び順";
 "SORT_CAPTURED_DATE" = "撮影日";
 "SORT_UPLOAD_DATE" = "アップロード日";
-"NUMBER_OF_PHOTOS" = "画像枚数";
+"FILE_NAME" = "ファイル名：";
+"PATH" = "パス：";
+"PLEASE_SELECT_DXF_FILE" = "dxfファイルを選択してください。(任意)";
+"DXF_FILE_NOTICE" = "lasの点群にdxfの色が結合されて表示されます。dxfが未選択の場合はlasのみが表示されます。";
+
+
+// ===== Camera group (added from camera_localization.html) =====
+
+// --- Enum ---
+"ABORT_CAPTURE_MESSAGE" = "今すぐキャプチャを中止すると、このキャプチャ セッションのすべてのデータが失われます";
+"ABORT_CAPTURE_TITLE" = "キャプチャを中止";
+"AR_CALCULATION_FAILED" = "ARの位置計算に失敗しました";
+"BLUETOOTH_PERMISSION_POPUP_TITLE" = "「Quick3D」がアクセサリに接続できるようにするには、Bluetoothをオンにします";
+"CAMERA_PERMISSION_POPUP_MESSAGE" = "画像と拡張現実をキャプチャするにはカメラが必要です";
+"CAMERA_PERMISSION_POPUP_TITLE" = "カメラの許可が必要です";
+"CONNECTION_FAILED" = "接続に失敗しました";
+"CUSTOM" = "カスタム";
+"DISSMISS_BTN" = "無視する";
+"DOWNLOAD_AR_FAILED_400" = "システムエラー";
+"DOWNLOAD_AR_FAILED_404" = "サポートされていません";
+"DOWNLOAD_AR_FAILED_500" = "ファイルが存在しません";
+"EXPORT_DATA_TITLE" = "データをエクスポートしてもよろしいですか?";
+"LOCATION_PERMISSION_POPUP_MESSAGE" = "地理参照された 3D 再構築を生成するには位置情報が必要です";
+"LOCATION_PERMISSION_POPUP_TITLE" = "位置情報の許可が必要です";
+"MAXIMUM_RESOLUTION" = "最大解像度";
+"NORMAL" = "通常";
+"OPEN_SETTING" = "設定を開く";
+"OUT_OF_MEMORY_MESSAGE" = "RAMがいっぱいです。プロジェクトを保存してください。";
+"OUT_OF_MEMORY_TITLE" = "メモリ不足";
+"RTK_NO_NETWORK_MESSAGE" = "デバイスが見つかりませんでした。正しく接続されている事を確認し、RTK デバイスを再起動して、再試行してください";
+"SAVE_FAILED_BODY" = "直近で撮影したデータが保存されていません。";
+"SAVE_FAILED_TITLE" = "プロジェクトの保存に失敗しました。";
+"THERMAL_CRITICAL" = "端末温度を下げてから撮影してください";
+"THERMAL_FAIR" = "端末の温度が上昇しています";
+"THERMAL_SERIOUS" = "端末の温度が高いです";
+"WARNING" = "警告";
+
+// --- Model ---
+"AR_TRACKING_EXCESSIVE_MOTION" = "デバイスの動きが速すぎます";
+"AR_TRACKING_INITIALIZING" = "初期化中";
+"AR_TRACKING_INSUFFICIENT_FEATURES" = "特徴点が少なすぎます";
+"AR_TRACKING_NOT_AVAILABLE" = "トラッキングが開始されていません";
+"AR_TRACKING_RELOCALIZING" = "セッション復帰中";
+"RTK_LOST_CONNECTION" = "RTK接続が切れました";
+"RTK_LOST_FIXED_QUALITY" = "RTK Fix が失われました";
+
+// --- UI - CaptureSettings ---
+"ALERT_SETTINGS" = "アラート設定";
+"ALERT_SOUND" = "アラート音";
+"CAPTURE_SETTING" = "撮影設定";
+"CAPTURE_SETTING_DESC" = "写真撮影の設定を行います。\n撮影写真の解像度変更、連続撮影時設定（オーバーラップ率）変更等はこちらで変更可能です。";
+"CHANGES_NOT_SAVED" = "変更が保存されていません";
+"DETAIL_CAPTURE_SETTING" = "撮影詳細設定";
+"ENABLE_MESH" = "メッシュの有効化";
+"FEATURE_POINTS" = "特徴点";
+"FIRST_PERSON_VIEW" = "一人称視点";
+"LIVE_PREVIEW_MODE" = "ライブプレビューモード";
+"MESH" = "メッシュ";
+"OVERLAP_DESC" = "指定したオーバーラップ率になった際に自動で撮影されます。";
+"RESOLUTION" = "画像解像度";
+"SAVED" = "保存済み";
+"SAVE_MESH" = "メッシュを保存";
+"DEBUG" = "デバッグ";
+"CAPTURE_LOG" = "キャプチャログ";
+"SETTINGS" = "設定";
+"SHOW_MOVEMENT_UI" = "速度アラートの判定を表示";
+"TOP_VIEW" = "上面視点";
+"YES" = "はい";
+
+// --- UI - Capture ---
+"CAPTURE_LIMIT_REACHED" = "撮影枚数上限に達しました。これ以上撮影はできません";
+"CAPTURE_MAX_LIMIT" = "撮影枚数上限は4000枚です。ご注意下さい。";
+"SAVING" = "保存中";
+
+// --- UI - CommonUI ---
+"AR_ACCURACY_1" = "ARの位置精度を高めるため、RTKがFixした状態で数m移動して下さい。";
+"AR_ACCURACY_2" = "対象物(点群, 設計データ)がおおよその位置に配置された後、下記手順でご利用頂ければと思います。\n１．「自動更新」をオフ\n２．歯車マークを押して、対象を微調整";
+"AR_ACCURACY_3" = "別の対象物（点群, 設計データ)を表示させる場合は一旦ホーム画面に戻って、再度対象に対してAR表示して下さい。";
+"AR_ACCURACY_HEADER" = "AR機能利用時の注意点";
+"AR_QUICK3D_BOOT" = "ARで表示[試用版]";
+"DETECTING_VIDOC" = "Bluetooth検出中";
+"GETTING_LOCATION_INFO" = "位置情報取得中";
+"GNSS_CONSTELLATIONS" = "GNSS コンステレーション";
+"IMAGE_CAPTURED_COUNT_IPHONE" = "%d 枚";
+"MINIMUM_ELEVATION" = "仰角マスク";
+"MOVING_TOO_FAST" = "ゆっくり移動してください。";
+"NO_NETWORK_ERROR" = "インターネット接続がオフラインのようです。";
+"OPEN_TRIAL_CAPTURE" = "撮影[試用版]";
+"RTK_DISCONNECT_CONFIRM" = "RTKデバイスの接続を切断します。よろしいですか？";
+"RTK_STATUS_AUTONOMOUS" = "単独測位";
+"RTK_STATUS_DGPS" = "DGNSSのみ";
+"RTK_STATUS_FIXED" = "FIX";
+"RTK_STATUS_FLOAT" = "FLOAT";
+"RTK_STATUS_NO_FIX" = "Fixなし";
+"RTK_STATUS_UNAVAILABLE" = "無効";
+
+// --- UI - Preview (Export) ---
+"ERROR_DUPLICATE_FILE_NAME" = "プロジェクト名が重複しています。\n名前を変更してください。";
+"GEOLOCATION" = "ジオロケーション";
+"GEOLOCATION_SOURCE" = "ジオロケーションソース";
+"IMAGE" = "画像";
+"LOW" = "低";
+"OPTIMAL" = "最適";
+"REDUCED" = "低下";
+"REPORT" = "レポート";
+"SAVE_ERROR" = "保存エラー";
+"SAVE_LOCALLY" = "端末に一時保存";
+"SAVE_THE_CAPTURED_IMAGE" = "撮影した画像を保存";
+
+// --- UI - RTKSetting ---
+"DEVICE" = "端末:";
+"DEVICE_NOT_FOUND" = "デバイスが見つかりません";
+"ELEVATION_MASK_DESC" = "仰角（RTKデバイスのアンテナを基準として垂直な平面からの角度）が一定値以下の衛星や信号を利用しないように制限する設定です。\n仰角の低い衛星は、建物・樹木・地形などの影響を受けやすく、反射（マルチパス）や遮蔽により測位精度が低下する場合があります。\n仰角マスク15°が推奨値となります。";
+"GNSS_CONSTELLATIONS_DESC" = "GNSSコンステレーションとは、測位に使用する衛星測位システムと、その衛星配置全体を指します。\n複数のコンステレーションを同時に使用することで、使用可能な衛星数が増え、測位の精度や安定性が向上します";
+"RTK_BLUETOOTH_DEVICE_CONNECT" = "接続";
+"RTK_BLUETOOTH_DEVICE_CONNECT_TO" = "%@に接続";
+"RTK_BLUETOOTH_DEVICE_DISCONNECT" = "接続を解除";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_ACQUIRING_LOCATION" = "位置情報を取得中";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_BACK_TO_LIST" = "デバイス選択に戻る";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_BLUETOOTH_ON" = "BluetoothをONにして下さい。";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_FOUND" = "RTKデバイスが検出されました";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_LAST_CONNECTED" = "以前接続されました";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_NOT_FOUND" = "RTKデバイスが見つかりません";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_POWER_ON" = "電源をONにするか";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_RETRY" = "再度検出";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_SEARCHING" = "デバイスを検出中...";
+"RTK_CAMERA_OFFSET" = "カメラオフセット";
+"RTK_CAMERA_OFFSET_COORDINATE" = "アンテナ下端ーカメラレンズ間オフセット値";
+"RTK_CAMERA_OFFSET_CUSTOM" = "手動入力";
+"RTK_DEVICE_CONNECTION" = "RTKデバイス接続";
+"RTK_DEVICE_TYPE" = "RTKデバイス:";
+"RTK_HOSTNAME_IP" = "ホスト名/IP";
+"RTK_HOSTNAME_IP_PLACEHOLDER" = "ホスト名を入力";
+"RTK_OFFSET_TYPE" = "接続方法:";
+"RTK_PASSWORD" = "パスワード";
+"RTK_PASSWORD_PLACEHOLDER" = "パスワードを入力";
+"RTK_PORT" = "ポート番号";
+"RTK_PORT_PLACEHOLDER" = "ポート番号を入力";
+"RTK_USERNAME" = "ユーザー名";
+"RTK_USERNAME_PLACEHOLDER" = "ユーザー名を入力";
+"RTK_VALIDATE_NTRIP" = "NTRIPを認証する";
+"VALIDATION_FAILS" = "認証失敗";
+
+// --- UI - ViewAR ---
+"AR_DISPLAY_COMPLETE" = "AR表示完了";
+"AR_UPDATED" = "自動更新";
+"CALCULATION_SETTING" = "計算設定";
+"CHANGE_AMOUNT" = "変化量";
+"DESIGN" = "設計";
+"DISPLAY_SETTINGS" = "表示設定";
+"DISTANCE" = "距離";
+"HORIZONTAL" = "水平";
+"LAS_LEVEL" = "ラスレベル";
+"LAYERS" = "レイヤー";
+"LOADING_PROJECT" = "プロジェクトを読み込んでいます...";
+"OCCLUSION" = "オクルージョン";
+"PLANE_GRID" = "地面グリッド";
+"POINTCLOUD_SIZE" = "点群サイズ";
+"POINT_CLOUD" = "点群";
+"POSITION_SETTING" = "位置設定";
+"RTK_CONNECT" = "自動補正をするにはRTKに接続してください。";
+"RTK_WAIT_ACCURACY" = "精度がよくなるまでお待ちください。";
+"RTK_WALK" = "少し歩いてください。";
+"SCALE" = "スケール";
+"SEARCH_LAYER" = "レイヤー検索";
+"SHADOW" = "影をつける";
+"SHOW_POINT_CLOUD" = "LiDARを表示";
+
+// --- UI - RTKSetting (added from rtk-localizable.html) ---
+"RTK_BLUETOOTH_DEVICE" = "RTK BLUETOOTH デバイス";
+"RTK_BLUETOOTH_DEVICE_CANCEL" = "中止";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_CONNECTED" = "接続済";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_DISCONNECTED" = "切断されました ";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_1" = "デバイスが見つかりませんか？";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_2" = "デバイスが見つからない場合は、";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_3" = "デバイスの電源がONであることとBluetoothがONになっていることを確認してください。";
+"RTK_BLUETOOTH_DEVICE_MESSAGE_RECORDING" = "接続中";
+"RTK_BLUETOOTH_DEVICE_NOTICE" = "RTK 受信機の電源が入っていることを確認してください。";
+"RTK_BLUETOOTH_DEVICE_NOTICE2" = "見つからない場合は、ここに接続していることを確認してください。";
+"RTK_BLUETOOTH_DEVICE_NOTICE3" = "ロケーションを取得するには、屋外にいることを確認し、RTK フィックスを取得するための良好な信号があることを確認する。";
+"RTK_BLUETOOTH_DEVICE_TITLE" = "検出されたデバイスータップして選択";
+"RTK_CAMERA_OFFSET_DEVICE_NOT_SUPPORTED" = "デバイスはサポートされていません";
+"RTK_CONNECTION_LOST" = "RTK 接続が切れました。";
+"RTK_DEVICE_SETTING" = "RTKデバイス設定";
+"RTK_MOUNTPOINT" = "マウントポイント";
+"RTK_NTRIP_AUTH_ERROR" = "認証エラー";
+"RTK_NTRIP_INVALID_CHARACTER" = "使用できない文字が含まれています";
+"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "NTRIPサービスプロバイダーによって定義されます";
+"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "NTRIP座標系を選択";
+"RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "入力座標参照系";
+"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE" = "NTRIP情報が認証されていません";
+"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE_MESSAGE" = "マウントポイントのリストを受け取るためにNTRIP情報を検証する";
+"RTK_NTRIP_MOUNTPOINT_SEARCH_AZ" = "名前順（A - Z順）";
+"RTK_NTRIP_MOUNTPOINT_SEARCH_LOCATION" = "距離順（近い順）";
+"RTK_NTRIP_MOUNTPOINT_RECENT_SELECTIONS" = "最近の選択";
+"RTK_NTRIP_MOUNTPOINT_ALL_SELECTION" = "すべての選択";
+"RTK_NTRIP_PROVIDER_DETAILS" = "NTRIP プロバイダーの詳細";
+"RTK_NTRIP_SETTINGS" = "NTRIP設定";
+"RTK_NTRIP_VALIDATE_FAIL" = "NTRIP の検証失敗";
+"RTK_SELECT" = "選択";
+
+// --- UI - Calibration ---
+"NEXT" = "次へ";
+"CALIBRATION_PREVIEW" = "プレビュー";
+"CALIBRATION_REFERENCE_POINT" = "基準点";
+"CALIBRATION_DIRECTION_POINT" = "方向点";
+"CALIBRATION_POINTS_TOO_CLOSE" = "方向点が基準点に近すぎます。別の点を選択してください。";
+"CALIBRATION_COMPLETE" = "完了";
+"CALIBRATION_BACK" = "戻る";
+"CALIBRATION_GUIDE_STEP1" = "モデル上で基準点と方向点を選択してください";
+"CALIBRATION_GUIDE_STEP2" = "基準点と方向点を配置する場所を指示して下さい。";
+
+/* QUICK-1012 — NTRIP service provider */
+"RTK_NTRIP_VRS_PROVIDER" = "VRS提供会社";
+"RTK_NTRIP_USERNAME_HINT" = "Ntrip Caster Serial番号の下8桁を入力してください";
+"RTK_NTRIP_PROVIDER_DOCOMO" = "docomo";
+"RTK_NTRIP_PROVIDER_SOFTBANK" = "softbank";
+"RTK_NTRIP_PROVIDER_JENOBA" = "jenoba";
+"RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
+"RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
+"RTK_NTRIP_PROVIDER_TERASAT" = "テラサット";
+
+/* QUICK-971 — saved RTK connection profiles */
+"RTK_PROFILE_NAME" = "名前";
+"RTK_PROFILE_NAME_PLACEHOLDER" = "この接続情報の名前を入力";
+"RTK_PROFILE_CREATE" = "＋ 新規作成";
+"RTK_PROFILE_LIST_TITLE" = "接続プロファイル";
+"RTK_PROFILE_EDIT" = "編集";
+"RTK_PROFILE_NEW" = "新しいプロファイル";
+"RTK_PROFILE_EMPTY_TITLE" = "RTK接続情報がありません";
+"RTK_PROFILE_EMPTY_DESC" = "RTKローバーに接続するには、正しいカメラオフセットとNTRIP認証情報を含む接続情報を作成してください。";
+"RTK_PROFILE_DELETE_CONFIRM" = "「%@」を削除しますか？";
+"RTK_MOUNTPOINT_LABEL" = "マウントポイント";
+"RTK_COORDINATE_SYSTEM_LABEL" = "座標系";
+"PROJECT_LIST_COLUMN_SETTINGS" = "プロジェクト一覧の列設定";
+
+/* SC_QUICK-1945 */
+"GAUSSIAN_SPLATTING_PLY" = "ガウシアンスプラッティング (PLY)";

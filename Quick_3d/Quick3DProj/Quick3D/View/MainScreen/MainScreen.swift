@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  MainScreen.swift
 //  Quick3D
 //  Created by 木皿直規 on 2022/04/04.
 //
@@ -7,25 +7,65 @@
 import SwiftUI
 
 //---------------------------
+// MARK: - ProjectFilter
+//---------------------------
+/// Every criterion the project list can be narrowed by. These values always travel
+/// together into `ProductData.fetchProjectList`, so they are kept as one value
+/// instead of seven separate `@State` properties.
+struct ProjectFilter {
+    /// GPS:0 RTK:1 RTK/GPS:2 — matches the value `RTKFilterButtonView` cycles through.
+    static let rtkModeAll = 2
+
+    var searchStr = ""
+    var status: Status = .all
+    var fromDate: Date?
+    var toDate: Date? = Date()
+    var jobsite: JobSite.Site?
+    var rtkMode = rtkModeAll
+    var isPointRemoved = false
+
+    static func rtkLabel(for rtkMode: Int) -> String {
+        switch rtkMode {
+        case 0: return "GPS"
+        case 1: return "RTK"
+        default: return "GPS RTK"
+        }
+    }
+}
+
+//---------------------------
 // MARK: - MainScreen
 //---------------------------
 struct MainScreen: View {
 
+    /// Which of the two date pickers is open, if any. Replaces a pair of booleans
+    /// that could both be true at once.
+    private enum ActiveDatePicker {
+        case from, to
+    }
+
+    /// Sizes and insets that used to be inline magic numbers.
+    private enum Layout {
+        static let cameraButtonInsetIPhone = CGSize(width: 10, height: 20)
+        static let cameraButtonInsetIPad = CGSize(width: 80, height: 50)
+        static let loginAlertSize = CGSize(width: 550, height: 400)
+        static let loginAlertOffsetIPad: CGFloat = -200
+        static let disclaimerSizeIPhone = CGSize(width: 630, height: 290)
+        static let disclaimerSizeIPad = CGSize(width: 900, height: 700)
+        static let disclaimerOffsetIPad: CGFloat = -50
+        static let groupPickerWidth: CGFloat = 150
+    }
+
     // MARK: - Filter State
-    @State private var searchStr = ""
+    @State private var filter = ProjectFilter()
     @State private var inputStr = ""
-    @State private var selectedStatus: Status = .all
-    @State private var fromDate: Date?
-    @State private var toDate: Date? = Date()
-    @State private var jobsite: JobSite.Site?
-    @State private var rtkFilterMode = 2 // GPS:0 RTK:1 RTK/GPS:2
-    @State private var isPointRemoveSelected = false
 
     // MARK: - UI State
     @State private var isLoading: Bool = false
     @State private var isEditing = false
     @State private var isShowSupport = false
     @State private var isShowLoginAlert: Bool = false
+    @State private var isShowNoLicenseAlert: Bool = false
     @State private var isShowConfirmDelete: Bool = false
     @State private var isShowDisclaimerAlert: Bool = !UserDefaults.standard.bool(forKey: "didDisclaimerKey")
     @State private var isProductDetailActive = false
@@ -37,32 +77,16 @@ struct MainScreen: View {
     @State private var isShowExportComplete = false
     @State private var isShowSettingPopup = false
     @State private var accountWebViewIsShown: Bool = false
-    @State private var selectedSort: SortOption = UserSession.sortOption
 
-    // MARK: - Camera / AR State
-    @State private var isShowCameraView = false
+    // MARK: - AR / Point cloud State
     @State private var isShowARView = false
     @State private var isShowPointCloudView = false
-
-    // MARK: - AR List Popup State
     @State private var showARListPopup = false
-    @State private var selectCat: Cat = Cat(
-        userId: nil, id: "", title: "", folderName: "",
-        jobsiteId: "", createDate: Date(), captureDate: Date(),
-        sourceStr: "", numberOfImage: 0
-    )
-
-    // MARK: - Rename State
-    @State private var renameCat: Cat = Cat(
-        userId: nil, id: "", title: "", folderName: "",
-        jobsiteId: "", createDate: Date(), captureDate: Date(),
-        sourceStr: "", numberOfImage: 0
-    )
+    @State private var selectCat: Cat?
 
     // MARK: - Filter Popup State
     @State private var isShowFilterAlert: Bool = false
-    @State private var isShowFromDateSelect = false
-    @State private var isShowToDateSelect = false
+    @State private var activeDatePicker: ActiveDatePicker?
 
     // MARK: - JobSite Autocomplete State
     @State private var jobSiteSearchText = ""
@@ -72,20 +96,43 @@ struct MainScreen: View {
     @State private var tfJobSiteWidth: CGFloat = 0
     @State private var tfJobSiteHeight: CGFloat = 0
 
+    @State private var isPopupStatusPresented: Bool = false
+    @State private var tfStatusPosition: CGPoint = .zero
+    @State private var tfStatusWidth: CGFloat = 0
+    @State private var tfStatusHeight: CGFloat = 0
+
+    @State private var isPopupUserPresented: Bool = false
+    @State private var tfUserPosition: CGPoint = .zero
+    @State private var tfUserWidth: CGFloat = 0
+    @State private var tfUserHeight: CGFloat = 0
+
     // MARK: - Layout State
     @State private var contentWidth: CGFloat = 0
     @State private var contentHeight: CGFloat = 0
-    @State private var viewARUUID = UUID()
     @State private var shouldScrollUp = false
-    @AppStorage("isListView") private var isListView: Bool = false
+
+    // MARK: - Project List Preferences
+    /// Backed by the account-level setting, not local storage, so the choice follows the user across devices.
+    private var isListView: Bool { userManager.setting.projectViewType.isListView }
+
+    private var selectedSort: SortOption { userManager.setting.projectSortBy }
+
+    private var selectedSortBinding: Binding<SortOption> {
+        Binding(
+            get: { userManager.setting.projectSortBy },
+            set: { userManager.setting.projectListSortBy = $0 }
+        )
+    }
 
     // MARK: - Focus
     @FocusState private var focusStateSearch: Bool
     @FocusState private var focusStateJobSite: Bool
-    @State private var isKeyboardShow = false
 
     // MARK: - Task
     @State private var fetchTask: Task<Void, Never>? = nil
+    /// Incremented for every fetch so a cancelled fetch can tell it is no longer the
+    /// current one and must not touch `isLoading`.
+    @State private var fetchGeneration = 0
 
     // MARK: - Environment
     @EnvironmentObject var userManager: UserManager
@@ -98,37 +145,42 @@ struct MainScreen: View {
     @Binding var isShowLoginWebview: Bool
     @Binding var isShowRenameAlert: Bool
 
+    // MARK: - Camera
+    @State private var isShowCameraView = false
+    @State private var viewARUUID = UUID()
+    
     // MARK: - Misc
-    var initialSet = InitialSet()
     internal let inspection = Inspection<Self>()
-    let uploadTask = UploadBackgroundTask()
 
     // MARK: - Computed Properties
     private var isIPhone: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone
+        UserSession.isIPhone
     }
 
     private var isLogin: Bool {
         userManager.userInfo != nil
     }
 
-
     var status: [Status] {
-        userManager.isARAvailable ?
-            [.all, .uploadWating, .uploadCompleted, .sfmProcessing, .transformationCompleted, .verificationCompleted, .dashboardUploadCompleted, .arUploadCompleted] :
-            [.all, .uploadWating, .uploadCompleted, .sfmProcessing, .transformationCompleted, .verificationCompleted, .dashboardUploadCompleted]
+        var list: [Status] = [
+            .all, .uploadWating, .uploadCompleted, .sfmProcessing,
+            .transformationCompleted, .verificationCompleted, .dashboardUploadCompleted
+        ]
+        if userManager.isARAvailable {
+            list.append(.arUploadCompleted)
+        }
+        return list
     }
 
     private var userList: [User] {
-        var initialList: [User] = [.init(name: "ALL".localized(userManager.userLanguage))]
-        if let filterUser = productData.userList.first(where: { $0.userId == userManager.userInfo?.userId }) {
-            initialList.append(.init(userId: userManager.userInfo?.userId, name: filterUser.name))
+        let currentUserId = userManager.userInfo?.userId
+        var list: [User] = [.init(name: "ALL".localized(userManager.userLanguage))]
+        if let currentUser = productData.userList.first(where: { $0.userId == currentUserId }) {
+            list.append(.init(userId: currentUserId, name: currentUser.name))
         }
-        var list = productData.userList
-        list.removeAll(where: { $0.userId == userManager.userInfo?.userId })
-        list.removeAll(where: { $0.name.isEmpty })
-        initialList.append(contentsOf: list)
-        return initialList
+        // Everybody else, in the order the backend returned them.
+        list.append(contentsOf: productData.userList.filter { $0.userId != currentUserId && !$0.name.isEmpty })
+        return list
     }
 
     private var jobSiteList: [JobSite.Site] {
@@ -153,26 +205,36 @@ struct MainScreen: View {
     }
 
     private func performFetch() async throws {
-        productData.sortOption = selectedSort
         try await productData.fetchProjectList(
-            status: selectedStatus,
-            searchStr: searchStr,
-            fromDate: fromDate,
-            toDate: toDate,
-            site: jobsite,
-            isRemoved: isPointRemoveSelected,
-            rtkFilterMode: rtkFilterMode
+            status: filter.status,
+            searchStr: filter.searchStr,
+            fromDate: filter.fromDate,
+            toDate: filter.toDate,
+            site: filter.jobsite,
+            isRemoved: filter.isPointRemoved,
+            rtkFilterMode: filter.rtkMode
         )
     }
-
+    
     private func fetchProjects() {
+        fetchProjects(scrollToTop: true)
+    }
+
+    private func fetchProjects(scrollToTop: Bool) {
         fetchTask?.cancel()
         isLoading = true
+        fetchGeneration &+= 1
+        let generation = fetchGeneration
+
         fetchTask = Task {
-            defer { isLoading = false }
+            // A fetch that was cancelled by a newer one must not clear the loading
+            // state the newer fetch just turned on.
+            defer {
+                if generation == fetchGeneration { isLoading = false }
+            }
             do {
                 try await performFetch()
-                if !Task.isCancelled { shouldScrollUp = true }
+                if !Task.isCancelled { shouldScrollUp = scrollToTop }
             } catch {
                 if !(error is CancellationError) {
                     print("Fetch error: \(error)")
@@ -182,18 +244,21 @@ struct MainScreen: View {
     }
 
     private func applySort() {
-        UserSession.sortOption = selectedSort
+        // productData.sortOption is not @Published, so it must be set before fetchProjects()
+        // reads it to build the sortBy request parameter.
         productData.sortOption = selectedSort
-        productData.reapplySortLocally()
-        shouldScrollUp = true
+        userManager.updateSetting()
+        fetchProjects()
     }
 
-    private func strRTKLabel(rtkValue: Int) -> String {
-        switch rtkValue {
-        case 0: return "GPS"
-        case 1: return "RTK"
-        default: return "GPS RTK"
-        }
+    /// Tapping the button of the picker that is already open closes it again.
+    private func toggleDatePicker(_ picker: ActiveDatePicker) {
+        activeDatePicker = (activeDatePicker == picker) ? nil : picker
+    }
+
+    private func updateContentSize(_ size: CGSize) {
+        contentWidth = size.width
+        contentHeight = size.height
     }
 
     //---------------------------
@@ -208,147 +273,64 @@ struct MainScreen: View {
                         bodyContent()
                     }
 
+                    navigationLinks
+
                     ButtonOpenCamera(onClick: { isShowShootWarning = true })
                         .position(
-                            x: contentWidth - (isIPhone ? 10 : 80),
-                            y: contentHeight - (isIPhone ? 20 : 50)
+                            x: contentWidth - (isIPhone ? Layout.cameraButtonInsetIPhone.width : Layout.cameraButtonInsetIPad.width),
+                            y: contentHeight - (isIPhone ? Layout.cameraButtonInsetIPhone.height : Layout.cameraButtonInsetIPad.height)
                         )
                         .tag(18)
                         .zIndex(1.0)
 
-                    if isEditing {
-                        SelectedManagerView(selectedCount: selectedItem.count, allowTap: !isShowConfirmDelete, didTapDelete: {
-                            if selectedItem.count > 0 { isShowConfirmDelete = true }
-                        }, didTapCancel: {
-                            NotificationCenter.default.post(name: .updateCell, object: nil)
-                            selectedItem.removeAll()
-                            isEditing = false
-                        })
-                    }
-
-                    if userManager.showLicenseAlert {
-                        LicenseAlertPopup(
-                            isShow: $userManager.showLicenseAlert,
-                            pointCloudBgcolor: Color(hex: userManager.setting.pointCloudBgcolor)
-                                .opacity(userManager.setting.pointCloudBgalpha)
-                        )
-                    }
-
-                    if isShowConfirmDelete {
-                        ConfirmDeletePopup(
-                            show: $isShowConfirmDelete,
-                            alertMessage: String(format: "\("WANT_TO_DELETE".localized(userManager.userLanguage))", selectedItem.count)
-                        ) {
-                            productData.removeProducts(ids: selectedItem)
-                            NotificationCenter.default.post(name: .updateCell, object: nil)
-                            selectedItem.removeAll()
-                            isEditing = false
-                        }
-                    }
-
-                    FilterPopup(presentedAsModal: $isShowFilterAlert, currentSearchStr: $searchStr, currentStatus: $selectedStatus) { fromDate, toDate, site in
-                        self.fromDate = fromDate
-                        self.toDate = toDate
-                        self.jobsite = site
-                        fetchProjects()
-                    }
-                    .environmentObject(userManager)
-                    .tag(24)
-
-                    if isShowShootWarning {
-                        CaptureWarningPopup(
-                            isShow: $isShowShootWarning,
-                            isShowCameraView: $isShowCameraView)
-                        {
-                            Pix4DInfo().openPix4DCapture()
-                        }
-                        .zIndex(2.0)
-                        .tag(19)
-                    }
-
-                    if let currentCat = currentCat {
-                        NavigationLink("", destination: ProductDetailView(cat: currentCat, forceShowJobSitePopup: false, isActiveContent: $isActiveContent), isActive: $isProductDetailActive)
-                    }
-                    if let navigateCat = navigateCat {
-                        NavigationLink("", destination: ProductDetailView(cat: navigateCat, forceShowJobSitePopup: true, isActiveContent: $isActiveContent), isActive: $navigateToProjectDetail)
-                    }
-
-                    if isShowSingleDeletePopup || deleteCat != nil {
-                        DeletePopup(show: $isShowSingleDeletePopup, cat: deleteCat)
-                            .tag(17)
-                    }
-
-                    if isShowExportComplete {
-                        ExportSuccessPopup(isShow: $isShowExportComplete)
-                            .tag(20)
-                    }
-
-                    if isShowSettingPopup {
-                        SettingPopup(
-                            isShow: $isShowSettingPopup,
-                            pointCloudBgcolor: Color(hex: userManager.setting.pointCloudBgcolor)
-                                .opacity(userManager.setting.pointCloudBgalpha)
-                        )
-                    }
-
-                    if isShowLoginAlert {
-                        LoginAlert(isShow: $isShowLoginAlert, loginHandler: {
-                            isShowLoginWebview = true
-                        }, logoutHandler: {
-                            performLogout()
-                        })
-                        .frame(width: 550, height: 400)
-                        .cornerRadius(20)
-                        .offset(x: 0, y: isIPhone ? 0 : -200)
-                    }
-
-                    if isShowDisclaimerAlert {
-                        DisclaimerAlert(isShow: $isShowDisclaimerAlert)
-                            .frame(width: isIPhone ? 630 : 900, height: isIPhone ? 290 : 700)
-                            .offset(x: 0, y: isIPhone ? 0 : -50)
-                    }
-
-                    if showARListPopup || self.selectCat != nil {
-                        ARListPopup(show: $showARListPopup, cat: self.selectCat)
-                            .tag(40)
-                    }
-
-                    SearchListPopup<JobSite.Site>(
-                        isShow: $isPopupJobSitesPresented,
-                        viewPosition: $tfJobSitePosition,
-                        viewWidth: $tfJobSiteWidth,
-                        viewHeight: $tfJobSiteHeight,
-                        listOriginal: jobSiteList,
-                        searchKey: $jobSiteSearchText
-                    ) { itemSelected in
-                        self.jobsite = itemSelected
-                        jobSiteSearchText = ""
-                        jobSiteInputText = itemSelected.name
-                        fetchProjects()
-                    }
-                    .environmentObject(userManager)
+                    selectionLayer
+                    popupLayer
+                    jobSiteSearchPopup
+                    statusSearchPopup
+                    userSearchPopup
                 }
-                .onAppear {
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 200_000_000)
-                        contentWidth = contentGeo.size.width
-                        contentHeight = contentGeo.size.height
+                .onChange(of: isPopupStatusPresented) { isOpen in
+                    if isOpen {
+                        isPopupJobSitesPresented = false
+                        isPopupUserPresented = false
+                        focusStateJobSite = false
                     }
                 }
+                .onChange(of: isPopupUserPresented) { isOpen in
+                    if isOpen {
+                        isPopupJobSitesPresented = false
+                        isPopupStatusPresented = false
+                        focusStateJobSite = false
+                    }
+                }
+                .onChange(of: isPopupJobSitesPresented) { isOpen in
+                    if isOpen {
+                        isPopupStatusPresented = false
+                        isPopupUserPresented = false
+                    }
+                }
+                // Tracks rotation / Split View resizes, not just the first layout pass.
+                .onAppear { updateContentSize(contentGeo.size) }
+                .onChange(of: contentGeo.size) { updateContentSize($0) }
             }
             .ignoresSafeArea(.keyboard, edges: .all)
             .background(userManager.setting.bodyColor)
             .sheet(isPresented: $isShowSupport) {
-                let url = userManager.userLanguage == "ja" ?
-                URL(string: "https://support-quick3d.smartconstruction.com/hc/ja") :
-                URL(string: "https://support-quick3d.smartconstruction.com/hc/en-us")
-                WebView(url: url!)
+                if let url = Constant.supportUrl(for: userManager.userLanguage) {
+                    WebView(url: url)
+                }
             }
             .sheet(isPresented: $userManager.showLicenseRegister) {
                 WebView(url: URL(string: Constant.licenseAssignUrl)!)
             }
             .fullScreenCover(isPresented: $accountWebViewIsShown) {
                 AccountWebView()
+            }
+            .alert("NoLicense".localized(userManager.userLanguage), isPresented: $isShowNoLicenseAlert) {
+                Button("OK") { performLogout() }
+            }
+            .onChange(of: userManager.setting.projectSortBy) { newValue in
+                productData.sortOption = newValue
             }
             .onLoad {
                 userManager.getSetting()
@@ -359,48 +341,267 @@ struct MainScreen: View {
                     if numOfLicenses > 0, numOfLicenses < 1 {
                         userManager.showLicenseAlert = true
                     } else if numOfLicenses <= 0 {
-                        alert(title: "NoLicense".localized(userManager.userLanguage), message: "") {
-                            performLogout()
-                        }
+                        isShowNoLicenseAlert = true
                     }
                 }
             }
-            .overlay {
-                if isShowFromDateSelect {
-                    DatePickerOverlay(dateBinding: Binding<Date>(get: { fromDate ?? Date() }, set: {
-                        fromDate = $0
-                        isShowFromDateSelect = false
-                        fetchProjects()
-                    }), otherDate: toDate, isToDate: false, isIPhone: isIPhone) {
-                        isShowFromDateSelect = false
-                    }
-                }
-            }
-            .overlay {
-                if isShowToDateSelect {
-                    DatePickerOverlay(dateBinding: Binding<Date>(get: { toDate ?? Date() }, set: {
-                        toDate = $0
-                        isShowToDateSelect = false
-                        fetchProjects()
-                    }), otherDate: fromDate, isToDate: true, isIPhone: isIPhone) {
-                        isShowToDateSelect = false
-                    }
-                }
-            }
+            .overlay { datePickerOverlay }
         }
         .navigationBarHidden(true)
         .navigationBarBackButtonHidden(true)
         .navigationViewStyle(.stack)
         .buttonStyle(PlainButtonStyle())
-        .onChange(of: jobSiteList) { value in
+        .onChange(of: jobSiteList) { _ in
             if isLogin {
-                jobsite = jobSiteList.first
+                filter.jobsite = jobSiteList.first
                 jobSiteInputText = jobSiteList.first?.name ?? ""
                 jobSiteSearchText = ""
                 fetchProjects()
             }
         }
+        // Reload requested from outside MainScreen, e.g. BaseUploadPopup finishing
+        // an upload. Going through fetchProjects() keeps the user's filters and
+        // reuses the loading overlay.
+        .onChange(of: productData.reloadListRequestID) { _ in
+            fetchProjects()
+        }
+        .onChange(of: isShowARView) { newValue in
+            if !newValue { fetchProjects(scrollToTop: false) }
+        }
+        .onChange(of: isShowPointCloudView) { newValue in
+            if !newValue { fetchProjects(scrollToTop: false) }
+        }
+        .onChange(of: isShowCameraView) { newValue in
+            if !newValue { fetchProjects(scrollToTop: false) }
+        }
         .onReceive(inspection.notice) { self.inspection.visit(self, $0) }
+    }
+
+    //---------------------------
+    // MARK: - Overlay Layers
+    //---------------------------
+    /// Hidden links driving the push to `ProductDetailView`.
+    @ViewBuilder
+    private var navigationLinks: some View {
+        if let currentCat = currentCat {
+            NavigationLink("", destination: ProductDetailView(cat: currentCat, forceShowJobSitePopup: false, isActiveContent: $isActiveContent), isActive: $isProductDetailActive)
+        }
+        if let navigateCat = navigateCat {
+            NavigationLink("", destination: ProductDetailView(cat: navigateCat, forceShowJobSitePopup: true, isActiveContent: $isActiveContent), isActive: $navigateToProjectDetail)
+        }
+        
+        // MARK: - Camera
+        NavigationLink("", destination: LazyView(CaptureScreen(navigateCat: $navigateCat)), isActive: $isShowCameraView)
+        NavigationLink("", destination: LazyView(ViewARScreen(selectedCat: $selectCat).id(viewARUUID).onDisappear { viewARUUID = UUID() }), isActive: $isShowARView)
+        NavigationLink("", destination: LazyView(ViewPointCloudScreen(selectedCat: $selectCat).id(viewARUUID).onDisappear { viewARUUID = UUID() }), isActive: $isShowPointCloudView)
+    }
+
+    @ViewBuilder
+    private var selectionLayer: some View {
+        if isEditing {
+            SelectedManagerView(selectedCount: selectedItem.count, allowTap: !isShowConfirmDelete, didTapDelete: {
+                if selectedItem.count > 0 { isShowConfirmDelete = true }
+            }, didTapCancel: {
+                NotificationCenter.default.post(name: .updateCell, object: nil)
+                selectedItem.removeAll()
+                isEditing = false
+            })
+        }
+    }
+
+    /// Popups are listed in z-order: later ones draw above earlier ones.
+    @ViewBuilder
+    private var popupLayer: some View {
+        licenseAlertPopup
+        confirmDeletePopup
+        filterPopup
+        captureWarningPopup
+        singleDeletePopup
+        exportCompletePopup
+        settingPopup
+        loginAlertPopup
+        disclaimerPopup
+        arListPopup
+    }
+
+    @ViewBuilder
+    private var licenseAlertPopup: some View {
+        if userManager.showLicenseAlert {
+            LicenseAlertPopup(
+                isShow: $userManager.showLicenseAlert,
+                pointCloudBgcolor: Color(hex: userManager.setting.pointCloudBgcolor)
+                    .opacity(userManager.setting.pointCloudBgalpha)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var confirmDeletePopup: some View {
+        if isShowConfirmDelete {
+            ConfirmDeletePopup(
+                show: $isShowConfirmDelete,
+                alertMessage: String(format: "\("WANT_TO_DELETE".localized(userManager.userLanguage))", selectedItem.count)
+            ) {
+                productData.removeProducts(ids: selectedItem)
+                NotificationCenter.default.post(name: .updateCell, object: nil)
+                selectedItem.removeAll()
+                isEditing = false
+            }
+        }
+    }
+
+    private var filterPopup: some View {
+        FilterPopup(presentedAsModal: $isShowFilterAlert, currentSearchStr: $filter.searchStr, currentStatus: $filter.status) { fromDate, toDate, site in
+            filter.fromDate = fromDate
+            filter.toDate = toDate
+            filter.jobsite = site
+            fetchProjects()
+        }
+        .environmentObject(userManager)
+        .tag(24)
+    }
+
+    @ViewBuilder
+    private var captureWarningPopup: some View {
+        if isShowShootWarning {
+            CaptureWarningPopup(isShow: $isShowShootWarning, isShowCameraView: $isShowCameraView) {
+                Pix4DInfo().openPix4DCapture()
+            }
+            .zIndex(2.0)
+            .tag(19)
+        }
+    }
+
+    @ViewBuilder
+    private var singleDeletePopup: some View {
+        if isShowSingleDeletePopup || deleteCat != nil {
+            DeletePopup(show: $isShowSingleDeletePopup, cat: deleteCat)
+                .tag(17)
+        }
+    }
+
+    @ViewBuilder
+    private var exportCompletePopup: some View {
+        if isShowExportComplete {
+            ExportSuccessPopup(isShow: $isShowExportComplete)
+                .tag(20)
+        }
+    }
+
+    @ViewBuilder
+    private var settingPopup: some View {
+        if isShowSettingPopup {
+            SettingPopup(
+                isShow: $isShowSettingPopup,
+                pointCloudBgcolor: Color(hex: userManager.setting.pointCloudBgcolor)
+                    .opacity(userManager.setting.pointCloudBgalpha)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var loginAlertPopup: some View {
+        if isShowLoginAlert {
+            LoginAlert(isShow: $isShowLoginAlert, loginHandler: {
+                isShowLoginWebview = true
+            }, logoutHandler: {
+                performLogout()
+            })
+            .frame(width: Layout.loginAlertSize.width, height: Layout.loginAlertSize.height)
+            .cornerRadius(20)
+            .offset(x: 0, y: isIPhone ? 0 : Layout.loginAlertOffsetIPad)
+        }
+    }
+
+    @ViewBuilder
+    private var disclaimerPopup: some View {
+        if isShowDisclaimerAlert {
+            let size = isIPhone ? Layout.disclaimerSizeIPhone : Layout.disclaimerSizeIPad
+            DisclaimerAlert(isShow: $isShowDisclaimerAlert)
+                .frame(width: size.width, height: size.height)
+                .offset(x: 0, y: isIPhone ? 0 : Layout.disclaimerOffsetIPad)
+        }
+    }
+
+    @ViewBuilder
+    private var arListPopup: some View {
+        if showARListPopup {
+            ARListPopup(show: $showARListPopup, cat: selectCat)
+                .tag(40)
+        }
+    }
+
+    private var statusSearchPopup: some View {
+        SearchListPopup<Status>(
+            isShow: $isPopupStatusPresented,
+            viewPosition: $tfStatusPosition,
+            viewWidth: $tfStatusWidth,
+            viewHeight: $tfStatusHeight,
+            listOriginal: status,
+            searchKey: .constant("")
+        ) { itemSelected in
+            filter.status = itemSelected
+            fetchProjects()
+        }
+        .environmentObject(userManager)
+    }
+
+    private var userSearchPopup: some View {
+        SearchListPopup<User>(
+            isShow: $isPopupUserPresented,
+            viewPosition: $tfUserPosition,
+            viewWidth: $tfUserWidth,
+            viewHeight: $tfUserHeight,
+            listOriginal: userList,
+            searchKey: .constant("")
+        ) { itemSelected in
+            productData.selectedUser = itemSelected
+            fetchProjects()
+        }
+        .environmentObject(userManager)
+    }
+
+    private var jobSiteSearchPopup: some View {
+        SearchListPopup<JobSite.Site>(
+            isShow: $isPopupJobSitesPresented,
+            viewPosition: $tfJobSitePosition,
+            viewWidth: $tfJobSiteWidth,
+            viewHeight: $tfJobSiteHeight,
+            listOriginal: jobSiteList,
+            searchKey: $jobSiteSearchText
+        ) { itemSelected in
+            filter.jobsite = itemSelected
+            jobSiteSearchText = ""
+            jobSiteInputText = itemSelected.name
+            fetchProjects()
+        }
+        .environmentObject(userManager)
+    }
+
+    /// One overlay for both ends of the range; `activeDatePicker` decides which.
+    @ViewBuilder
+    private var datePickerOverlay: some View {
+        if let picker = activeDatePicker {
+            DatePickerOverlay(
+                dateBinding: Binding<Date>(
+                    get: { (picker == .from ? filter.fromDate : filter.toDate) ?? Date() },
+                    set: { newDate in
+                        if picker == .from {
+                            filter.fromDate = newDate
+                        } else {
+                            filter.toDate = newDate
+                        }
+                        activeDatePicker = nil
+                        fetchProjects()
+                    }
+                ),
+                otherDate: picker == .from ? filter.toDate : filter.fromDate,
+                isToDate: picker == .to,
+                isIPhone: isIPhone
+            ) {
+                activeDatePicker = nil
+            }
+        }
     }
 
     //---------------------------
@@ -410,16 +611,20 @@ struct MainScreen: View {
         HStack {
             HStack(alignment: .bottom, spacing: isIPhone ? 5 : 15) {
                 StatusFilterField(
-                    selectedStatus: $selectedStatus,
-                    statusList: status,
-                    isIPhone: isIPhone,
-                    onSelect: fetchProjects
+                    selectedStatus: $filter.status,
+                    isPopupStatusPresented: $isPopupStatusPresented,
+                    tfStatusPosition: $tfStatusPosition,
+                    tfStatusWidth: $tfStatusWidth,
+                    tfStatusHeight: $tfStatusHeight,
+                    isIPhone: isIPhone
                 )
 
                 UserFilterField(
-                    userList: userList,
-                    isIPhone: isIPhone,
-                    onSelect: fetchProjects
+                    isPopupUserPresented: $isPopupUserPresented,
+                    tfUserPosition: $tfUserPosition,
+                    tfUserWidth: $tfUserWidth,
+                    tfUserHeight: $tfUserHeight,
+                    isIPhone: isIPhone
                 )
 
                 JobSiteFilterField(
@@ -429,7 +634,7 @@ struct MainScreen: View {
                     tfJobSitePosition: $tfJobSitePosition,
                     tfJobSiteWidth: $tfJobSiteWidth,
                     tfJobSiteHeight: $tfJobSiteHeight,
-                    jobsite: $jobsite,
+                    jobsite: $filter.jobsite,
                     focusStateJobSite: _focusStateJobSite,
                     isIPhone: isIPhone,
                     onClearOrSubmit: fetchProjects
@@ -437,21 +642,21 @@ struct MainScreen: View {
 
                 SearchFieldView(
                     inputStr: $inputStr,
-                    searchStr: $searchStr,
+                    searchStr: $filter.searchStr,
                     focusStateSearch: _focusStateSearch,
                     isIPhone: isIPhone,
                     onSearchTriggered: fetchProjects
                 )
 
                 RTKFilterButtonView(
-                    rtkFilterMode: $rtkFilterMode,
+                    rtkFilterMode: $filter.rtkMode,
                     isIPhone: isIPhone,
-                    labelProvider: strRTKLabel,
+                    labelProvider: ProjectFilter.rtkLabel(for:),
                     onTap: fetchProjects
                 )
 
                 PointRemoveFilterButtonView(
-                    isPointRemoveSelected: $isPointRemoveSelected,
+                    isPointRemoveSelected: $filter.isPointRemoved,
                     isIPhone: isIPhone,
                     onTap: fetchProjects
                 )
@@ -482,9 +687,10 @@ struct MainScreen: View {
                 if isListView {
                     ProjectColumnHeader(
                         isIPhone: isIPhone,
+                        contentWidth: contentWidth,
                         isEditing: $isEditing
                     )
-                    .padding(.horizontal, isIPhone ? 20 : 30)
+                    .padding(.horizontal, ProjectListColumnLayout.Metrics.listOuterPadding(isIPhone: isIPhone))
                 }
 
                 ProjectListView(
@@ -497,7 +703,6 @@ struct MainScreen: View {
                     isLoading: $isLoading,
                     selectedItem: $selectedItem,
                     currentCat: $currentCat,
-                    renameCat: $renameCat,
                     deleteCat: $deleteCat,
                     showARListPopup: $showARListPopup,
                     selectCat: $selectCat,
@@ -507,16 +712,18 @@ struct MainScreen: View {
                     contentWidth: $contentWidth,
                     contentHeight: $contentHeight,
                     scrollToTopTrigger: $shouldScrollUp,
-                    isListView: $isListView,
+                    isListView: isListView,
                     onRefresh: {
                         try? await performFetch()
                         userManager.getSetting()
                     }
                 )
-                .padding(.horizontal, isIPhone ? 20 : 30)
+                .padding(.horizontal, ProjectListColumnLayout.Metrics.listOuterPadding(isIPhone: isIPhone))
             }
 
-            if isLoading {
+            // Shown while fetching (isLoading) and also while the fetched list is being
+            // re-grouped / re-sorted (isUpdatingList), so a big list never looks frozen.
+            if isLoading || productData.isUpdatingList {
                 ProgressLoadingView(text: "", bgOpacity: 0.3)
                     .ignoresSafeArea()
             }
@@ -527,10 +734,9 @@ struct MainScreen: View {
         Menu {
             Button("SELECT".localized(userManager.userLanguage), action: { isEditing = true })
             Button("Setting".localized(userManager.userLanguage), action: {
-                userManager.getSetting()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    isShowSettingPopup = true
-                }
+                // Open the popup once the settings are actually in, instead of
+                // guessing how long the request takes.
+                userManager.getSetting { isShowSettingPopup = true }
             })
         } label: {
             Image("VerticalMenu")
@@ -544,7 +750,7 @@ struct MainScreen: View {
     private func helpButton() -> some View {
         Menu {
             Button("USER_MANUAL".localized(userManager.userLanguage), action: {
-                if let url = URL(string: "https://support-quick3d.smartconstruction.com/hc/ja/articles/11060723222937--Smart-Construction-Quick3D-%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E3%82%AC%E3%82%A4%E3%83%89") {
+                if let url = Constant.userManualUrl {
                     UIApplication.shared.open(url)
                 }
             })
@@ -552,8 +758,7 @@ struct MainScreen: View {
             .frame(height: 10)
 
             Button(action: {
-                let urlStr = "https://terms.smartconstruction.com" + (userManager.userLanguage == "ja" ? "/jp/terms-of-use" : "/na/terms-of-use")
-                if let url = URL(string: urlStr) {
+                if let url = Constant.termsOfUseUrl(for: userManager.userLanguage) {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -564,8 +769,7 @@ struct MainScreen: View {
 
             Text(appVersionText)
         } label: {
-            let questionIcon = ""
-            Text(questionIcon)
+            Image(systemName: "questionmark.circle.fill")
                 .foregroundColor(userManager.setting.textColor)
                 .font(.system(size: 20))
                 .frame(height: 40)
@@ -616,16 +820,16 @@ struct MainScreen: View {
             Spacer(minLength: 0)
 
             SelectSortView(
-                selectedSort: $selectedSort,
+                selectedSort: selectedSortBinding,
                 isIPhone: isIPhone,
                 onSelect: applySort
             )
 
             DateRangeView(
-                fromDate: $fromDate,
-                toDate: $toDate,
-                onFromTap: { isShowFromDateSelect.toggle() },
-                onToTap: { isShowToDateSelect.toggle() },
+                fromDate: $filter.fromDate,
+                toDate: $filter.toDate,
+                onFromTap: { toggleDatePicker(.from) },
+                onToTap: { toggleDatePicker(.to) },
                 onClear: fetchProjects
             )
 
@@ -635,7 +839,7 @@ struct MainScreen: View {
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
-            .frame(width: 150)
+            .frame(width: Layout.groupPickerWidth)
             .tag(21)
             .background(userManager.setting.colorTheme == .light ? Color(hex: 0xECEDEE) : Color.black.opacity(0.1))
             .foregroundColor(userManager.setting.colorTheme == .light ? Color.black : Color.white)
@@ -643,7 +847,11 @@ struct MainScreen: View {
                 shouldScrollUp = true
             }
 
-            Button(action: { isListView.toggle() }) {
+            Button(action: {
+                // Apply locally first so the list flips in the same frame; the sync runs in the background.
+                userManager.setting.projectListViewType = isListView ? .grid : .list
+                userManager.updateSetting()
+            }) {
                 Image(systemName: isListView ? "square.grid.2x2" : "list.bullet")
                     .font(.system(size: isIPhone ? 16 : 20))
                     .foregroundColor(userManager.setting.textColor)
@@ -652,36 +860,23 @@ struct MainScreen: View {
         .padding(.horizontal, isIPhone ? 20 : 30)
         .padding(.vertical, 8)
     }
+}
 
-    private func alert(title: String?, message: String?, action: @escaping () -> Void) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in action() })
-        let scene = UIApplication.shared.connectedScenes
-            .filter { $0.activationState == .foregroundActive }
-            .first as? UIWindowScene
-        scene?.windows.first?.rootViewController?.present(alert, animated: true)
-    }
-
-    struct ContentView_Previews: PreviewProvider {
-        static var previews: some View {
-            MainScreen(
-                navigateToProjectDetail: .constant(false),
-                navigateCat: .constant(nil),
-                isActiveContent: .constant(false),
-                isShowLoginWebview: .constant(false),
-                isShowRenameAlert: .constant(false)
-            )
-            .previewDevice("iPad Pro (11-inch)")
-            .previewInterfaceOrientation(.landscapeRight)
-        }
-    }
-
-    class InitialSet: NSObject {
-        override init() {
-            super.init()
-            guard !UserDefaults.standard.bool(forKey: "firstRun") else { return }
-            UserDefaults.standard.set(true, forKey: "firstRun")
-            UserDefaults.standard.set(false, forKey: "didDisclaimerKey")
-        }
+//---------------------------
+// MARK: - Preview
+//---------------------------
+struct MainScreen_Previews: PreviewProvider {
+    static var previews: some View {
+        MainScreen(
+            navigateToProjectDetail: .constant(false),
+            navigateCat: .constant(nil),
+            isActiveContent: .constant(false),
+            isShowLoginWebview: .constant(false),
+            isShowRenameAlert: .constant(false)
+        )
+        .environmentObject(UserManager())
+        .environmentObject(ProductData())
+        .previewDevice("iPad Pro (11-inch)")
+        .previewInterfaceOrientation(.landscapeRight)
     }
 }

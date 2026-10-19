@@ -21,8 +21,10 @@ struct Cat: Codable, Identifiable, Equatable {
     var jobsiteId: String?
 
     // MARK: Dates
-    let createDate: Date
-    let captureDate: Date
+    // These dates are updated to the time upload starts (for local project)
+    // so the uploading project is sorted correctly in the project list.
+    var createDate: Date
+    var captureDate: Date
 
     func sortValueDate(for sortOption: SortOption) -> Date {
         sortOption == .capturedDate ? captureDate : createDate
@@ -54,6 +56,14 @@ struct Cat: Codable, Identifiable, Equatable {
 
     func removePointImage(colorTheme: ColorThemeEnum) -> String {
         colorTheme == .light ? "point_remove" : "point_remove_white"
+    }
+
+    /// Whether the project is listed as a row of the project list.
+    /// A remote project that is not uploaded yet is hidden, AR projects are always shown.
+    var isShownInProjectList: Bool {
+        if statusList?.getIsAR == true { return true }
+        let isUnuploadedRemote = projectId != nil && (statusList?.isNotUploaded ?? false)
+        return !isUnuploadedRemote
     }
 
     // MARK: Remote project

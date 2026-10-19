@@ -8,18 +8,6 @@
 import SwiftUI
 import UIKit
 
-enum SortOption: CaseIterable, Hashable {
-    case capturedDate
-    case uploadDate
-
-    func title(_ lang: String) -> String {
-        switch self {
-        case .capturedDate: return "SORT_CAPTURED_DATE".localized(lang)
-        case .uploadDate: return "SORT_UPLOAD_DATE".localized(lang)
-        }
-    }
-}
-
 // UIButton with UIMenu to avoid _UIReparentingView warning from SwiftUI Menu inside UIHostingController
 private struct SortMenuButton: UIViewRepresentable {
     @Binding var selectedSort: SortOption

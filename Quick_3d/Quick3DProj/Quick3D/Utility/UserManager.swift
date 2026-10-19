@@ -29,10 +29,13 @@ final class UserManager: ObservableObject {
         pointCloudBgalpha: 1.0,
         linkDashboard: false,
         notifyByEmail: false,
-        isTester: false
+        isTester: false,
+        displayListColumnSetting: DisplayListColumnSetting()
     )
     
     @Published var isAROcclusion: Bool = false
+
+    @Published var isARPlaneGrid: Bool = false
     
     var numOfLicenses: Double = 0.0
     var isARAvailable: Bool = false
@@ -48,25 +51,25 @@ final class UserManager: ObservableObject {
         }
     }
     
+    /// `completion` is always called, success or failure, so callers can use it to
+    /// resume their own flow. Callers that wait on it (`StartView` leaves a
+    /// `DispatchGroup` in it) would otherwise hang forever when the request fails.
     func getSetting(completion: (() -> Void)? = nil) {
         AF.request(URL(string: Constant.baseUrl + "api/v1/user/setting")!)
             .validate()
             .responseDecodable(of: UserSetting.self) { response in
+                defer { completion?() }
                 guard let setting = response.value else { return }
                 self.setting = setting
-                print(setting)
-                print(self.setting)
-                completion?()
             }
     }
     
     func updateSetting() {
         guard setting.userId != nil else { return }
-        AF.request(URL(string: Constant.baseUrl + "api/v1/user/setting")!, method: .put, parameters: setting.toJson())
+        AF.request(URL(string: Constant.baseUrl + "api/v1/user/setting")!, method: .put, parameters: setting.toJson(), encoding: JSONEncoding.default)
             .validate()
             .responseString { resp in
-                print(resp.value)
-                print(self.setting)
+                print(resp.value ?? "")
             }
     }
     
