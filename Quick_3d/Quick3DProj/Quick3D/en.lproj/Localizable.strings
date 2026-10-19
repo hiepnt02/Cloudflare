@@ -27,8 +27,8 @@
 "Uploadphoto" = "Upload image";
 "Correctposition" = "Correct position";
 "UPLOAD_COMPLETE" = "Data Upload Complete";
-"COORDINATE_CHANGE_COMPLETE" = "Coordinate System or\nCoordinate Conversion complete";
-"COORDINATE_CHANGE_ERROR" = "Coordinate system or\nCoordinate Conversion error";
+"COORDINATE_CHANGE_COMPLETE" = "Coordinate System or Coordinate Conversion complete";
+"COORDINATE_CHANGE_ERROR" = "Coordinate system or Coordinate Conversion error";
 "SFM_PROCESSING_ERROR" = "SfM Processing Error";
 "PROCESSING_DONE" = "SfM Processing complete";
 "ACCURACY_VERIFY_COMP" = "Accuracy Validation Complete";
@@ -141,6 +141,7 @@
 "PROJECT_NAME_INPUT" = "Project Name";
 "Uploading" = "Data Uploading";
 "UPLOAD_SUCCESS" = "Upload Success";
+"UPLOAD_ERROR" = "After a certain period of time, please check the project list.";
 "DEL_PROJECT_CONFIRM" = "Delete the selected project?";
 "ITEM_SELECTED" = "Delete %d Projects";
 "DELETE_LOCAL_DATA" = "Delete local data";
@@ -268,11 +269,7 @@
 "PRIVACY_POLICY" = "Privacy policy";
 "WHILE_EDIT" = "While editing";
 "UPLOAD_ERROR" = "Upload Error";
-"UPLOAD_RESULT_TITLE" = "Upload Result";
 "AR_PIX4D_BOOT" = "View in AR";
-"AR_PIX4D_SFM_NOT_COMPLETED" = "SFM processing has not been completed yet, so it can't be displayed in AR.";
-"AR_PIX4D_OPEN_ERROR" = "Failed to load the AR data. Please try again.";
-"PIX4D_APP_NOT_INSTALLED" = "PIX4Dcatch could not be opened. Please check that the app is installed.";
 "AR_PROJECT_OPEN_ERROR" = "you can't open it because it's an AR project.";
 "DESIGN_DATA_UPLOAD" = "Upload design data";
 "POINT_DATA_UPLOAD" = "Upload point cloud data";
@@ -293,8 +290,7 @@
 "DETAIL_INFO" = "Detailed information";
 "SHOOTING_DATA_ZIP" = "Shooting data (zip)";
 "DESIGN_DATA_IFC" = "Design data (IFC, LandXML)";
-"POINT_DATA_LAS" = "Point cloud data (LAS, LAZ, CSV, TXT)";
-"DESIGN_DATA_FBX" = "Design data (FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "Point cloud data (LAS)";
 "DATA_TYPE" = "Type of data";
 "INSUFFICIENT_PHOTOS_NUMBER" = "There aren't enough images.";
 "TAKE_TEN_MORE_PICTURE" = "Please take 10 or more images.";
@@ -315,7 +311,6 @@
 "PLEASE_SELECT_TIF_FILE" = "Please select a GeoTIFF file";
 "PLEASE_SELECT_XML_FILE" = "Please select a design data file";
 "GEO_JSON" = "Heatmap (GeoJSON)";
-"ALERT_GROUPWARE_PERMISSION" = "The data will not be saved in the Groupware. Do you want to continue?";
 "IMPORT_SMART_CONSTRUCTION_DASHBOARD" = "Import Smart Construction Dashboard";
 "IMPORT_SMART_CONSTRUCTION_DESIGN3D" = "Import Smart Construction Design3D";
 "UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE" = "Upload from PC local or Smart Construction Groupware";
@@ -324,247 +319,13 @@
 "SIZE" = "Size";
 "NO_DATA" = "No data";
 "UPLOAD_COMPLETED" = "Upload completed.";
+"FILE_NAME" = "File name:";
+"PATH" = "Path:";
 "JOBSITE" = "Jobsite";
 "TYPE" = "Type";
 "OPEN_PIX_4D" = "Capture [Pix4D Catch]";
-"NUMBER_OF_PHOTOS" = "Images";
+"NUMBER_OF_PHOTOS" = "Number of photos";
 "SORT_BY" = "Sort by";
 "SORT_CAPTURED_DATE" = "Capture date";
 "SORT_UPLOAD_DATE" = "Upload date";
-"FILE_NAME" = "File name:";
-"PATH" = "Path:";
-"PLEASE_SELECT_DXF_FILE" = "Please select a DXF file (optional).";
-"DXF_FILE_NOTICE" = "The dxf colors are merged with the las point cloud and displayed. If dxf is not selected, only las is displayed.";
-
-
-// ===== Camera group (added from camera_localization.html) =====
-
-// --- Enum ---
-"ABORT_CAPTURE_MESSAGE" = "If you abort your capture now, you will lose all data from this capture session";
-"ABORT_CAPTURE_TITLE" = "Abort capture";
-"AR_CALCULATION_FAILED" = "AR position calculation failed";
-"BLUETOOTH_PERMISSION_POPUP_TITLE" = "Turn On Bluetooth to Allow \"Quick3D\" to Connect to Accessories";
-"CAMERA_PERMISSION_POPUP_MESSAGE" = "Camera is needed for capturing images and augmented reality";
-"CAMERA_PERMISSION_POPUP_TITLE" = "Camera permission required";
-"CONNECTION_FAILED" = "Connection Failed";
-"CUSTOM" = "Custom";
-"DISSMISS_BTN" = "Dissmiss";
-"DOWNLOAD_AR_FAILED_400" = "Download File Failed";
-"DOWNLOAD_AR_FAILED_404" = "Unsupported";
-"DOWNLOAD_AR_FAILED_500" = "File not found";
-"EXPORT_DATA_TITLE" = "Are you sure you want to export data?";
-"LOCATION_PERMISSION_POPUP_MESSAGE" = "Location is needed for generating georeferenced 3D reconstructions";
-"LOCATION_PERMISSION_POPUP_TITLE" = "Location permission required";
-"MAXIMUM_RESOLUTION" = "Maximum resolution";
-"NORMAL" = "Normal";
-"OPEN_SETTING" = "Open Settings";
-"OUT_OF_MEMORY_MESSAGE" = "RAM is full, please save the project.";
-"OUT_OF_MEMORY_TITLE" = "Out of Memory";
-"RTK_NO_NETWORK_MESSAGE" = "The device could not be found. Ensure it is properly connected, restart the RTK device and try again.";
-"SAVE_FAILED_BODY" = "Your last project was not saved correctly.";
-"SAVE_FAILED_TITLE" = "Saving project Failed";
-"THERMAL_CRITICAL" = "The device temperature is high. Please cool down the device.";
-"THERMAL_FAIR" = "The device temperature is rising.";
-"THERMAL_SERIOUS" = "The device temperature is high.";
-"WARNING" = "Warning";
-
-// --- Model ---
-"AR_TRACKING_EXCESSIVE_MOTION" = "Device moving too fast";
-"AR_TRACKING_INITIALIZING" = "Initializing";
-"AR_TRACKING_INSUFFICIENT_FEATURES" = "Too few feature points";
-"AR_TRACKING_NOT_AVAILABLE" = "Tracking has not started";
-"AR_TRACKING_RELOCALIZING" = "Recovering session";
-"RTK_LOST_CONNECTION" = "RTK connection lost";
-"RTK_LOST_FIXED_QUALITY" = "RTK fix lost";
-
-// --- UI - CaptureSettings ---
-"ALERT_SETTINGS" = "Alert settings";
-"ALERT_SOUND" = "Alert sound";
-"CAPTURE_SETTING" = "Capture Settings";
-"CAPTURE_SETTING_DESC" = "Configure photo capture settings.\nYou can change photo resolution and continuous shooting settings (overlap ratio) here.";
-"CHANGES_NOT_SAVED" = "Changes have not been saved";
-"DETAIL_CAPTURE_SETTING" = "Detailed Capture Settings";
-"ENABLE_MESH" = "Enable Mesh";
-"FEATURE_POINTS" = "Feature Points";
-"FIRST_PERSON_VIEW" = "First Person View";
-"LIVE_PREVIEW_MODE" = "Live preview mode";
-"MESH" = "Mesh";
-"OVERLAP_DESC" = "Photos are automatically captured when the specified overlap ratio is reached.";
-"RESOLUTION" = "Resolution";
-"SAVED" = "Saved";
-"SAVE_MESH" = "Save Mesh";
-"DEBUG" = "Debug";
-"CAPTURE_LOG" = "Capture Log";
-"SETTINGS" = "Settings";
-"SHOW_MOVEMENT_UI" = "Display Speed Alert Status";
-"TOP_VIEW" = "Top View";
-"YES" = "Yes";
-
-// --- UI - Capture ---
-"CAPTURE_LIMIT_REACHED" = "Photo limit reached. You cannot take any more.";
-"CAPTURE_MAX_LIMIT" = "Maximum limit: 4,000 photos.";
-"SAVING" = "Saving";
-
-// --- UI - CommonUI ---
-"AR_ACCURACY_1" = "To improve AR positional accuracy, move a few meters while RTK is in Fix state.";
-"AR_ACCURACY_2" = "Once the object (point cloud / design data) is roughly placed:\n1．Turn off Auto Update\n2．Tap the Gear icon to fine-tune";
-"AR_ACCURACY_3" = "To display another object, return to the Home screen and start AR again.";
-"AR_ACCURACY_HEADER" = "Notes When Using the AR Function";
-"AR_QUICK3D_BOOT" = "View in AR [Trial]";
-"DETECTING_VIDOC" = "Detecting Bluetooth";
-"GETTING_LOCATION_INFO" = "Getting location information";
-"GNSS_CONSTELLATIONS" = "GNSS Constellations";
-"IMAGE_CAPTURED_COUNT_IPHONE" = "%d images";
-"MINIMUM_ELEVATION" = "Minimum Elevation";
-"MOVING_TOO_FAST" = "Please move slowly";
-"NO_NETWORK_ERROR" = "The Internet connection appears to be offline.";
-"OPEN_TRIAL_CAPTURE" = "Capture [Trial Version]";
-"RTK_DISCONNECT_CONFIRM" = "Are you sure you want to disconnect the RTK device?";
-"RTK_STATUS_AUTONOMOUS" = "Autonomous GNSS fix";
-"RTK_STATUS_DGPS" = "DGNSS Only";
-"RTK_STATUS_FIXED" = "RTK Fixed";
-"RTK_STATUS_FLOAT" = "RTK Float";
-"RTK_STATUS_NO_FIX" = "No Fix";
-"RTK_STATUS_UNAVAILABLE" = "UNAVAILABLE";
-
-// --- UI - Preview (Export) ---
-"ERROR_DUPLICATE_FILE_NAME" = "The project name is duplicated.\nPlease change the name.";
-"GEOLOCATION" = "Geolocation";
-"GEOLOCATION_SOURCE" = "Geolocation Source";
-"IMAGE" = "Image";
-"LOW" = "Low";
-"OPTIMAL" = "Optimal";
-"REDUCED" = "Reduced";
-"REPORT" = "Report";
-"SAVE_ERROR" = "Save Error";
-"SAVE_LOCALLY" = "Save locally";
-"SAVE_THE_CAPTURED_IMAGE" = "Save the captured image";
-
-// --- UI - RTKSetting ---
-"DEVICE" = "Device:";
-"DEVICE_NOT_FOUND" = "Device not found";
-"ELEVATION_MASK_DESC" = "The elevation mask limits the use of satellites and signals whose elevation angle (measured from a vertical plane relative to the RTK device’s antenna) is below a specified threshold.\nSatellites at low elevation are more susceptible to the effects of buildings, trees, and terrain, which can cause multipath and signal blockage, potentially reducing positioning accuracy.\nAn elevation mask of 15° is recommended.";
-"GNSS_CONSTELLATIONS_DESC" = "GNSS constellations refer to the satellite positioning systems used for positioning and the overall arrangement of their satellites.\nUsing multiple constellations simultaneously increases the number of available satellites and improves positioning accuracy and stability.";
-"RTK_BLUETOOTH_DEVICE_CONNECT" = "Connect";
-"RTK_BLUETOOTH_DEVICE_CONNECT_TO" = "Connect to %@";
-"RTK_BLUETOOTH_DEVICE_DISCONNECT" = "Disconnect";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_ACQUIRING_LOCATION" = "Acquiring Location";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_BACK_TO_LIST" = "Back to device list";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_BLUETOOTH_ON" = "Please turn ON Bluetooth";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_FOUND" = "RTK device detected";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_LAST_CONNECTED" = "Last connected";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_NOT_FOUND" = "RTK device not found";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_POWER_ON" = "Please turn ON the device";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_RETRY" = "Retry";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_SEARCHING" = "Searching...";
-"RTK_CAMERA_OFFSET" = "CAMERA OFFSET";
-"RTK_CAMERA_OFFSET_COORDINATE" = "Offset value between the bottom of the antenna and the camera lens";
-"RTK_CAMERA_OFFSET_CUSTOM" = "Custom";
-"RTK_DEVICE_CONNECTION" = "RTK Device Connection";
-"RTK_DEVICE_TYPE" = "RTK Device:";
-"RTK_HOSTNAME_IP" = "Hostname/IP";
-"RTK_HOSTNAME_IP_PLACEHOLDER" = "Type the host or ip";
-"RTK_OFFSET_TYPE" = "Method:";
-"RTK_PASSWORD" = "Password";
-"RTK_PASSWORD_PLACEHOLDER" = "Type the password";
-"RTK_PORT" = "Port";
-"RTK_PORT_PLACEHOLDER" = "Type the port";
-"RTK_USERNAME" = "Username";
-"RTK_USERNAME_PLACEHOLDER" = "Type the username";
-"RTK_VALIDATE_NTRIP" = "Validate NTRIP";
-"VALIDATION_FAILS" = "Validation Failed";
-
-// --- UI - ViewAR ---
-"AR_DISPLAY_COMPLETE" = "AR display complete.";
-"AR_UPDATED" = "AR Updated";
-"CALCULATION_SETTING" = "Calculation Settings";
-"CHANGE_AMOUNT" = "Amount";
-"DESIGN" = "Design";
-"DISPLAY_SETTINGS" = "Display Settings";
-"DISTANCE" = "Distance";
-"HORIZONTAL" = "Horizontal";
-"LAS_LEVEL" = "Las level";
-"LAYERS" = "Layers";
-"LOADING_PROJECT" = "Loading project...";
-"OCCLUSION" = "Occlusion";
-"PLANE_GRID" = "Ground grid";
-"POINTCLOUD_SIZE" = "Point cloud size";
-"POINT_CLOUD" = "Point cloud";
-"POSITION_SETTING" = "Position Settings";
-"RTK_CONNECT" = "Please connect to RTK for correction.";
-"RTK_WAIT_ACCURACY" = "Please wait for better accuracy.";
-"RTK_WALK" = "Please walk a little.";
-"SCALE" = "Scale";
-"SEARCH_LAYER" = "Search layer name";
-"SHADOW" = "Shadow";
-"SHOW_POINT_CLOUD" = "Show LiDAR";
-
-// --- UI - RTKSetting (added from rtk-localizable.html) ---
-"RTK_BLUETOOTH_DEVICE" = "RTK BLUETOOTH DEVICE";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_CONNECTED" = "Conected";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_DISCONNECTED" = "Disconected";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_1" = "Can't find your device?";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_2" = "If you can't find your device,";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_3" = "Please make sure the device is powered on and Bluetooth is turned on.";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_RECORDING" = "Recording";
-"RTK_BLUETOOTH_DEVICE_NOTICE" = "Make sure your RTK receiver is turned on. ";
-"RTK_BLUETOOTH_DEVICE_NOTICE2" = "If it is not found, make sure you connect here";
-"RTK_BLUETOOTH_DEVICE_NOTICE3" = "To acquire locations, make sure you are outside and have good signal to get an RTK fix";
-"RTK_BLUETOOTH_DEVICE_TITLE" = "Devices Discovered - Tap to Select";
-"RTK_CAMERA_OFFSET_DEVICE_NOT_SUPPORTED" = "Device is not supported";
-"RTK_CONNECTION_LOST" = "RTK connection lost";
-"RTK_DEVICE_SETTING" = "RTK Device Settings";
-"RTK_MOUNTPOINT" = "MOUNTPOINT";
-"RTK_NTRIP_AUTH_ERROR" = "Authentication error";
-"RTK_NTRIP_INVALID_CHARACTER" = "Contains invalid characters";
-"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Defined by the NTRIP service provider";
-"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Select NTRIP Coordinate System";
-"RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "INPUT COORDINATE REFERENCE SYSTEM";
-"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE" = "NTRIP infomation not validate";
-"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE_MESSAGE" = "Validate NTRIP info to receive list of mountpoints";
-"RTK_NTRIP_MOUNTPOINT_SEARCH_AZ" = "By name (A-Z)";
-"RTK_NTRIP_MOUNTPOINT_SEARCH_LOCATION" = "By location (Closer first)";
-"RTK_NTRIP_MOUNTPOINT_RECENT_SELECTIONS" = "Recent Selections";
-"RTK_NTRIP_MOUNTPOINT_ALL_SELECTION" = "All selection";
-"RTK_NTRIP_PROVIDER_DETAILS" = "NTRIP PROVIDER DETAILS";
-"RTK_NTRIP_SETTINGS" = "NTRIP Settings";
-"RTK_NTRIP_VALIDATE_FAIL" = "Validate NTRIP fail";
-"RTK_SELECT" = "Select";
-
-// --- UI - Calibration ---
-"NEXT" = "Next";
-"CALIBRATION_PREVIEW" = "Preview";
-"CALIBRATION_REFERENCE_POINT" = "Ref Point";
-"CALIBRATION_DIRECTION_POINT" = "Dir Point";
-"CALIBRATION_POINTS_TOO_CLOSE" = "Direction point is too close to reference point. Please select a different point.";
-"CALIBRATION_COMPLETE" = "Done";
-"CALIBRATION_BACK" = "Back";
-"CALIBRATION_GUIDE_STEP1" = "Please select the reference point and the direction point on the model.";
-"CALIBRATION_GUIDE_STEP2" = "Please indicate where to place the reference point and the direction point.";
-
-/* QUICK-1012 — NTRIP service provider */
-"RTK_NTRIP_VRS_PROVIDER" = "VRS provider";
-"RTK_NTRIP_USERNAME_HINT" = "Enter the last 8 digits of the Ntrip Caster Serial number";
-"RTK_NTRIP_PROVIDER_DOCOMO" = "docomo";
-"RTK_NTRIP_PROVIDER_SOFTBANK" = "softbank";
-"RTK_NTRIP_PROVIDER_JENOBA" = "jenoba";
-"RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
-"RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
-"RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "Name";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "Type a name for this connection";
-"RTK_PROFILE_CREATE" = "+ Create";
-"RTK_PROFILE_LIST_TITLE" = "Connection profiles";
-"RTK_PROFILE_EDIT" = "Edit";
-"RTK_PROFILE_NEW" = "New profile";
-"RTK_PROFILE_EMPTY_TITLE" = "No RTK profiles created";
-"RTK_PROFILE_EMPTY_DESC" = "Create a new RTK profile to connect to your RTK rover with the correct camera offset and NTRIP credentials.";
-"RTK_PROFILE_DELETE_CONFIRM" = "Do you want to delete %@?";
-"RTK_MOUNTPOINT_LABEL" = "Mountpoint";
-"RTK_COORDINATE_SYSTEM_LABEL" = "Coordinate system";
-"PROJECT_LIST_COLUMN_SETTINGS" = "Project List Column Settings";
-
-/* SC_QUICK-1945 */
-"GAUSSIAN_SPLATTING_PLY" = "Gaussian Splatting (PLY)";
+"NUMBER_OF_PHOTOS" = "Number of images";

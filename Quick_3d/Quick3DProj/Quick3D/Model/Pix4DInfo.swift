@@ -63,70 +63,52 @@ struct Pix4DInfo {
         let wkt: String
     }
     
-    // MARK: - Errors
-
-    /// Reasons the hand over to Pix4D can fail, so the caller can tell the user
-    /// instead of the failure being swallowed by a log line.
-    enum OpenError: Error {
-        /// The AR endpoint answered, but without a usable `features.cloud` payload.
-        case featuresUnavailable
-        /// The deep link could not be built out of the configuration.
-        case invalidConfiguration
-        /// iOS refused to open the deep link - usually Pix4Dcatch is not installed.
-        case appNotOpened
-        /// The AR data could not be fetched (network, auth, malformed JSON...).
-        case requestFailed(Error)
-    }
-
     // MARK: - Public Functions
-
+    
     // Open Pix4D Capture without Features condition (Runs on MainActor due to direct UI interaction)
     @MainActor
     func openPix4DCapture() {
         let settings = makeDeviceSettings()
         let appConfiguration = makeAppConfiguration(settings: settings, features: nil)
-
-        Task { try? await openPix4DApp(with: appConfiguration) }
+        
+        openPix4DApp(with: appConfiguration)
     }
-
+    
     // Open Pix4D with asynchronous AR data retrieved from the API.
-    // Throws an `OpenError` so the caller can surface the reason to the user.
-    func openPix4DViewAR(projectId: String, productData: ProductData) async throws {
-        let settings = makeDeviceSettings()
-
-        // Retrieve and examine Feature data from the API.
-        let featuresData: [String: Any]?
+    func openPix4DViewAR(projectId: String, productData: ProductData) async {
         do {
-            featuresData = try await productData.getFeaturesData(projectId: projectId)
+            let settings = makeDeviceSettings()
+            
+            // Retrieve and examine Feature data from the API.
+            guard let featuresData = try await productData.getFeaturesData(projectId: projectId),
+                  let cloud = featuresData["features"] as? [String: Any],
+                  let cloudData = cloud["cloud"] as? [String: Any] else {
+                print("Error: Failed to parse features data structures")
+                return
+            }
+            
+            // Securely process CRS WKT information.
+            var wkt = ""
+            if let cloudCrs = cloudData["cloudCrs"] as? [String: Any],
+               let rawWkt = cloudCrs["wkt"] as? String {
+                wkt = rawWkt.replacingOccurrences(of: "\\\"", with: "\"")
+                            .replacingOccurrences(of: "\\", with: "")
+            }
+            
+            let cloudUrl = cloudData["cloudUrl"] as? String ?? ""
+            let features = Features(cloud: Cloud(cloudCrs: CloudCrs(wkt: wkt), cloudUrl: cloudUrl))
+            
+            // Create overall configuration data
+            let appConfiguration = makeAppConfiguration(settings: settings, features: features)
+            print("Job Site: \(String(describing: appConfiguration))")
+            
+            // Open the URL on the Main Thread.
+            await MainActor.run {
+                openPix4DApp(with: appConfiguration)
+            }
         } catch {
             print("Error fetching job site data: \(error)")
-            throw OpenError.requestFailed(error)
         }
-
-        guard let featuresData,
-              let cloud = featuresData["features"] as? [String: Any],
-              let cloudData = cloud["cloud"] as? [String: Any] else {
-            print("Error: Failed to parse features data structures")
-            throw OpenError.featuresUnavailable
-        }
-
-        // Securely process CRS WKT information.
-        var wkt = ""
-        if let cloudCrs = cloudData["cloudCrs"] as? [String: Any],
-           let rawWkt = cloudCrs["wkt"] as? String {
-            wkt = rawWkt.replacingOccurrences(of: "\\\"", with: "\"")
-                        .replacingOccurrences(of: "\\", with: "")
-        }
-
-        let cloudUrl = cloudData["cloudUrl"] as? String ?? ""
-        let features = Features(cloud: Cloud(cloudCrs: CloudCrs(wkt: wkt), cloudUrl: cloudUrl))
-
-        // Create overall configuration data
-        let appConfiguration = makeAppConfiguration(settings: settings, features: features)
-        print("Job Site: \(String(describing: appConfiguration))")
-
-        // Open the URL on the Main Thread.
-        try await openPix4DApp(with: appConfiguration)
     }
     
     // MARK: - Private Helper Functions
@@ -176,37 +158,31 @@ struct Pix4DInfo {
     
     // Handling encoding, encryption, and enabling Deep Link opening in the Pix4D application.
     @MainActor
-    private func openPix4DApp(with configuration: AppConfiguration) async throws {
+    private func openPix4DApp(with configuration: AppConfiguration) {
         guard let jsonData = try? JSONEncoder().encode(configuration),
               let jsonString = String(data: jsonData, encoding: .utf8) else {
             print("Error: Failed to encode configuration to JSON string")
-            throw OpenError.invalidConfiguration
+            return
         }
-
+        
         // Reformat JSON string to avoid escape characters and forward slashes.
         let jsonStrFormatted = jsonString.replacingOccurrences(of: "\\/", with: "/")
-
+        
         // Base64 encoding and digital signing of configuration data strings.
-        guard let base64Data = jsonStrFormatted.data(using: .utf8) else {
-            throw OpenError.invalidConfiguration
-        }
+        guard let base64Data = jsonStrFormatted.data(using: .utf8) else { return }
         let base64String = base64Data.base64EncodedString()
         let signatureString = EncryptionManager.signString(base64String)
-
+        
         // Initialize Deep Link URL
         let urlString = "pix4dcatch.export://?appConfiguration=\(base64String).\(signatureString)"
         guard let url = URL(string: urlString) else {
             print("Error: Invalid URL scheme structure")
-            throw OpenError.invalidConfiguration
+            return
         }
-
+        
         // Implement external application navigation interactions.
-        // A `false` result means iOS could not hand the deep link over, which
-        // in practice means Pix4Dcatch is not installed on the device.
-        let completed = await UIApplication.shared.open(url, options: [.universalLinksOnly: false])
-        if !completed {
-            print("Error: Pix4D app could not be opened")
-            throw OpenError.appNotOpened
+        UIApplication.shared.open(url, options: [.universalLinksOnly: false]) { completed in
+            //print("App open triggered: \(completed)")
         }
     }
 }

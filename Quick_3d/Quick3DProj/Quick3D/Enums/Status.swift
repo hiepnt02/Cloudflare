@@ -30,10 +30,3 @@ enum Status: String {
         }
     }
 }
-
-extension Status: DropdownDisplayable {
-    /// `rawValue` is the localization key itself — see `Localizable.strings`.
-    func dropdownTitle(in language: String) -> String {
-        rawValue.localized(language)
-    }
-}

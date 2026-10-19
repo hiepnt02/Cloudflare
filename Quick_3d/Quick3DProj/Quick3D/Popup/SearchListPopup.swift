@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SearchListPopup<T: Hashable & DropdownDisplayable>: View {
+struct SearchListPopup<T: Hashable>: View {
     @EnvironmentObject var userManager: UserManager
 
     @Binding var isShow: Bool
@@ -20,115 +20,110 @@ struct SearchListPopup<T: Hashable & DropdownDisplayable>: View {
     @Binding var searchKey: String
     var handler: (T) -> Void
 
-    private static var rowFontSize: CGFloat { 16 }
-    private static var rowFont: UIFont { .systemFont(ofSize: rowFontSize) }
+    @State private var listFiltered: [T] = []
+    @State private var scrollHeight: CGFloat = 0
 
     private let colorBgDark = Color(hex: 0x3c3c3c)
+    private let scrollWidth: CGFloat = 260
+    private let itemHeight: CGFloat = 40
 
     var body: some View {
         if isShow {
-            GeometryReader { container in
-                let items = listFiltered
-                let layout = layout(for: items, in: container)
-
-                Rectangle()
-                    .fill(.clear)
-                    .frame(
-                        maxWidth: .infinity, maxHeight: .infinity,
-                        alignment: .topLeading
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        dismissKeyboard()
-                        isShow = false
-                    }
-                    .overlay(alignment: .topLeading) {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ForEach(Array(items.enumerated()), id: \.element) { index, element in
-                                    row(element, isLast: index == items.count - 1, layout: layout)
-                                }
-                            }
-                            .frame(width: layout.frame.width, alignment: .leading)
-                        }
-                        .frame(width: layout.frame.width, height: layout.frame.height)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .foregroundColor(
-                                    (userManager.setting.colorTheme == .light)
-                                        ? .white : colorBgDark
-                                )
-                                .shadow(radius: 8)
-                        )
-                        .offset(x: layout.frame.x, y: layout.frame.y)
-                    }
-            }
-            .zIndex(10)
-        }
-    }
-
-    private var listFiltered: [T] {
-        guard !searchKey.isEmpty else { return listOriginal }
-
-        return listOriginal.filter {
-            $0.dropdownTitle(in: userManager.userLanguage)
-                .localizedCaseInsensitiveContains(searchKey)
-        }
-    }
-
-    private func row(_ element: T, isLast: Bool, layout: DropdownLayout) -> some View {
-        let title = element.dropdownTitle(in: userManager.userLanguage)
-
-        return VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.system(size: Self.rowFontSize))
-                .foregroundColor(userManager.setting.textColor)
-                .lineLimit(DropdownLayout.Constants.maxLines)
-                .truncationMode(.tail)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, DropdownLayout.Constants.horizontalPadding)
+            Rectangle()
+                .fill(.clear)
                 .frame(
-                    maxWidth: .infinity,
-                    minHeight: layout.rowHeight(for: title, width: layout.frame.width),
-                    alignment: .leading
+                    maxWidth: .infinity, maxHeight: .infinity,
+                    alignment: .topLeading
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    dismissKeyboard()
+                    UIApplication.shared.sendAction(
+                        #selector(
+                            UIResponder
+                                .resignFirstResponder),
+                        to: nil, from: nil, for: nil
+                    )
                     isShow = false
-                    handler(element)
                 }
+                .overlay(alignment: .topLeading) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(listFiltered, id: \.self) { element in
+                                if let obj = element as? JobSite.Site {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(obj.name)
+                                            .font(.system(size: 16))
+                                            .foregroundColor(userManager.setting.textColor)
+                                            .padding(.horizontal, 8)
+                                            .frame(height: itemHeight)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                UIApplication.shared.sendAction(
+                                                    #selector(
+                                                        UIResponder
+                                                            .resignFirstResponder
+                                                    ),
+                                                    to: nil, from: nil, for: nil
+                                                )
+                                                isShow = false
+                                                self.handler(element)
+                                            }
 
-            if !isLast {
-                Rectangle()
-                    .frame(height: DropdownLayout.Constants.separatorHeight)
-                    .foregroundColor(Color.gray)
-            }
+                                        if listFiltered.count > 1 {
+                                            Rectangle()
+                                                .frame(height: 0.5)
+                                                .foregroundColor(Color.gray)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .frame(width: scrollWidth, alignment: .leading)
+                    }
+                    .frame(
+                        width: scrollWidth,
+                        height: scrollHeight
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .foregroundColor(
+                                (userManager.setting.colorTheme == .light)
+                                    ? .white : colorBgDark
+                            )
+                            .shadow(radius: 8)
+                    )
+                    .offset(
+                        x: viewPosition.x - viewWidth / 2 + 60,
+                        y: viewPosition.y + viewHeight
+                    )
+                }
+                .zIndex(10)
+                .ignoresSafeArea()
+                .onChange(of: searchKey) { _ in
+                    filterList()
+                }
+                .onAppear {
+                    filterList()
+                }
         }
     }
 
-    private func layout(for items: [T], in container: GeometryProxy) -> DropdownLayout {
-        let containerOrigin = container.frame(in: .global).origin
-        let anchor = CGRect(
-            x: viewPosition.x - containerOrigin.x,
-            y: viewPosition.y - containerOrigin.y,
-            width: viewWidth,
-            height: viewHeight
-        )
+    private func filterList() {
+        if searchKey.isEmpty {
+            listFiltered = listOriginal
+        } else {
+            listFiltered = listOriginal.filter {
+                if let obj = $0 as? JobSite.Site {
+                    return obj.name.localizedCaseInsensitiveContains(searchKey)
+                }
+                return true
+            }
+        }
 
-        return DropdownLayout(
-            titles: items.map { $0.dropdownTitle(in: userManager.userLanguage) },
-            font: Self.rowFont,
-            anchor: anchor,
-            container: container.size,
-            isIPhone: UserSession.isIPhone
-        )
-    }
-
-    private func dismissKeyboard() {
-        UIApplication.shared.sendAction(
-            #selector(UIResponder.resignFirstResponder),
-            to: nil, from: nil, for: nil
-        )
+        scrollHeight = CGFloat(
+            listFiltered.count < (UserSession.isIPhone ? 5 : 7)
+                ? (Int(itemHeight) * listFiltered.count)
+                : UserSession.isIPhone ? 200 : 280)
     }
 }

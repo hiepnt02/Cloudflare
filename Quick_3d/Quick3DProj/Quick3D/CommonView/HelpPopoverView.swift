@@ -7,9 +7,11 @@
 
 import SwiftUI
 
+import SwiftUI
+
 class PopoverManager: ObservableObject {
     @Published var activePopoverID: String? = nil
-    @Published var anchorFrame: CGRect = .zero // Store the icon button's frame
+    @Published var anchorFrame: CGRect = .zero // Save the coordinates of the icon button
     
     func toggle(id: String) {
         if activePopoverID == id {
@@ -42,28 +44,22 @@ struct HelpPopoverView: View {
     var frameWidth: CGFloat?
     var frameHeight: CGFloat?
     var offsetValue: CGSize
-    var icon: String = "questionmark.circle.fill"
-    var iconColor: Color? = nil
-    var trailingPadding: CGFloat = 20
-    var autoHideAfter: TimeInterval? = nil
+    var icon: String = ""
     
     var onClicked: () -> Void
-    
-    @State private var autoHideWorkItem: DispatchWorkItem?
     
     var body: some View {
         Button(action: {
             manager.toggle(id: id)
             onClicked()
         }) {
-            Image(systemName: icon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .foregroundColor(iconColor ?? userManager.setting.textColor)
-                .frame(width: 20, height: 20)
-                .padding(5)
+            Text(icon)
+                .foregroundColor(userManager.userSetting.getTextColor())
+                .font(.custom(CustomFonts.FAFreeSolid, size: 20))
+                .fixedSize(horizontal: false, vertical: true)
+                .dynamicTypeSize(DynamicTypeSize.medium)
                 .frame(width: 30, height: 30)
-                .padding(.trailing, trailingPadding)
+                .padding(.trailing, 20)
         }
         .overlay(
             Group {
@@ -72,43 +68,15 @@ struct HelpPopoverView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(width: frameWidth, height: frameHeight)
                         .padding(.all, 5)
-                        .foregroundColor(userManager.setting.textColor)
-                        .background {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(userManager.setting.themeColor)
-                        }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 3)
-                                .stroke(Color.gray, lineWidth: 1)
-                        }
+                        .background(userManager.userSetting.getThemeColor(), in: Rectangle())
+                        .foregroundColor(userManager.userSetting.getTextColor())
+                        .border(Color.gray, width: 1)
                         .font(.caption.bold())
                         .dynamicTypeSize(DynamicTypeSize.medium)
                         .offset(x: offsetValue.width, y: offsetValue.height)
-                        .onTapGesture { /* Handle tap if needed */ }
+                        .onTapGesture { /* Xử lý nếu cần */ }
                 }
             }
         )
-        .onChange(of: manager.activePopoverID) { activeID in
-            scheduleAutoHide(activeID: activeID)
-        }
-        .onDisappear {
-            autoHideWorkItem?.cancel()
-            autoHideWorkItem = nil
-        }
-    }
-    
-    private func scheduleAutoHide(activeID: String?) {
-        autoHideWorkItem?.cancel()
-        autoHideWorkItem = nil
-        
-        guard let autoHideAfter = autoHideAfter, activeID == id else { return }
-        
-        let workItem = DispatchWorkItem {
-            if manager.activePopoverID == id {
-                manager.activePopoverID = nil
-            }
-        }
-        autoHideWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + autoHideAfter, execute: workItem)
     }
 }

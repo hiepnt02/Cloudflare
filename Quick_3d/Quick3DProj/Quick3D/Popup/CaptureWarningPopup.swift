@@ -12,8 +12,6 @@ struct CaptureWarningPopup: View {
     @EnvironmentObject var userManager: UserManager
     
     @Binding var isShow: Bool
-
-    // MARK: - Camera
     @Binding var isShowCameraView: Bool
     
     @State private var verificationReportPageIsShown = false
@@ -384,24 +382,6 @@ struct CaptureWarningPopup: View {
     private func bottomButtons() -> some View {
         HStack {
             cancelButton()
-            
-            Spacer()
-            
-            if userManager.setting.isTester  {
-                CameraButton {
-                    // Reset data settings before open Camera
-                    UserSession.shared.overlapValue = 0.9
-                    UserSession.shared.imageResolution = .normal
-                    // Open camera
-                    isShow = false
-                    isShowCameraView = true
-                } unsupportedAction: {
-                    isShow = false
-                    APAlert.shared.showAlertWithTheme(title: "NOTICE".localized(userManager.userLanguage),
-                                                      message: "LIDAR_UNSUPPORTED".localized(userManager.userLanguage),
-                                                      userManager: userManager)
-                }
-            }
             
             Spacer()
             

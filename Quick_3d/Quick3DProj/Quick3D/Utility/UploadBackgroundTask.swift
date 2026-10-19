@@ -18,11 +18,6 @@ class UploadBackgroundTask: NSObject {
     
     private var uploadTask: URLSessionUploadTask?
     
-    private let stateLock = NSLock()
-    private var currentTaskIdentifier: Int?
-    private var hasDeliveredTerminalCallback = false
-    private var receivedBody = Data()
-    
     // urlSessionの背景を定義する
     lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.background(withIdentifier: UUID().uuidString)
@@ -93,7 +88,8 @@ class UploadBackgroundTask: NSObject {
         let localURL = tempDir.appendingPathComponent("uploadFile")
         try? data.write(to: localURL)
         
-        startUploadTask(with: request, fromFile: localURL)
+        let task = session.uploadTask(with: request, fromFile: localURL)
+        task.resume()
     }
     
     // HttpBodyデータを作成する
@@ -180,7 +176,8 @@ class UploadBackgroundTask: NSObject {
         }
         
         cancelUpload()
-        startUploadTask(with: request, fromFile: localURL)
+        uploadTask = session.uploadTask(with: request, fromFile: localURL)
+        uploadTask?.resume()
     }
     
     func uploadARStream(with cat: Cat, jobsite: String, fileUrl: URL, fileName: String, ar_color: String) {
@@ -233,7 +230,8 @@ class UploadBackgroundTask: NSObject {
         }
         
         cancelUpload()
-        startUploadTask(with: request, fromFile: localURL)
+        uploadTask = session.uploadTask(with: request, fromFile: localURL)
+        uploadTask?.resume()
     }
     
     func uploadZipStream(with cat: Cat, fileUrl: URL, jobsite: String, useARMarker: Bool, coordinateSetting: Bool, linkDashboard: Bool, shouldInterpolate: Bool) {
@@ -288,30 +286,8 @@ class UploadBackgroundTask: NSObject {
         }
         
         cancelUpload()
-        startUploadTask(with: request, fromFile: localURL)
-    }
-    
-    private func startUploadTask(with request: URLRequest, fromFile localURL: URL) {
-        let task = session.uploadTask(with: request, fromFile: localURL)
-        uploadTask = task
-        beginTracking(for: task)
-        task.resume()
-    }
-    
-    private func beginTracking(for task: URLSessionTask) {
-        stateLock.lock()
-        currentTaskIdentifier = task.taskIdentifier
-        hasDeliveredTerminalCallback = false
-        receivedBody = Data()
-        stateLock.unlock()
-    }
-    
-    private func claimTask(_ identifier: Int) -> Bool {
-        guard let current = currentTaskIdentifier else {
-            currentTaskIdentifier = identifier
-            return true
-        }
-        return current == identifier
+        uploadTask = session.uploadTask(with: request, fromFile: localURL)
+        uploadTask?.resume()
     }
     
     // HttpBodyデータを作成する
@@ -372,38 +348,20 @@ class UploadBackgroundTask: NSObject {
 extension UploadBackgroundTask: URLSessionTaskDelegate, URLSessionDataDelegate {
     // アップロードの進行状況のコールバック
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-        stateLock.lock()
-        let isCurrent = claimTask(task.taskIdentifier) && !hasDeliveredTerminalCallback
-        stateLock.unlock()
-        
-        guard isCurrent else { return }
         uploadProgress?(Double(totalBytesSent)/Double(totalBytesExpectedToSend))
     }
     
+    // エラーのコールバック
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        stateLock.lock()
-        guard claimTask(task.taskIdentifier), !hasDeliveredTerminalCallback else {
-            stateLock.unlock()
-            return
-        }
-        hasDeliveredTerminalCallback = true
-        let body = receivedBody
-        receivedBody = Data()
-        stateLock.unlock()
-        
-        guard error == nil, !body.isEmpty else {
+        if error != nil {
             responseHandler?(nil)
-            return
         }
-        responseHandler?(try? JSONDecoder().decode(UploadFile.self, from: body))
     }
     
+    // タスク応答のコールバック
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        
-        guard claimTask(dataTask.taskIdentifier), !hasDeliveredTerminalCallback else { return }
-        receivedBody.append(data)
+        let resp = try? JSONDecoder().decode(UploadFile.self, from: data)
+        responseHandler?(resp)
     }
     
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
@@ -411,19 +369,7 @@ extension UploadBackgroundTask: URLSessionTaskDelegate, URLSessionDataDelegate {
     }
     
     func cancelUpload() {
-        stateLock.lock()
-        let shouldNotify = currentTaskIdentifier != nil && !hasDeliveredTerminalCallback
-        if shouldNotify {
-            hasDeliveredTerminalCallback = true
-        }
-        receivedBody = Data()
-        stateLock.unlock()
-        
         uploadTask?.cancel()
         uploadTask = nil // Clear the reference after cancelling.
-        
-        if shouldNotify {
-            responseHandler?(nil)
-        }
     }
 }

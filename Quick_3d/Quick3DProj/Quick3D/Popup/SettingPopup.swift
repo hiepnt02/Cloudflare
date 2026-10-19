@@ -229,17 +229,6 @@ struct SettingPopup: View {
             }
             .padding(.bottom, isIPhone ? 10 : 20)
             
-            // Project list column settings
-            ProjectListColumnSettingsSection()
-                .padding(.leading, 10)
-                .padding(.trailing, 30)
-                .padding(.bottom, isIPhone ? 10 : 20)
-                .simultaneousGesture(TapGesture().onEnded {
-                    if self.anyDetailIsShown {
-                        hideDetails()
-                    }
-                })
-            
             Group{
                 HStack {
                     Text("【" + "UPLOAD_SETTING_ITEMS".localized(userManager.userLanguage) + "】")

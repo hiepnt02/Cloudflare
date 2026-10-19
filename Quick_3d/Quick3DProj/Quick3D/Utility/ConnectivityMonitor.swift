@@ -4,7 +4,6 @@
 //
 //  Created by HungNT on 24/2/25.
 //
-import Foundation
 import Network
 
 class ConnectivityMonitor {
@@ -12,25 +11,17 @@ class ConnectivityMonitor {
     
     private let monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "ConnectivityMonitorQueue")
-
+    
     // Use an internal property to store it.
     private var _isConnected: Bool = false
-
-    // Guarded by a lock instead of `queue.sync`: every project cell reads this value
-    // while rendering, and hopping to another queue for each read is expensive
-    // (and can block the main thread while the monitor queue is busy).
-    private let lock = NSLock()
-
+    
+    // Ensure that reading/writing this variable always occurs on the same queue.
     private var isConnected: Bool {
         get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isConnected
+            return queue.sync { _isConnected }
         }
         set {
-            lock.lock()
-            _isConnected = newValue
-            lock.unlock()
+            queue.async { self._isConnected = newValue }
         }
     }
 

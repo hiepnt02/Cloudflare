@@ -55,7 +55,7 @@ struct UploadPopup: View {
     
     @State private var addvancedSettingIsExpanded = false
     @State private var coordinateSettingDisable: Bool = false
-
+    
     @FocusState private var focusState: Bool
     @FocusState private var isFocusJobsite: Bool
     
@@ -89,6 +89,57 @@ struct UploadPopup: View {
     private let subContentPadding: CGFloat = UserSession.isIPhone ? 55 : 65
     
     @StateObject private var popoverManager = PopoverManager()
+    func hideDetails() {
+        self.anyDetailIsShown = false;
+        self.linkTipIsShown = false;
+        self.uploadTipIsShown = false;
+        self.interpolateTipIsShown = false;
+        self.coordinateJobSiteInfoTipIsShown = false;
+    }
+    
+    func customPopover(isShown: Binding<Bool>, content: String, frameValue: (width: CGFloat, height: CGFloat), offsetValue: (x: CGFloat, y: CGFloat), icon : String = "") -> some View{
+        Button(
+            action: {
+                if isShown.wrappedValue {
+                    hideDetails();
+                }
+                else{
+                    hideDetails();
+                    self.anyDetailIsShown = true;
+                    isShown.wrappedValue = true;
+                }
+            },
+            label: {
+                Text(icon)
+                    .foregroundColor(userManager.setting.textColor)
+                    .font(.custom(CustomFonts.FAFreeSolid, size: 20))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .dynamicTypeSize(DynamicTypeSize.medium)
+                    .frame(width: 30, height: 30)
+                    .padding(.trailing, 20)
+            }
+        )
+        .overlay(
+            isShown.wrappedValue ?
+            Text(content)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: frameValue.width, height: frameValue.height)
+                .padding(.all, 5)
+                .background(
+                    userManager.setting.themeColor,
+                    in: Rectangle(),
+                    fillStyle: FillStyle(eoFill: true)
+                )
+                .foregroundColor(userManager.setting.textColor)
+                .border(Color.gray, width: 1)
+                .font(.caption.bold())
+                .dynamicTypeSize(DynamicTypeSize.medium)
+                .offset(x: offsetValue.x, y: offsetValue.y)
+                .onTapGesture {
+                }
+            : nil
+        )
+    }
     
     var body: some View {
         ZStack {
@@ -618,33 +669,33 @@ struct UploadPopup: View {
                     .font(.body)
                     .padding(.leading, 10)
                     .frame(alignment: .leading)
-
+                    
                     HelpPopoverView(
                         manager: popoverManager,
                         id: "coordinate_jobsite",
                         content: """
                         Rotation          :  \((coordinateJobSite?.rotation ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Origin easting    :  \((coordinateJobSite?.originEasting ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Origin northing   :  \((coordinateJobSite?.originNorthing ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Origin latitude   :  \((coordinateJobSite?.originLatitude ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Origin longtitude :  \((coordinateJobSite?.originLongitude ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Scale factor      :  \((coordinateJobSite?.scaleFactor ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Vertical offset   :  \((coordinateJobSite?.verticalOffset ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Incline X         :  \((coordinateJobSite?.inclineX ?? 0).string(maximumFractionDigits: 5))
-
+                        
                         Incline Y         :  \((coordinateJobSite?.inclineY ?? 0).string(maximumFractionDigits: 5))
                         """,
                         frameWidth: 220,
                         frameHeight: 280,
                         offsetValue: CGSize(width: -140, height: -160),
-                        icon: "exclamationmark.circle.fill",
+                        icon: "",
                         onClicked: {}
                     )
                     .padding(.leading, 10)
@@ -754,6 +805,8 @@ struct UploadPopup: View {
                 .disabled(!linkDashboard)
         }
         .padding(.bottom, UserSession.isIPhone ? 5 : 10)
+        .isHidden(!addvancedSettingIsExpanded, remove: true)
+        .zIndex(uploadTipIsShown ? 1 : 0)
     }
     
     func bottomButtons() -> some View {
@@ -842,47 +895,17 @@ extension UploadPopup {
         isPopupPresented = false
         
         guard ProductUtil.validationCheck(projectName) else {
-            APAlert.shared.showAlert(
+            APAlert.shared
+                .showAlert(
                     title: "",
-                    message: "PROHIBITED_CHARACTER_MESSAGE".localized(userManager.userLanguage),
+                    message: "PROHIBITED_CHARACTER_MESSAGE"
+                        .localized(userManager.userLanguage),
                     buttonTitle: "CLOSE".localized(userManager.userLanguage)
                 )
             disableButton = false
             return
         }
         
-        // Check Jobsite user has selected have groupware permissions or not
-        // If does not have permissions then should show alert popup
-        productData.checkGroupwarePermissions(
-            siteId: siteSelected.id,
-            completion: { result in
-                if !result {
-                    showAlertGroupwarePermission()
-                } else {
-                    handleUpload()
-                }
-            }
-        )
-    }
-    
-    private func showAlertGroupwarePermission() {
-        APAlert.shared.showAlert(
-            title: "",
-            message: "ALERT_GROUPWARE_PERMISSION".localized(userManager.userLanguage),
-            leftIconName: "exclamationmark.triangle",
-            textButtonPositive: "YES".localized(userManager.userLanguage),
-            textButtonNegative: "CANCEL".localized(userManager.userLanguage),
-            onClickPositive: {
-                handleUpload()
-            },
-            onClickNegative: {
-                disableButton = false
-            },
-            userManager: userManager
-        )
-    }
-    
-    private func handleUpload() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             withAnimation(.linear(duration: 0.3)) {
                 show = false
@@ -890,12 +913,12 @@ extension UploadPopup {
                     self.disableButton = false
                 }
             }
-
+            
             if cat != nil {
                 cat?.title = projectName
-                cat?.jobsiteId = siteSelected!.id
+                cat?.jobsiteId = siteSelected.id
             }
-
+            
             // Get coordinate by coordinate setting selected
             switch coordOptionSelected {
             case .smartAlign:
@@ -908,9 +931,9 @@ extension UploadPopup {
                 vCoordKeyFinal = ""
                 hCoordKeyFinal = ""
             }
-
+            
             handler(
-                siteSelected!.id,
+                siteSelected.id,
                 useARMarker,
                 coordinateJobSite == nil ? false : coordinateSetting,
                 coordinateJobSite == nil ? false : linkDashboard,
@@ -919,7 +942,7 @@ extension UploadPopup {
                 hCoordKeyFinal,
                 cat
             )
-
+            
             searchText = ""
             projectName = ""
         }

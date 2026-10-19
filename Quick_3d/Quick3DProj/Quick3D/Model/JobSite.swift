@@ -16,10 +16,3 @@ struct JobSite: Decodable, Hashable {
         var name: String
     }
 }
-
-extension JobSite.Site: DropdownDisplayable {
-    /// Site names come from the server already localized; the language is not consulted.
-    func dropdownTitle(in language: String) -> String {
-        name
-    }
-}

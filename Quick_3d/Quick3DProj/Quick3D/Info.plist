@@ -2,20 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSMotionUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses the motion to caculate scan image</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses bluetooth</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses the location to caculate scan image</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses bluetooth</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses the location to caculate scan image</string>
-	<key>NSCameraUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses the camera to scan</string>
-	<key>ENV_TYPE</key>
-	<string>dev</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Font Awesome 6 Brands-Regular-400.otf</string>
@@ -38,11 +24,9 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<true/>
+		<false/>
 	</dict>
 	<key>UIFileSharingEnabled</key>
 	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>

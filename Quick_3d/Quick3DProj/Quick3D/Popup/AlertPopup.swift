@@ -62,12 +62,7 @@ private struct AlertWithTheme: View {
     
     let titleText: String
     let messageText: String
-    let leftIconMessage: String
-    let textButtonPositive: String
-    let textButtonNegative: String
-    
-    var onClickPositive: (() -> Void)?
-    var onClickNegative: (() -> Void)?
+    let buttonText: String
     
     var body: some View {
         ZStack {
@@ -76,7 +71,6 @@ private struct AlertWithTheme: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(alignment: .center, spacing: 0) {
-                // MARK: Title
                 if !titleText.isEmpty {
                     Text(titleText)
                         .foregroundColor(userManager.setting.textColor)
@@ -84,73 +78,35 @@ private struct AlertWithTheme: View {
                         .padding(.bottom, 20)
                 }
                 
-                // MARK: Message
-                HStack(alignment: .center) {
-                    if !leftIconMessage.isEmpty {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.red)
-                            .padding(.trailing, 10)
-                    }
-                    
-                    Text(messageText)
-                        .foregroundColor(userManager.setting.textColor)
-                        .font(.body)
-                }
-                .padding(.bottom, 30)
+                Text(messageText)
+                    .foregroundColor(userManager.setting.textColor)
+                    .font(.body)
+                    .padding(.bottom, 30)
                 
-                // MARK: Bottom Buttons
-                HStack {
-                    // Negative button
-                    if !textButtonNegative.isEmpty {
-                        actionButton(
-                            title: textButtonNegative,
-                            isPositive: false,
-                            isClicked: onClickNegative ?? {}
-                        )
+                Button(
+                    action: {
+                        withAnimation(.linear(duration: 0.3)) {
+                            APAlert.shared.remove()
+                        }
+                    },
+                    label: {
+                        Text(buttonText)
+                            .frame(height: 40, alignment: .center)
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .font(.body.bold())
+                            .foregroundColor(.white)
+                            .background(.blue)
+                            .cornerRadius(2)
                     }
-                    
-                    // Positive button
-                    if !textButtonPositive.isEmpty {
-                        actionButton(
-                            title: textButtonPositive,
-                            isPositive: true,
-                            isClicked: onClickPositive ?? {}
-                        )
-                    }
-                }
+                )
+                .buttonStyle(PlainButtonStyle())
+                .frame(width: 250)
             }
             .padding(30)
             .frame(width: 500)
             .background(userManager.setting.themeColor)
             .border(.gray, width: 1)
         }
-    }
-    
-    private func actionButton(
-        title: String,
-        isPositive: Bool,
-        isClicked: @escaping () -> Void
-    ) -> some View {
-        Button(
-            action: {
-                withAnimation(.linear(duration: 0.3)) {
-                    isClicked()
-                    APAlert.shared.remove()
-                }
-            },
-            label: {
-                Text(title)
-                    .frame(height: 40, alignment: .center)
-                    .frame(minWidth: 0, maxWidth: .infinity)
-                    .font(.body.bold())
-                    .foregroundColor(isPositive ? .white : userManager.setting.textColor)
-                    .background(isPositive ? .blue : userManager.setting.themeColor)
-                    .cornerRadius(2)
-            }
-        )
-        .buttonStyle(PlainButtonStyle())
-        .frame(maxWidth: 250)
-        .border(.gray, width: isPositive ? 0 : 1)
     }
 }
 
@@ -159,16 +115,8 @@ public class APAlert {
     private init() { }
     private var popupWindow: AlertWindow?
 
-    public func showAlert(
-        title: String = "Error",
-        message: String = "Request could not be processed due to a server error. The request may succeed if you try again.",
-        buttonTitle: String = "Ok"
-    ) {
-        setAlertBody(
-            title: title,
-            message: message,
-            buttonTitle: buttonTitle
-        )
+    public func showAlert(title: String = "Error", message: String = "Request could not be processed due to a server error. The request may succeed if you try again.", buttonTitle: String = "Ok") {
+        setAlertBody(title: title, message: message, buttonTitle: buttonTitle)
     }
     
     func showAlertWithTheme(
@@ -180,38 +128,12 @@ public class APAlert {
         alertBodyWithTheme(
             title: title,
             message: message,
-            leftIconName: "",
-            textButtonPositive: buttonTitle,
-            textButtonNegative: "",
-            onClickPositive: nil,
-            onClickNegative: nil,
-            userManager: userManager
-        )
-    }
-    
-    func showAlert(
-        title: String,
-        message: String,
-        leftIconName: String,
-        textButtonPositive: String,
-        textButtonNegative: String,
-        onClickPositive: (() -> Void)? = nil,
-        onClickNegative: (() -> Void)? = nil,
-        userManager: UserManager
-    ) {
-        alertBodyWithTheme(
-            title: title,
-            message: message,
-            leftIconName: leftIconName,
-            textButtonPositive: textButtonPositive,
-            textButtonNegative: textButtonNegative,
-            onClickPositive: onClickPositive,
-            onClickNegative: onClickNegative,
+            buttonTitle: buttonTitle,
             userManager: userManager
         )
     }
 
-    // function to remove loader from screen.
+    /// function to remove loader from screen.
     public func remove() {
         removeAlert()
     }
@@ -239,13 +161,9 @@ private extension APAlert {
     }
     
     func alertBodyWithTheme(
-        title: String,
-        message: String,
-        leftIconName: String,
-        textButtonPositive: String,
-        textButtonNegative: String,
-        onClickPositive: (() -> Void)?,
-        onClickNegative: (() -> Void)?,
+        title: String = "",
+        message: String = "",
+        buttonTitle: String = "",
         userManager: UserManager
     ) {
         let windowScene = UIApplication.shared
@@ -260,11 +178,7 @@ private extension APAlert {
                 rootView: AlertWithTheme(
                     titleText: title,
                     messageText: message,
-                    leftIconMessage: leftIconName,
-                    textButtonPositive: textButtonPositive,
-                    textButtonNegative: textButtonNegative,
-                    onClickPositive: onClickPositive,
-                    onClickNegative: onClickNegative
+                    buttonText: buttonTitle
                 )
                 .environmentObject(userManager)
             )
@@ -273,7 +187,7 @@ private extension APAlert {
         }
     }
     
-    // Remove loader from screen
+    /// Remove loader from screen
     func removeAlert() {
         let alertwindows = UIApplication.shared.windows.filter { $0 is AlertWindow }
         alertwindows.forEach { (window) in

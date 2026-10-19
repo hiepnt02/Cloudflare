@@ -9,40 +9,25 @@ import SwiftUI
 import Alamofire
 import DeviceKit
 
-struct ProjectGridCell: View, Equatable {
+struct ProjectGridCell: View {
     @EnvironmentObject var userManager: UserManager
     @EnvironmentObject var productData: ProductData
+    @EnvironmentObject var uploadProject: UploadProject
 
     var cat: Cat
     @Binding var isEditing: Bool
     @Binding var isSelected: Bool
-
+    
     let thumbnailImage: UIImage?
     let jobSiteName: String
-    /// Upload state of this project, see `CellUploadState`.
-    let uploadState: CellUploadState
-    // Built only when the menu is opened, so scrolling/refreshing the list does not
-    // create the menu items of every cell.
-    let actionMenuItems: () -> AnyView
+    let actionMenuItems: AnyView
     let onTap: () -> Void
     @Binding var isShowNoNetworkAlert: Bool
-
+    
     @State private var isShowingRemovedToolTip = false
     @State private var isShowingEditingToolTip = false
-
+    
     private var isIPhone: Bool { UIDevice.current.isIphone }
-
-    /// Used through `.equatable()` so a re-render of the parent cell does not re-render
-    /// this cell unless one of its rendered inputs changed. Changes coming from
-    /// `userManager` / `productData` still invalidate the cell through their publishers.
-    static func == (lhs: ProjectGridCell, rhs: ProjectGridCell) -> Bool {
-        lhs.cat == rhs.cat
-            && lhs.isEditing == rhs.isEditing
-            && lhs.isSelected == rhs.isSelected
-            && lhs.thumbnailImage === rhs.thumbnailImage
-            && lhs.jobSiteName == rhs.jobSiteName
-            && lhs.uploadState == rhs.uploadState
-    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -58,12 +43,12 @@ struct ProjectGridCell: View, Equatable {
 
     private var headerSection: some View {
         Group {
-            if isEditing || uploadState.isUploading {
+            if isEditing || (uploadProject.isUploading && uploadProject.projectId == cat.id) {
                 gridHeaderLabel(isEditingMode: true)
             } else {
                 if ConnectivityMonitor.shared.isCurrentlyConnected() {
                     Menu {
-                        actionMenuItems()
+                        actionMenuItems
                     } label: {
                         gridHeaderLabel(isEditingMode: false)
                     }
@@ -105,8 +90,6 @@ struct ProjectGridCell: View, Equatable {
     private var contentSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             imageThumbnailOverlay
-                .contentShape(Rectangle())
-                .onTapGesture { onTap() }
 
             VStack(alignment: .leading, spacing: isIPhone ? 2 : 6) {
                 dateTimeAndSourceRow
@@ -120,6 +103,8 @@ struct ProjectGridCell: View, Equatable {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 
     private var imageThumbnailOverlay: some View {
@@ -219,10 +204,10 @@ struct ProjectGridCell: View, Equatable {
 
     private var statusAndProgressRow: some View {
         HStack(spacing: isIPhone ? 4 : 6) {
-            if uploadState.isActive {
+            if uploadProject.isUploading && uploadProject.projectId == cat.id {
                 VStack {
                     Spacer().frame(height: isIPhone ? 14 : 21)
-                    ProgressView(value: uploadState.percentage, total: 1)
+                    ProgressView(value: uploadProject.uploadPercentage, total: 1)
                 }
             } else {
                 statusIndicatorGroup
@@ -271,22 +256,21 @@ struct ProjectGridCell: View, Equatable {
 
     private var uploadStatusFooter: some View {
         Group {
-            if uploadState.isActive {
+            if uploadProject.isUploading && uploadProject.projectId == cat.id {
                 HStack {
-                    Text(uploadState.statusTextKey.localized(userManager.userLanguage))
+                    Text("UPLOADING".localized(userManager.userLanguage))
                         .font(.system(size: isIPhone ? 10 : 12))
                     Spacer()
-                    if uploadState.isUploading {
-                        Text("\(Int(uploadState.percentage * 100))%")
-                            .font(.system(size: isIPhone ? 12 : 14))
-                    }
+                    Text("\(Int(uploadProject.uploadPercentage * 100))%")
+                        .font(.system(size: isIPhone ? 12 : 14))
                 }
                 .foregroundColor(userManager.setting.textColor)
                 .padding(.bottom, 10)
             } else {
                 let statusText = cat.statusList?.sfmStatus(for: userManager.userLanguage)
+                let defaultText = productData.uploadProjectQueue.isInQueue(catId: cat.id) ? "PREPARING_FOR_DATA_UPLOAD" : "UPLOAD_WAITING"
 
-                Text((statusText ?? "UPLOAD_WAITING").localized(userManager.userLanguage))
+                Text((statusText ?? defaultText).localized(userManager.userLanguage))
                     .font(.system(size: isIPhone ? 11 : 14))
                     .foregroundColor(userManager.setting.textColor)
                     .padding(.bottom, 10)

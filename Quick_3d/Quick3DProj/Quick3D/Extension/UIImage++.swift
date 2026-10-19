@@ -6,28 +6,9 @@
 //
 
 import Foundation
-import ImageIO
 import UIKit
 
 extension UIImage {
-    /// Decodes the image at `url` downscaled so its longest edge is `maxPixelSize`.
-    /// A project thumbnail file is a full resolution photo, decoding it as-is costs
-    /// tens of MB per project, which does not fit a list of cached cell thumbnails.
-    /// ImageIO downsamples while decoding so the full size bitmap is never created.
-    static func downsampled(from url: URL, maxPixelSize: CGFloat) -> UIImage? {
-        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
-
-        let thumbnailOptions = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
-        ] as CFDictionary
-
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else { return nil }
-        return UIImage(cgImage: cgImage)
-    }
-
     convenience init?(fromLocalUrl url: URL) {
         do {
             let data = try Data(contentsOf: url, options: [.mappedIfSafe])

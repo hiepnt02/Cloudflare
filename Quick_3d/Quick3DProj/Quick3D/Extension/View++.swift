@@ -13,43 +13,6 @@ extension View {
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
-    
-    @ViewBuilder func `if`<Content: View>(
-        _ condition: Bool,
-        transform: (Self) -> Content
-    ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-    
-    @ViewBuilder
-    func persistentToolbarBackground(color: Color) -> some View {
-        if #available(iOS 16.0, *) {
-            self.toolbarBackground(.visible, for: .navigationBar)
-                .toolbarBackground(color, for: .navigationBar)
-        } else {
-            // For iOS 15 and older, this modifier does nothing.
-            // On older versions, the bar usually stays opaque by default
-            // or is managed via UINavigationBarAppearance.
-            self
-        }
-    }
-    
-    // Forces the removal of the navigation bar divider line
-    func hideToolbarDivider() -> some View {
-        self.onAppear {
-            let appearance = UINavigationBarAppearance()
-            appearance.shadowColor = .clear
-            appearance.shadowImage = UIImage()
-            // Optional: Set background color here if needed
-            
-            UINavigationBar.appearance().standardAppearance = appearance
-            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        }
-    }
 }
 #endif
 

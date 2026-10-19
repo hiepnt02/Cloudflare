@@ -65,35 +65,70 @@ struct GroupwarePopup: View {
     
     @StateObject private var popoverManager = PopoverManager()
     
-    private var textColor: Color { userManager.setting.textColor }
-    private var themeColor: Color { userManager.setting.themeColor }
+    private var textColor: Color { userManager.userSetting.getTextColor() }
+    private var themeColor: Color { userManager.userSetting.getThemeColor() }
     
     var body: some View {
         if isShow {
             ZStack {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture { isShow = false }
+                // PopUp background color
+                Color(.black)
+                    .colorInvert()
+                    .opacity(isShow ? 0.3 : 0)
+                    .edgesIgnoringSafeArea(.all)
                 
-                VStack(spacing: 0) {
-                    headerSection
-                    Divider().frame(height: 2).background(themeColor)
-                    columnTitleSection
-                    Divider().frame(height: 1).background(themeColor)
+                VStack {
+                    HStack {
+                        Image(iconName)
+                            .resizable()
+                            .frame(
+                                width: UserSession.isIPhone ? 30 : 40,
+                                height: UserSession.isIPhone ? 30 : 40
+                            )
+                            .padding(.trailing, 10)
+                        
+                        Text(title)
+                            .foregroundColor(userManager.setting.textColor)
+                            .font(.title2)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            isShow = false
+                        }, label: {
+                            Image(systemName: "xmark")
+                                .foregroundColor(userManager.setting.textColor)
+                            
+                        })
+                    }
+                    .padding(.bottom, 10)
                     
-                    if isLoading {
-                        ProgressView().frame(maxHeight: .infinity)
-                    } else if listGroupware.isEmpty {
-                        Text("NO_DATA".localized(userManager.userLanguage))
-                            .frame(maxHeight: .infinity)
+                    Divider()
+                        .frame(height: 2)
+                        .background(userManager.setting.themeColor)
+                    
+                    headerView()
+                    
+                    Divider()
+                        .frame(height: 1)
+                        .background(userManager.setting.themeColor)
+                    
+                    if !isLoading {
+                        if !listGroupware.isEmpty {
+                            contentView
+                        } else {
+                            noDataTextView
+                        }
                     } else {
                         contentView
                     }
                 }
-                .frame(width: UIScreen.main.bounds.width * (UserSession.isIPhone ? 0.75 : 0.53),
-                       height: UIScreen.main.bounds.height * (UserSession.isIPhone ? 0.7 : 0.5))
-                .padding(UserSession.isIPhone ? 20 : 30)
-                .background(themeColor)
+                .frame(
+                    width: UIScreen.main.bounds.width * (UserSession.isIPhone ? 0.75 : 0.53),
+                    height: UIScreen.main.bounds.height * (UserSession.isIPhone ? 0.7 : 0.5)
+                )
+                .padding(.all, UserSession.isIPhone ? 20 : 30)
+                .background(userManager.setting.themeColor)
                 .border(.gray, width: 1)
             }
             .overlay(popoverOverlay)
@@ -104,22 +139,21 @@ struct GroupwarePopup: View {
     // MARK: - Subviews
     private var headerSection: some View {
         HStack {
-            Image(iconName)
-                .resizable()
-                .frame(width: UserSession.isIPhone ? 30 : 40, height: UserSession.isIPhone ? 30 : 40)
-                .padding(.trailing, 10)
+            Text("NAME".localized(userManager.userLanguage))
+                .foregroundColor(userManager.setting.textColor)
+                .font(.system(size: 16, weight: .bold))
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            Text(title)
-                .foregroundColor(textColor)
-                .font(.title2)
+            Text("EXTENSION".localized(userManager.userLanguage))
+                .foregroundColor(userManager.setting.textColor)
+                .font(.system(size: 16, weight: .bold))
+                .frame(width: 110, alignment: .leading)
             
-            Spacer()
-            
-            Button(action: { isShow = false }) {
-                Image(systemName: "xmark").foregroundColor(textColor)
-            }
+            Text("SIZE".localized(userManager.userLanguage))
+                .foregroundColor(userManager.setting.textColor)
+                .font(.system(size: 16, weight: .bold))
+                .frame(width: 110, alignment: .leading)
         }
-        .padding(.bottom, 10)
     }
     
     private var columnTitleSection: some View {
@@ -152,55 +186,52 @@ struct GroupwarePopup: View {
         .simultaneousGesture(DragGesture().onChanged { _ in popoverManager.hideAll() })
     }
     
-    private var popoverOverlay: some View {
-        Group {
-            if let info = groupwareInfo, popoverManager.activePopoverID != nil {
-                GroupwareInfoView(
-                    fileName: info.name,
-                    filePath: info.path,
-                    offsetValue: CGSize(width: -80, height: -60)
-                )
-                .position(x: popoverManager.anchorFrame.midX, y: popoverManager.anchorFrame.midY)
-            }
+    private func loadingView() -> some View {
+        HStack {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(userManager.setting.textColor)
+                .scaleEffect(0.8)
+                .frame(width: 15, height: 15)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+    
+    private func itemGroupware(groupware: GroupwareModel) -> some View {
+        HStack {
+            Text(groupware.name.split(separator: ".")[0])
+                .font(.system(size: 16))
+                .foregroundColor(userManager.setting.textColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 10)
+            
+            Text(groupware.name.split(separator: ".")[1].uppercased())
+                .font(.system(size: 16))
+                .foregroundColor(userManager.setting.textColor)
+                .frame(width: 110, alignment: .leading)
+            
+            Text((Int(groupware.size) ?? 0).bytesToHumanReadable())
+                .font(.system(size: 16))
+                .foregroundColor(userManager.setting.textColor)
+                .frame(width: 110, alignment: .leading)
+        }
+        .frame(height: itemHeight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
+            isShow = false
+            self.handler(groupware)
         }
     }
     
-    // MARK: - Logic
-    private func setupInitialData() {
-        popoverManager.hideAll()
-        isLoading = true
-        
-        switch groupwareTypeSelected {
-        case .dashboard:
-            title = "IMPORT_SMART_CONSTRUCTION_DASHBOARD".localized(userManager.userLanguage)
-            iconName = "icDashboard"
-            getGroupware(for: .dashboard, with: productData.lishDashboard)
-        case .design:
-            title = "IMPORT_SMART_CONSTRUCTION_DESIGN3D".localized(userManager.userLanguage)
-            iconName = "icDesign3D"
-            getGroupware(for: .design, with: productData.listDesign)
-        }
-    }
-    
-    private func getGroupware(for type: GroupwareType, with cachedData: [GroupwareModel]) {
-        if !cachedData.isEmpty {
-            self.listGroupware = cachedData
-            self.isLoading = false
-        } else {
-            let caseType = (uploadCase == .Las) ? 2 : 1
-            productData.getGroupwares(
-                uploadCase: caseType,
-                siteId: jobsite?.id ?? "",
-                language: userManager.userLanguage
-            ) {
-                self.listGroupware = (type == .dashboard) ? productData.lishDashboard : productData.listDesign
-                self.isLoading = false
-            }
-        }
-    }
-    
-    private func onItemClick(_ groupware: GroupwareModel) {
-        isShow = false
-        handler(groupware)
+    private var noDataTextView: some View {
+        Text("NO_DATA".localized(userManager.userLanguage))
+            .font(.system(size: 16))
+            .foregroundColor(userManager.setting.textColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -26,8 +26,8 @@
 "Uploadphoto" = "Nahrání obrázku";
 "Correctposition" = "Správná poloha";
 "UPLOAD_COMPLETE" = "Nahrání dat dokončeno";
-"COORDINATE_CHANGE_COMPLETE" = "Souřadnicový systém nebo\nsouřadnice Konverze dokončena";
-"COORDINATE_CHANGE_ERROR" = "Chyba souřadnicového systému nebo\npřevodu souřadnic";
+"COORDINATE_CHANGE_COMPLETE" = "Souřadnicový systém nebo souřadnice Konverze dokončena";
+"COORDINATE_CHANGE_ERROR" = "Chyba souřadnicového systému nebo převodu souřadnic";
 "SFM_PROCESSING_ERROR" = "Chyba zpracování SfM";
 "PROCESSING_DONE" = "Zpracování SfM dokončeno";
 "ACCURACY_VERIFY_COMP" = "Potvrzení přesnosti dokončeno";
@@ -140,6 +140,7 @@
 "PROJECT_NAME_INPUT" = "Název projektu";
 "Uploading" = "Nahrávání";
 "UPLOAD_SUCCESS" = "Úspěšné nahrání";
+"UPLOAD_ERROR" = "Po určité době zkontrolujte seznam projektu.";
 "DEL_PROJECT_CONFIRM" = "Odstranit vybraný projekt?";
 "ITEM_SELECTED" = "Odstranit %d projekty/ů";
 "DELETE_LOCAL_DATA" = "Odstranit lokální data";
@@ -268,11 +269,7 @@
 "PRIVACY_POLICY" = "Zásady ochrany osobních údajů";
 "WHILE_EDIT" = "Při úpravách";
 "UPLOAD_ERROR" = "Chyba nahrávání";
-"UPLOAD_RESULT_TITLE" = "Výsledek nahrávání";
 "AR_PIX4D_BOOT" = "Zobrazit v AR";
-"AR_PIX4D_SFM_NOT_COMPLETED" = "Zpracování SFM ještě nebylo dokončeno, proto to nelze zobrazit v AR";
-"AR_PIX4D_OPEN_ERROR" = "Nepodařilo se načíst data AR. Zkuste to prosím znovu";
-"PIX4D_APP_NOT_INSTALLED" = "PIX4Dcatch se nepodařilo otevřít. Zkontrolujte prosím, zda je aplikace nainstalována";
 "AR_PROJECT_OPEN_ERROR" = "Nemohu to otevřít, protože je to projekt AR";
 "DESIGN_DATA_UPLOAD" = "Nahrajte data návrhu";
 "POINT_DATA_UPLOAD" = "Nahrajte data mračna bodů";
@@ -293,8 +290,7 @@
 "DETAIL_INFO" = "Podrobné informace";
 "SHOOTING_DATA_ZIP" = "Údaje o natáčení (zip)";
 "DESIGN_DATA_IFC" = "Návrhová data (IFC, LandXML)";
-"POINT_DATA_LAS" = "Data mračna bodů (LAS, LAZ, CSV, TXT)";
-"DESIGN_DATA_FBX" = "Návrhová data (FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "Data mračna bodů (LAS)";
 "DATA_TYPE" = "Typ dat";
 "INSUFFICIENT_PHOTOS_NUMBER" = "Obrázků je málo.";
 "TAKE_TEN_MORE_PICTURE" = "Udělejte prosím alespoň 10 obrázků.";
@@ -315,7 +311,6 @@
 "PLEASE_SELECT_TIF_FILE" = "Vyberte soubor GeoTIFF";
 "PLEASE_SELECT_XML_FILE" = "Vyberte soubor s návrhovými daty";
 "GEO_JSON" = "Heatmapa (GeoJSON)";
-"ALERT_GROUPWARE_PERMISSION" = "Data nebudou uložena do Groupware. Chcete pokračovat?";
 "IMPORT_SMART_CONSTRUCTION_DASHBOARD" = "Importovat Smart Construction Dashboard";
 "IMPORT_SMART_CONSTRUCTION_DESIGN3D" = "Importovat Smart Construction Design3D";
 "UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE" = "Nahrát z místního PC nebo ze Smart Construction Groupware";
@@ -324,247 +319,13 @@
 "SIZE" = "Velikost";
 "NO_DATA" = "Žádná data";
 "UPLOAD_COMPLETED" = "Nahrávání dokončeno.";
+"FILE_NAME" = "Název souboru:";
+"PATH" = "Cesta:";
 "JOBSITE" = "Název staveniště";
 "TYPE" = "Typ";
 "OPEN_PIX_4D" = "Zachytit [Pix4D Catch]";
-"NUMBER_OF_PHOTOS" = "Obrázky";
+"NUMBER_OF_PHOTOS" = "Počet fotografií";
 "SORT_BY" = "Řadit podle";
 "SORT_CAPTURED_DATE" = "Datum zachycení";
 "SORT_UPLOAD_DATE" = "Datum nahrání";
-"FILE_NAME" = "Název souboru:";
-"PATH" = "Cesta:";
-"PLEASE_SELECT_DXF_FILE" = "Vyberte prosím soubor DXF (volitelné).";
-"DXF_FILE_NOTICE" = "Barvy dxf jsou sloučeny s mračnem bodů las a zobrazeny. Pokud není dxf vybrán, zobrazí se pouze las.";
-
-
-// ===== Camera group (added from camera_localization.html) =====
-
-// --- Enum ---
-"ABORT_CAPTURE_MESSAGE" = "Pokud nyní přerušíte zachycení, ztratíte všechna data z této relace zachycení";
-"ABORT_CAPTURE_TITLE" = "Přerušit zachycení";
-"AR_CALCULATION_FAILED" = "Výpočet pozice AR se nezdařil";
-"BLUETOOTH_PERMISSION_POPUP_TITLE" = "Zapněte Bluetooth, abyste umožnili „Quick3D“ připojit se k příslušenství";
-"CAMERA_PERMISSION_POPUP_MESSAGE" = "K pořizování snímků a rozšířené reality je potřeba kamera";
-"CAMERA_PERMISSION_POPUP_TITLE" = "Vyžadováno oprávnění k fotoaparátu";
-"CONNECTION_FAILED" = "Připojení se nezdařilo";
-"CUSTOM" = "Vlastní";
-"DISSMISS_BTN" = "Odmítnout";
-"DOWNLOAD_AR_FAILED_400" = "Stažení souboru se nezdařilo";
-"DOWNLOAD_AR_FAILED_404" = "Nepodporováno";
-"DOWNLOAD_AR_FAILED_500" = "Soubor nebyl nalezen";
-"EXPORT_DATA_TITLE" = "Opravdu chcete exportovat data?";
-"LOCATION_PERMISSION_POPUP_MESSAGE" = "Umístění je nutné pro generování georeferencovaných 3D rekonstrukcí";
-"LOCATION_PERMISSION_POPUP_TITLE" = "Vyžadováno oprávnění k poloze";
-"MAXIMUM_RESOLUTION" = "Maximální rozlišení";
-"NORMAL" = "Normální";
-"OPEN_SETTING" = "Otevřít nastavení";
-"OUT_OF_MEMORY_MESSAGE" = "Paměť RAM je plná, uložte prosím projekt.";
-"OUT_OF_MEMORY_TITLE" = "Nedostatek paměti";
-"RTK_NO_NETWORK_MESSAGE" = "Zařízení nebylo nalezeno. Ujistěte se, že je správně připojeno, restartujte zařízení RTK a zkuste to znovu.";
-"SAVE_FAILED_BODY" = "Váš poslední projekt nebyl správně uložen.";
-"SAVE_FAILED_TITLE" = "Uložení projektu se nezdařilo";
-"THERMAL_CRITICAL" = "Teplota zařízení je vysoká. Nechte zařízení vychladnout.";
-"THERMAL_FAIR" = "Teplota zařízení stoupá.";
-"THERMAL_SERIOUS" = "Teplota zařízení je vysoká.";
-"WARNING" = "Varování";
-
-// --- Model ---
-"AR_TRACKING_EXCESSIVE_MOTION" = "Zařízení se pohybuje příliš rychle";
-"AR_TRACKING_INITIALIZING" = "Inicializace";
-"AR_TRACKING_INSUFFICIENT_FEATURES" = "Nedostatek charakteristických bodů";
-"AR_TRACKING_NOT_AVAILABLE" = "Sledování nebylo zahájeno";
-"AR_TRACKING_RELOCALIZING" = "Obnovení relace";
-"RTK_LOST_CONNECTION" = "Ztráta spojení RTK";
-"RTK_LOST_FIXED_QUALITY" = "Ztráta fix RTK";
-
-// --- UI - CaptureSettings ---
-"ALERT_SETTINGS" = "Nastavení upozornění";
-"ALERT_SOUND" = "Zvuk upozornění";
-"CAPTURE_SETTING" = "Nastavení snímání";
-"CAPTURE_SETTING_DESC" = "Nastavení parametrů pořizování fotografií.\nZde lze změnit rozlišení snímků a nastavení sekvenčního snímání (míru překrytí).";
-"CHANGES_NOT_SAVED" = "Změny nebyly uloženy";
-"DETAIL_CAPTURE_SETTING" = "Podrobné nastavení snímání";
-"ENABLE_MESH" = "Povolit síť";
-"FEATURE_POINTS" = "Charakteristické body";
-"FIRST_PERSON_VIEW" = "Pohled z první osoby";
-"LIVE_PREVIEW_MODE" = "Režim živého náhledu";
-"MESH" = "Síť";
-"OVERLAP_DESC" = "Fotografie jsou automaticky pořízeny, jakmile je dosaženo zadané míry překrytí.";
-"RESOLUTION" = "Rozlišení";
-"SAVED" = "Uloženo";
-"SAVE_MESH" = "Uložit síť";
-"DEBUG" = "Ladění";
-"CAPTURE_LOG" = "Protokol snímání";
-"SETTINGS" = "Nastavení";
-"SHOW_MOVEMENT_UI" = "Zobrazit stav upozornění na rychlost";
-"TOP_VIEW" = "Pohled shora";
-"YES" = "Ano";
-
-// --- UI - Capture ---
-"CAPTURE_LIMIT_REACHED" = "Limit fotografií byl dosažen. Další už pořídit nemůžete.";
-"CAPTURE_MAX_LIMIT" = "Maximální limit: 4 000 fotografií.";
-"SAVING" = "Ukládání";
-
-// --- UI - CommonUI ---
-"AR_ACCURACY_1" = "Pro zvýšení přesnosti AR se posuňte o několik metrů, když je RTK ve stavu Fix.";
-"AR_ACCURACY_2" = "Jakmile je objekt (bodové mračno / návrhová data) přibližně umístěn:\n1．Vypněte Automatickou aktualizaci\n2．Klepněte na ikonu ozubeného kola pro doladění";
-"AR_ACCURACY_3" = "Pro zobrazení jiného objektu se vraťte na domovskou obrazovku a spusťte AR znovu.";
-"AR_ACCURACY_HEADER" = "Poznámky při používání funkce AR";
-"AR_QUICK3D_BOOT" = "Zobrazit v AR [Zkušební verze]";
-"DETECTING_VIDOC" = "Probíhá detekce Bluetooth";
-"GETTING_LOCATION_INFO" = "Získávání informací o poloze";
-"GNSS_CONSTELLATIONS" = "GNSS konstelace";
-"IMAGE_CAPTURED_COUNT_IPHONE" = "%d snímků";
-"MINIMUM_ELEVATION" = "Minimální elevace";
-"MOVING_TOO_FAST" = "Pohybujte se pomalu";
-"NO_NETWORK_ERROR" = "Připojení k internetu se zdá být offline.";
-"OPEN_TRIAL_CAPTURE" = "Zachytit [Zkušební verze]";
-"RTK_DISCONNECT_CONFIRM" = "Opravdu chcete odpojit RTK zařízení?";
-"RTK_STATUS_AUTONOMOUS" = "Oprava autonomního GNSS";
-"RTK_STATUS_DGPS" = "Pouze DGNSS";
-"RTK_STATUS_FIXED" = "RTK Opraveno";
-"RTK_STATUS_FLOAT" = "RTK Float";
-"RTK_STATUS_NO_FIX" = "Plovák RTK";
-"RTK_STATUS_UNAVAILABLE" = "NEDOSTUPNÉ";
-
-// --- UI - Preview (Export) ---
-"ERROR_DUPLICATE_FILE_NAME" = "Název projektu je duplicitní.\nZměňte prosím název.";
-"GEOLOCATION" = "Geolokace";
-"GEOLOCATION_SOURCE" = "Zdroj geolokace";
-"IMAGE" = "Obrázek";
-"LOW" = "Nizká";
-"OPTIMAL" = "Optimální";
-"REDUCED" = "Snížená";
-"REPORT" = "Zpráva";
-"SAVE_ERROR" = "Chyba uložení";
-"SAVE_LOCALLY" = "Uložit místně";
-"SAVE_THE_CAPTURED_IMAGE" = "Uložte pořízený obrázek";
-
-// --- UI - RTKSetting ---
-"DEVICE" = "Zařízení:";
-"DEVICE_NOT_FOUND" = "Zařízení nenalezeno";
-"ELEVATION_MASK_DESC" = "Elevanční maska omezuje použití satelitů a signálů, jejichž elevační úhel (měřený od horizontální roviny vzhledem k anténě RTK zařízení) je nižší než stanovená prahová hodnota.\nSatelity s nízkou elevací jsou náchylnější k vlivům budov, stromů a terénu, což může způsobit vícenásobné odrazy signálu a jeho blokování a tím snížit přesnost určování polohy.\nDoporučuje se elevační maska 15°.";
-"GNSS_CONSTELLATIONS_DESC" = "GNSS konstelace označují satelitní navigační systémy používané pro určování polohy a celkové uspořádání jejich satelitů.\nSoučasné použití více konstelací zvyšuje počet dostupných satelitů a zlepšuje přesnost a stabilitu určování polohy.";
-"RTK_BLUETOOTH_DEVICE_CONNECT" = "Připojit";
-"RTK_BLUETOOTH_DEVICE_CONNECT_TO" = "Připojte se k %@";
-"RTK_BLUETOOTH_DEVICE_DISCONNECT" = "Odpojit";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_ACQUIRING_LOCATION" = "Získávání polohy";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_BACK_TO_LIST" = "Zpět na seznam zařízení";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_BLUETOOTH_ON" = "Zapněte prosím Bluetooth";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_FOUND" = "Detekováno zařízení RTK";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_LAST_CONNECTED" = "Naposledy připojeno";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_NOT_FOUND" = "Zařízení RTK nenalezeno";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_POWER_ON" = "Zapněte prosím zařízení";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_RETRY" = "Zkusit znovu";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_SEARCHING" = "Vyhledávám...";
-"RTK_CAMERA_OFFSET" = "POSUN KAMERY";
-"RTK_CAMERA_OFFSET_COORDINATE" = "Hodnota odsazení mezi spodní částí antény a objektivem kamery";
-"RTK_CAMERA_OFFSET_CUSTOM" = "Zvyk";
-"RTK_DEVICE_CONNECTION" = "Připojení zařízení RTK";
-"RTK_DEVICE_TYPE" = "RTK zařízení:";
-"RTK_HOSTNAME_IP" = "Název hostitele/IP";
-"RTK_HOSTNAME_IP_PLACEHOLDER" = "Zadejte hostitele nebo IP adresu";
-"RTK_OFFSET_TYPE" = "Způsob:";
-"RTK_PASSWORD" = "Heslo";
-"RTK_PASSWORD_PLACEHOLDER" = "Zadejte heslo";
-"RTK_PORT" = "Port";
-"RTK_PORT_PLACEHOLDER" = "Zadejte port";
-"RTK_USERNAME" = "Uživatelské jméno";
-"RTK_USERNAME_PLACEHOLDER" = "Zadejte uživatelské jméno";
-"RTK_VALIDATE_NTRIP" = "Ověřit NTRIP";
-"VALIDATION_FAILS" = "Ověření selhalo";
-
-// --- UI - ViewAR ---
-"AR_DISPLAY_COMPLETE" = "Zobrazení AR dokončeno.";
-"AR_UPDATED" = "Aktualizováno";
-"CALCULATION_SETTING" = "Nastavení výpočtu";
-"CHANGE_AMOUNT" = "Množství";
-"DESIGN" = "Návrh";
-"DISPLAY_SETTINGS" = "Nastavení zobrazení";
-"DISTANCE" = "Vzdálenost";
-"HORIZONTAL" = "Horizontální";
-"LAS_LEVEL" = "Úroveň Las";
-"LAYERS" = "Vrstvy";
-"LOADING_PROJECT" = "Načítání projektu...";
-"OCCLUSION" = "Okluze";
-"PLANE_GRID" = "Mřížka na zemi";
-"POINTCLOUD_SIZE" = "Velikost mračna bodů";
-"POINT_CLOUD" = "Bodová mračna";
-"POSITION_SETTING" = "Nastavení polohy";
-"RTK_CONNECT" = "Připojte se k RTK pro automatickou korekci.";
-"RTK_WAIT_ACCURACY" = "Počkejte na lepší přesnost.";
-"RTK_WALK" = "Projděte se trochu.";
-"SCALE" = "Měřítko";
-"SEARCH_LAYER" = "Vyhledat vrstvu";
-"SHADOW" = "Stín";
-"SHOW_POINT_CLOUD" = "Zobrazit LiDAR";
-
-// --- UI - RTKSetting (added from rtk-localizable.html) ---
-"RTK_BLUETOOTH_DEVICE" = "RTK BLUETOOTH ZAŘÍZENÍ";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_CONNECTED" = "Připojeno";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_DISCONNECTED" = "Odpojeno";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_1" = "Nemůžete najít své zařízení?";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_2" = "Pokud nemůžete najít své zařízení,";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_LIST_NOTE_3" = "Zkontrolujte prosím, zda je zařízení zapnuté a zda je zapnutý Bluetooth.";
-"RTK_BLUETOOTH_DEVICE_MESSAGE_RECORDING" = "Nahrávání";
-"RTK_BLUETOOTH_DEVICE_NOTICE" = "Ujistěte se, že je váš přijímač RTK zapnutý.";
-"RTK_BLUETOOTH_DEVICE_NOTICE2" = "Pokud není nalezen, ujistěte se, že se připojujete zde";
-"RTK_BLUETOOTH_DEVICE_NOTICE3" = "Chcete-li získat umístění, ujistěte se, že jste venku a máte dobrý signál pro opravu RTK";
-"RTK_BLUETOOTH_DEVICE_TITLE" = "Zjištěna zařízení – klepnutím vyberte";
-"RTK_CAMERA_OFFSET_DEVICE_NOT_SUPPORTED" = "Zařízení není podporováno";
-"RTK_CONNECTION_LOST" = "Spojení RTK bylo ztraceno";
-"RTK_DEVICE_SETTING" = "Nastavení zařízení RTK";
-"RTK_MOUNTPOINT" = "MOUNTPOINT";
-"RTK_NTRIP_AUTH_ERROR" = "Chyba ověření";
-"RTK_NTRIP_INVALID_CHARACTER" = "Obsahuje nepovolené znaky";
-"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Definováno poskytovatelem služeb NTRIP";
-"RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Vybrat souřadnicový systém NTRIP";
-"RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "ZADEJTE REFERENČNÍ SOUŘADNICOVÝ SYSTÉM";
-"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE" = "Informace NTRIP nebyly ověřeny";
-"RTK_NTRIP_MOUNTPOINT_NOT_VALIDATE_MESSAGE" = "Ověřte informace NTRIP pro příjem seznamu přípojných bodů";
-"RTK_NTRIP_MOUNTPOINT_SEARCH_AZ" = "Podle jména (A-Z)";
-"RTK_NTRIP_MOUNTPOINT_SEARCH_LOCATION" = "Podle umístění (nejprve blíže)";
-"RTK_NTRIP_MOUNTPOINT_RECENT_SELECTIONS" = "Nedávné výběry";
-"RTK_NTRIP_MOUNTPOINT_ALL_SELECTION" = "Všechny výběry";
-"RTK_NTRIP_PROVIDER_DETAILS" = "PODROBNOSTI POSKYTOVATELE NTRIP";
-"RTK_NTRIP_SETTINGS" = "Nastavení NTRIP";
-"RTK_NTRIP_VALIDATE_FAIL" = "Ověření selhání NTRIP";
-"RTK_SELECT" = "Vybrat";
-
-// --- UI - Calibration ---
-"NEXT" = "Další";
-"CALIBRATION_PREVIEW" = "Náhled";
-"CALIBRATION_REFERENCE_POINT" = "Ref. bod";
-"CALIBRATION_DIRECTION_POINT" = "Směr. bod";
-"CALIBRATION_POINTS_TOO_CLOSE" = "Směrový bod je příliš blízko referenčního bodu. Vyberte jiný bod.";
-"CALIBRATION_COMPLETE" = "Hotovo";
-"CALIBRATION_BACK" = "Zpět";
-"CALIBRATION_GUIDE_STEP1" = "Vyberte prosím na modelu referenční bod a směrový bod.";
-"CALIBRATION_GUIDE_STEP2" = "Určete prosím, kam umístit referenční bod a směrový bod.";
-
-/* QUICK-1012 — NTRIP service provider */
-"RTK_NTRIP_VRS_PROVIDER" = "Poskytovatel VRS";
-"RTK_NTRIP_USERNAME_HINT" = "Zadejte posledních 8 číslic sériového čísla Ntrip Caster";
-"RTK_NTRIP_PROVIDER_DOCOMO" = "docomo";
-"RTK_NTRIP_PROVIDER_SOFTBANK" = "softbank";
-"RTK_NTRIP_PROVIDER_JENOBA" = "jenoba";
-"RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
-"RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
-"RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "Název";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "Zadejte název tohoto připojení";
-"RTK_PROFILE_CREATE" = "+ Vytvořit";
-"RTK_PROFILE_LIST_TITLE" = "Profily připojení";
-"RTK_PROFILE_EDIT" = "Upravit";
-"RTK_PROFILE_NEW" = "Nový profil";
-"RTK_PROFILE_EMPTY_TITLE" = "Žádné profily RTK";
-"RTK_PROFILE_EMPTY_DESC" = "Vytvořte nový profil RTK pro připojení k roveru RTK se správným offsetem kamery a přihlašovacími údaji NTRIP.";
-"RTK_PROFILE_DELETE_CONFIRM" = "Chcete odstranit „%@“?";
-"RTK_MOUNTPOINT_LABEL" = "Mountpoint";
-"RTK_COORDINATE_SYSTEM_LABEL" = "Souřadnicový systém";
-"PROJECT_LIST_COLUMN_SETTINGS" = "Nastavení sloupců seznamu projektů";
-
-/* SC_QUICK-1945 */
-"GAUSSIAN_SPLATTING_PLY" = "Gaussovo rozstřikování (PLY)";
+"NUMBER_OF_PHOTOS" = "Počet obrázků";

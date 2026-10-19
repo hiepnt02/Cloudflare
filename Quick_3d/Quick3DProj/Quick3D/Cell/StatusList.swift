@@ -117,32 +117,7 @@ struct StatusList: Codable, Equatable {
     var getIsAR: Bool {
         is_ar
     }
-
-    /// Step the project has reached, in the same order as `statusIndicatorGroup`
-    /// (1: upload, 2: sfm, 3: helmert, 4: verification, 5: dashboard upload).
-    /// 0 means no step has completed yet.
-    var currentStatusStep: Int {
-        if isDashboardUploaded { return 5 }
-        if isVerificationCompleted { return 4 }
-        if isHelmertCompleted { return 3 }
-        if isSfmCompleted { return 2 }
-        if isUploaded { return 1 }
-        return 0
-    }
-
-    /// SFM processing is done (step 2 or later), which is required to open the project in Pix4D.
-    var isSfmProcessed: Bool {
-        currentStatusStep >= 2
-    }
-
-    /// The project may be handed over to Pix4D as soon as it has been through the SFM step,
-    /// whatever the outcome: both a completed run (step 2 or later) and a failed one
-    /// (`isSfmFail`) qualify. The AR conversion state is deliberately ignored here: a failed
-    /// conversion (`isARFail`) does not block Pix4D either.
-    var canOpenPix4DAR: Bool {
-        isSfmProcessed || isSfmFail
-    }
-
+    
     var isARProcessing: Bool {
         is_ar && ar_processing == ProjectStatus.processing.rawValue
     }

@@ -230,7 +230,7 @@ extension ARListPopup {
                 let result = try? await productData.deleteARFile(projectId: cat?.projectId ?? "", output_type: output_type)
                 
                 if let success = result, success {
-                    try await productData.refreshProjectListWithCurrentFilters()
+                    try await productData.fetchProjectList(status: productData.currentSelectStatus, searchStr: productData.currentSearchStr, fromDate: nil, toDate: nil,site:nil, isRemoved: false, rtkFilterMode: 2)
                 } else {
                     print("ファイルの削除に失敗しました")
                 }

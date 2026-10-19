@@ -4,11 +4,6 @@
 //
 //  Created by Pham Thanh Xuan on 15/05/2023.
 //
-//  QUICK-971: file này đã bị gỡ khỏi Sources của target Quick3DTests. Nó tham chiếu
-//  `ContentView`, `GridCell` và `Inspection` — cả ba đã bị xoá khỏi app từ lâu — nên nó làm
-//  cả target không compile được, tức là trước đây không có test nào chạy được.
-//  Muốn khôi phục: dựng lại ba kiểu trên rồi thêm file này lại vào build phase Sources.
-//
 
 import XCTest
 import ViewInspector

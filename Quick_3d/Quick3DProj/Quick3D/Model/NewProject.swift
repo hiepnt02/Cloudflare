@@ -24,7 +24,6 @@ class NewProject: ObservableObject  {
     @Published var isCurrentAR = false
     @Published var isInsufficientPhoto = false
     @Published var isInQueue = false
-    @Published var url :URL? = nil
     
     func resetData() {
         isUploading = false
@@ -42,11 +41,4 @@ class NewProject: ObservableObject  {
         isInsufficientPhoto = false
         isInQueue = false
     }
-    
-    func setProjectName() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        projectName = formatter.string(from: Date())
-    }
-
 }

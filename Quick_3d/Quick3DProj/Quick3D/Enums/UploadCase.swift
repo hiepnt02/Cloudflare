@@ -10,9 +10,7 @@ import Foundation
 // Use that as dropdown options in BaseUploadPopup
 enum UploadCase: Int {
     case Ifc
-    case Model3D
     case Las
     case Tif
     case Json
-    case Ply
 }
