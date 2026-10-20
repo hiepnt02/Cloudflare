@@ -147,21 +147,7 @@ struct ProjectListCell: View, Equatable {
                         .frame(width: layout.width(.photographer), alignment: alignment(for: .photographer))
                 }
 
-                // Positioning badge (RTK / GPS)
-                if isVisible(.type) {
-                    if let useVidoc = cat.useVidoc {
-                        Text(useVidoc ? "RTK" : "GPS")
-                            .font(.system(size: isIPhone ? 11 : 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(userManager.setting.getGpsRtkButtonColor(useVidoc ? 1 : 0))
-                            .cornerRadius(4)
-                            .frame(width: layout.width(.type), alignment: alignment(for: .type))
-                    } else {
-                        Spacer().frame(width: layout.width(.type))
-                    }
-                }
+                // Badge RTK / GPS đã chuyển lên thumbnail (thumbnailTypeBadge).
 
                 // Hai cột ngày luôn độc lập với tuỳ chọn sắp xếp (BR-1).
                 if isVisible(.capturedDate) {
@@ -172,12 +158,7 @@ struct ProjectListCell: View, Equatable {
                     dateColumn(.uploadDate, date: cat.createDate)
                 }
 
-                if isVisible(.photo) {
-                    Text(cat.numberOfImage == 0 ? "-" : "\(cat.numberOfImage)")
-                        .font(.system(size: isIPhone ? 11 : 13))
-                        .foregroundColor(userManager.setting.textColor.opacity(0.8))
-                        .frame(width: layout.width(.photo), alignment: alignment(for: .photo))
-                }
+                // Số ảnh đã chuyển lên thumbnail (thumbnailImageCountBadge).
 
                 // Processing status / upload progress
                 if isVisible(.status) {
@@ -292,5 +273,37 @@ struct ProjectListCell: View, Equatable {
             }
         }
         .frame(width: cellWidth, height: heightThumb)
+        .overlay(alignment: .bottomLeading) { thumbnailImageCountBadge }
+        .overlay(alignment: .bottomTrailing) { thumbnailTypeBadge }
+    }
+
+    /// Badge RTK / GPS đè lên góc dưới phải thumbnail (thay cho cột Type).
+    @ViewBuilder
+    private var thumbnailTypeBadge: some View {
+        if isVisible(.type), let useVidoc = cat.useVidoc {
+            Text(useVidoc ? "RTK" : "GPS")
+                .font(.system(size: isIPhone ? 9 : 11, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(userManager.setting.getGpsRtkButtonColor(useVidoc ? 1 : 0))
+                .cornerRadius(4)
+                .padding(4)
+        }
+    }
+
+    /// Số ảnh đè lên góc dưới trái thumbnail (thay cho cột Images).
+    @ViewBuilder
+    private var thumbnailImageCountBadge: some View {
+        if isVisible(.photo), cat.numberOfImage > 0 {
+            Text("\(cat.numberOfImage)")
+                .font(.system(size: isIPhone ? 9 : 11, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.6))
+                .cornerRadius(4)
+                .padding(4)
+        }
     }
 }

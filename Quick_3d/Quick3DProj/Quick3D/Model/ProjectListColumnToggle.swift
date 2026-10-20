@@ -42,8 +42,9 @@ struct ProjectListColumnLayout {
 
     static let totalParts = 24
 
+    // Type và Images đã chuyển thành badge đè lên thumbnail (ProjectListCell), không còn là cột riêng.
     static let displayOrder: [ProjectListColumnToggle] = [
-        .name, .jobsite, .photographer, .type, .capturedDate, .uploadDate, .photo, .status
+        .name, .jobsite, .photographer, .capturedDate, .uploadDate, .status
     ]
 
     static func ratio(_ column: ProjectListColumnToggle) -> Int {
