@@ -193,3 +193,105 @@ fragment float4 splatFragment(SplatVertexOut in [[ stage_in ]],
     // nếu không viền (α→0) vẫn cộng nguyên màu vào nền → vành sáng cứng, chồng nhiều splat thành trắng loá.
     return float4(in.color.rgb * alpha, alpha);
 }
+
+// MARK: - Gaussian splatting kiểu web (SplatRenderer.swift) — port nguyên văn splatVertSrc/splatFragSrc
+//
+// Khác splatVertex ở trên: mỗi splat là một QUAD instanced (4 đỉnh) xoay theo trục ellipse, cỡ 2√2σ,
+// kẹp theo viewport, có bù antialias (aaFactor) khi cộng 0.3 px², cắt Gauss ở e⁻⁴ và không depth test.
+// Σ 3D lấy sẵn từ cov0/cov1 (đã gồm lật trục) thay vì tính lại từ scale/rot như web.
+
+typedef struct {
+    float4x4 modelView;
+    float4x4 projection;
+    float2   viewport;
+    float    focal;        // = h · proj[1][1] / 2
+    float    splatScale;
+    float    opacity;
+    float    gamma;        // 2.2 nếu attachment sRGB (SceneKit iOS), 1 nếu thường
+    float2   pad;
+} GSplatUniforms;
+
+typedef struct {
+    float4 position [[ position ]];
+    float2 offset;         // pixel tính từ tâm (v_offset)
+    float3 color;
+    float  opacity;
+    float3 conic;
+} GSplatVertexOut;
+
+vertex GSplatVertexOut gsplatVertex(
+    uint vid                              [[ vertex_id ]],
+    uint iid                              [[ instance_id ]],
+    const device float3*  positions       [[ buffer(0) ]],
+    const device float4*  colors          [[ buffer(1) ]],
+    const device float3*  cov0s           [[ buffer(2) ]],
+    const device float3*  cov1s           [[ buffer(3) ]],
+    const device uint*    order           [[ buffer(4) ]],   // index buffer đã sắp xa → gần (SplatCloud)
+    constant GSplatUniforms& u            [[ buffer(5) ]])
+{
+    GSplatVertexOut out;
+    out.position = float4(2.0, 2.0, 2.0, 1.0);          // = gl_Position = vec4(2,2,2,1) → bị clip
+    out.offset = float2(0.0); out.color = float3(0.0); out.opacity = 0.0; out.conic = float3(0.0);
+
+    // a_corner: (-1,-1) (1,-1) (-1,1) (1,1) theo triangle strip
+    float2 corner = float2((vid & 1u) ? 1.0 : -1.0, (vid & 2u) ? 1.0 : -1.0);
+    uint   si   = order[iid];
+    float3 pos  = positions[si];
+    float4 col  = colors[si];
+    float3 c0   = cov0s[si], c1 = cov1s[si];
+    float  k    = u.splatScale * u.splatScale;
+    float3x3 Sigma = float3x3(float3(c0.x, c0.y, c0.z),
+                              float3(c0.y, c1.x, c1.y),
+                              float3(c0.z, c1.y, c1.z)) * k;
+
+    float4 vp = u.modelView * float4(pos, 1.0);
+    if (vp.z >= 0.0) { return out; }                    // sau camera
+
+    float3x3 W = float3x3(u.modelView[0].xyz, u.modelView[1].xyz, u.modelView[2].xyz);
+    float3x3 T = W * Sigma * transpose(W);
+    float zinv = 1.0 / vp.z; float zinv2 = zinv * zinv;
+    float fx = u.focal, fy = u.focal;
+    float3x3 J = float3x3(float3(fx * zinv, 0.0, 0.0),
+                          float3(0.0, fy * zinv, 0.0),
+                          float3(-fx * vp.x * zinv2, -fy * vp.y * zinv2, 0.0));
+    float3x3 cov2 = J * T * transpose(J);
+    float detOrig = cov2[0][0] * cov2[1][1] - cov2[0][1] * cov2[0][1];
+    float a = cov2[0][0] + 0.3; float b = cov2[0][1]; float c = cov2[1][1] + 0.3;
+    float detBlur = a * c - b * b;
+    float aaFactor = detBlur > 0.0 ? sqrt(max(detOrig / detBlur, 0.0)) : 1.0;
+    float det = a * c - b * b;
+    if (det <= 0.0) { return out; }
+    float invDet = 1.0 / det;
+    float3 conic = float3(c * invDet, -b * invDet, a * invDet);
+    float mid = 0.5 * (a + c); float disc = sqrt(max(0.1, mid * mid - det));
+    float lam1 = mid + disc; float lam2 = max(mid - disc, 0.1);
+    float r1 = sqrt(lam1); float r2 = sqrt(lam2);
+    float2 ax = float2(b, lam1 - a);
+    float2 axis1 = length(ax) < 1e-6 ? float2(1.0, 0.0) : normalize(ax);
+    float2 axis2 = float2(-axis1.y, axis1.x);
+    float kSigma = 2.8284271;
+    float vmin = min(1024.0, min(u.viewport.x, u.viewport.y)); float cap = vmin / kSigma;
+    r1 = min(r1, cap); r2 = min(r2, cap);
+    float2 offsetPix = corner.x * (kSigma * r1) * axis1 + corner.y * (kSigma * r2) * axis2;
+    float4 clip = u.projection * vp;
+    float2 ndcOffset = (offsetPix / u.viewport) * 2.0 * clip.w;
+    clip.xy += ndcOffset;
+
+    out.position = clip;
+    out.offset = offsetPix;
+    // Màu 3DGS là sRGB (như web). Attachment sRGB sẽ mã hoá lại khi ghi → giải về tuyến tính trước.
+    out.color = u.gamma > 1.0 ? pow(max(col.rgb, 0.0), u.gamma) : col.rgb;
+    out.opacity = col.a * aaFactor * u.opacity;
+    out.conic = conic;
+    return out;
+}
+
+fragment float4 gsplatFragment(GSplatVertexOut in [[ stage_in ]])
+{
+    float x = in.offset.x, y = in.offset.y;
+    float power = -0.5 * (in.conic.x * x * x + in.conic.z * y * y) - in.conic.y * x * y;
+    if (power > 0.0) { discard_fragment(); }
+    float alpha = in.opacity * max(exp(power) - 0.01831564, 0.0) * 1.0186512;   // cắt ở 2√2σ (e⁻⁴), chuẩn hoá lại
+    if (alpha < 1.0 / 255.0) { discard_fragment(); }
+    return float4(in.color * alpha, alpha);             // premultiplied, blend ONE / ONE_MINUS_SRC_ALPHA
+}

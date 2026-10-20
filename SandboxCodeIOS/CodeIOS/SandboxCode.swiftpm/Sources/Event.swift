@@ -30,8 +30,7 @@ protocol DemoEventContext: AnyObject {
     func setPointCloudVisible(_ visible: Bool)
     func setOpacity(_ opacity: Float)
     func recenter()
-    /// Khoảng cách từ mắt tới model (m) — chỉ Fake AR dùng, thay cho tracking dịch chuyển.
-    /// (DemoSceneContext có bản rỗng; FakeARContext override.)
+    /// Khoảng cách từ mắt tới model (m) — cho màn không có tracking dịch chuyển. (DemoSceneContext có bản rỗng.)
     func setDistance(_ meters: Float)
     /// Nạp model cụ thể thay cho point cloud (.none = bỏ model).
     func loadModel(_ source: ModelSource)
@@ -43,6 +42,9 @@ protocol DemoEventContext: AnyObject {
     func setPointCloudSize(_ meters: Float?)
     /// 3DGS: true = vẽ ellipse mờ (splat thật), false = chấm tròn. Nạp lại file hiện tại.
     func setSplatMode(_ on: Bool)
+    /// 3DGS: true = PLY → .gsx trong app (như Lambda gsplat-converter) rồi giải mã .gsx để vẽ;
+    /// false = đọc thẳng PLY. Nạp lại file hiện tại.
+    func setGSXMode(_ on: Bool)
 }
 
 protocol DemoEvent: Event {
@@ -74,7 +76,7 @@ final class RecenterEvent: EventIdentity, DemoEvent {
     func call(_ context: DemoEventContext) { context.recenter() }
 }
 
-/// Fake AR: giả việc đi tới/lùi bằng cách đổi khoảng cách model.
+/// Giả việc đi tới/lùi bằng cách đổi khoảng cách model (màn không có tracking dịch chuyển).
 final class ChangeDistanceEvent: EventIdentity, DemoEvent {
     let meters: Float
     init(_ meters: Float) { self.meters = meters; super.init() }
@@ -97,6 +99,12 @@ final class SetSplatModeEvent: EventIdentity, DemoEvent {
     let on: Bool
     init(_ on: Bool) { self.on = on; super.init() }
     func call(_ context: DemoEventContext) { context.setSplatMode(on) }
+}
+
+final class SetGSXModeEvent: EventIdentity, DemoEvent {
+    let on: Bool
+    init(_ on: Bool) { self.on = on; super.init() }
+    func call(_ context: DemoEventContext) { context.setGSXMode(on) }
 }
 
 final class ChangePointCloudSizeEvent: EventIdentity, DemoEvent {

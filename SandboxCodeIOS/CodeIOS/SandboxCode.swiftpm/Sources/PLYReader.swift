@@ -257,6 +257,62 @@ enum PLYReader {
                       cov0: cov0, cov1: cov1, opacities: opacities)
     }
 
+    // MARK: - Đọc nguyên 14 cột 3DGS cho GSXEncoder (không lấy mẫu, không lật trục, không dời gốc)
+
+    /// Dùng cho đường .gsx: PLY → RawSplats → GSXEncoder. Lọc/lật/dời làm sau khi giải mã .gsx (SceneContext).
+    /// Cần đủ x y z f_dc_0..2 opacity scale_0..2 rot_0..3 (file 3DGS chuẩn INRIA).
+    static func loadRaw(url: URL) throws -> RawSplats {
+        let data = try Data(contentsOf: url, options: [.alwaysMapped])
+        let header = try parseHeader(data)
+        func index(_ name: String) throws -> Int {
+            guard let i = header.properties.firstIndex(where: { $0.name == name }) else { throw ReadError.unsupported("thiếu cột \(name) (không phải PLY 3DGS)") }
+            return i
+        }
+        let cols = try ["x", "y", "z", "f_dc_0", "f_dc_1", "f_dc_2", "opacity",
+                        "scale_0", "scale_1", "scale_2", "rot_0", "rot_1", "rot_2", "rot_3"].map(index)
+        let n = header.vertexCount
+        guard n > 0 else { throw ReadError.noVertices }
+        var arrays = [[Float]](repeating: [Float](repeating: 0, count: n), count: 14)
+
+        switch header.format {
+        case .binaryLE, .binaryBE:
+            let bigEndian = header.format == .binaryBE
+            guard data.count >= header.length + n * header.rowStride else { throw ReadError.unsupported("file ngắn hơn header khai báo") }
+            data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+                for row in 0 ..< n {
+                    let base = header.length + row * header.rowStride
+                    for (k, c) in cols.enumerated() {
+                        let prop = header.properties[c]
+                        arrays[k][row] = value(raw, base + prop.offset, prop, bigEndian: bigEndian)
+                    }
+                }
+            }
+        case .ascii:
+            let body = data.subdata(in: header.length ..< data.count)
+            guard let text = String(data: body, encoding: .utf8) else { throw ReadError.unsupported("ascii không phải UTF-8") }
+            var row = 0
+            text.enumerateLines { line, stop in
+                defer { row += 1 }
+                if row >= n { stop = true; return }
+                let tokens = line.split(separator: " ", omittingEmptySubsequences: true)
+                guard tokens.count >= header.properties.count else { return }
+                for (k, c) in cols.enumerated() { arrays[k][row] = Float(tokens[c]) ?? 0 }
+            }
+        }
+        var out = RawSplats()
+        out.count = n
+        out.x = arrays[0]; out.y = arrays[1]; out.z = arrays[2]
+        out.fdc0 = arrays[3]; out.fdc1 = arrays[4]; out.fdc2 = arrays[5]; out.opacity = arrays[6]
+        out.scale0 = arrays[7]; out.scale1 = arrays[8]; out.scale2 = arrays[9]
+        out.rot0 = arrays[10]; out.rot1 = arrays[11]; out.rot2 = arrays[12]; out.rot3 = arrays[13]
+        return out
+    }
+
+    /// Phân vị 2% / 50% / 98% — bản public cho SceneContext dời cloud .gsx về gốc giống `load`.
+    static func percentiles(of p: [SIMD3<Float>]) -> (lo: SIMD3<Float>, mid: SIMD3<Float>, hi: SIMD3<Float>) {
+        percentiles(p)
+    }
+
     // MARK: - Header
 
     private static func parseHeader(_ data: Data) throws -> Header {

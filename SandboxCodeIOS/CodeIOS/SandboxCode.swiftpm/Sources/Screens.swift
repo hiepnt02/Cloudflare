@@ -38,7 +38,7 @@ final class DemoStatus: ObservableObject, DemoDelegate {
 // MARK: - Bảng điều khiển dùng chung
 
 /// Bảng điều khiển: ẩn/hiện bằng `isPresented` (nút ⚙ nổi ở màn hình), cao tối đa ~45% màn,
-/// cuộn được. `extra` là phần riêng của từng màn (vd. ô URL của Fake AR), hiện trên các slider.
+/// cuộn được. `extra` là phần riêng của từng màn (vd. ô URL của màn ARBridge), hiện trên các slider.
 struct ControlPanel<Extra: View>: View {
     let perform: (DemoEvent) -> Void
     let showRecenter: Bool
@@ -134,6 +134,7 @@ struct ModelControls: View {
     @State private var cloudSizeLog: Double = 0.7       // 10^0.7 ≈ 5 m
     @State private var cloudOriginal = true             // địa hình mẫu đã là mét
     @State private var splatMode = true                 // 3DGS: ellipse mờ thay vì chấm tròn
+    @State private var gsxMode = true                   // 3DGS: PLY → .gsx trong app rồi giải mã để vẽ
     @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
     @State private var originalSize = false
 
@@ -226,7 +227,9 @@ struct ModelControls: View {
             }
             Toggle("3DGS: vẽ ellipse mờ (splat thật)", isOn: $splatMode)
                 .onChange(of: splatMode) { on in perform(SetSplatModeEvent(on)) }
-            Text("Tối đa \(PLYReader.maxPoints / 1000)k splat. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud. Point size: splat = độ phình (14 = đúng file), điểm = pixel.")
+            Toggle("3DGS: convert PLY → .gsx trong app rồi vẽ từ .gsx", isOn: $gsxMode)
+                .onChange(of: gsxMode) { on in perform(SetGSXModeEvent(on)) }
+            Text(".gsx: vẽ ĐỦ splat bằng Metal thuần như viewer web (quad instanced, bù antialias, không depth test); lần đầu convert mất vài chục giây, lưu Caches. Tắt .gsx: đọc PLY, tối đa \(PLYReader.maxPoints / 1000)k splat. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

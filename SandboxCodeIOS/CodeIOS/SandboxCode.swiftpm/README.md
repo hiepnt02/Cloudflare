@@ -24,45 +24,10 @@ Yêu cầu: macOS 13+, **Xcode 15+** (App Store). Không cần CocoaPods.
 Trên máy ảo macOS (VMware/Parallels) thường **không có Metal** → màn Home sẽ báo
 "KHÔNG CÓ Metal" và 3D không vẽ được. Cần Mac thật hoặc chạy trên iPad thật.
 
-## Màn 3 — Fake AR bằng camera Android (không cần iPhone)
+## Màn 3 — AR 6DoF bằng ARCore trên Android (không cần iPhone)
 
 `ARSCNView` thật = **frame camera làm `scene.background`** + SceneKit vẽ node + ARKit tính pose.
-Màn này giữ 2 phần đầu, nguồn ảnh là app **IP Webcam** trên Android:
-
-1. Android: mở IP Webcam → *Start server* → ghi địa chỉ (vd. `http://192.168.0.106:8080`).
-2. Mac/Simulator cùng Wi-Fi với điện thoại (Simulator dùng mạng của Mac). Thử mở
-   `http://192.168.0.106:8080/shot.jpg` trong Safari của Mac — phải ra một ảnh.
-3. Trong app → "3. Fake AR" → sửa URL nếu khác → **Kết nối**. Ảnh JPEG được tải mỗi ~80 ms
-   (`Sources/CameraStream.swift`) và gán vào `scene.background.contents` (`Sources/FakeAR.swift`).
-4. Point cloud vẽ đè lên y như màn AR thật; xoay bằng ngón tay.
-
-### Bám theo gyro (AR 3 bậc tự do)
-
-IP Webcam không xuất cảm biến (`/sensors.json` trả `{}` trên nhiều máy), nên hướng máy lấy từ app
-**Sensor Server** (Play Store, tác giả umer0586, mã nguồn mở):
-
-1. Android: cài Sensor Server. Nó dùng 2 port: **WebSocket** (mặc định 8080, trùng IP Webcam) và
-   **HTTP** (8081, trang liệt kê sensor). → STOP → *Settings* → **Port number / WebSocket port = 8082** → START.
-   Màn hình phải hiện `ws://192.168.0.106:8082`. Chạy song song với IP Webcam (vẫn 8080).
-2. Trong app → ô **Sensor** để `ws://192.168.0.106:8082` → bật toggle **"Bám theo gyro điện thoại"**.
-   App mở WebSocket `ws://<ip>:8082/sensor/connect?type=android.sensor.rotation_vector`
-   (`Sources/CameraStream.swift` → `PhoneOrientationStream`, ~50 Hz, tự kết nối lại khi rớt),
-   parse `{"values":[x,y,z,w]}` thành quaternion và gán `cameraNode.simdOrientation`
-   (`FakeARContext.updateOrientation`).
-3. Chĩa camera vào mặt bàn, bấm **Đặt lại trước mặt**: model đặt 1.5 m trước mặt, thấp hơn mắt 0.9 m.
-   Từ đó **xoay** điện thoại, model đứng yên đúng chỗ — giống "magic window".
-
-- Ô Sensor nhập cổng **8082** (cổng WebSocket); 8081 chỉ là trang HTTP của Sensor Server.
-- Chọn đúng **chiều cầm máy** (Dọc / Ngang ← / Ngang →) để trục xoay khớp ảnh; chọn sai thì xoay
-  ngang sẽ thành xoay dọc.
-- Kiểm tra nhanh Sensor Server: trong Safari của Mac mở `http://192.168.0.106:8081/` — trang của nó
-  liệt kê sensor; phải có `android.sensor.rotation_vector`. Không có → dùng `android.sensor.game_rotation_vector`
-  (đổi `PhoneOrientationStream.sensorType`).
-
-Giới hạn của màn 3: **không có dịch chuyển** (6DoF) — đi tới/lùi thì model không bám, vì vị trí
-camera do ARKit tính bằng visual-inertial odometry từ camera + IMU. Gyro không giả được → xem màn 4.
-
-## Màn 4 — AR 6DoF bằng ARCore trên Android
+Màn này giữ 2 phần đầu, còn pose lấy từ Android.
 
 Thay ARKit bằng **ARCore** (cùng thuật toán VIO) chạy trên Android, app iOS chỉ nhận kết quả:
 
@@ -74,15 +39,14 @@ ARCore Frame ─┬─ ảnh CPU (YUV→JPEG)  ┐             scene.background 
               └─ hitTest giữa màn    ┘   :8090       arNode đặt tại điểm hit trên mặt phẳng
 ```
 
-Ảnh và pose cùng một frame nên không lệch trễ như IP Webcam + Sensor Server; đi tới/lùi/sang ngang
-thì model bám đúng chỗ.
+Ảnh và pose cùng một frame nên không lệch trễ; đi tới/lùi/sang ngang thì model bám đúng chỗ.
 
 1. Cài **Android Studio** → File → Open → thư mục `D:\Project\Cloudflare\AndroidARBridge` → chờ Gradle sync
    (lần đầu nó tự tải Gradle 8.7) → cắm điện thoại (bật USB debugging) → Run.
    Điện thoại phải [hỗ trợ ARCore](https://developers.google.com/ar/devices) (có "Google Play Services for AR").
-2. **Tắt IP Webcam** (hai app không dùng chung camera được). Màn hình ARBridge hiện `ws://<ip>:8090`.
+2. Tắt app khác đang dùng camera. Màn hình ARBridge hiện `ws://<ip>:8090`.
 3. Cầm điện thoại **ngang, đỉnh máy bên trái**; chạy Simulator cũng ở chế độ ngang cho to hình.
-4. App iOS → "4. AR 6DoF" → ⚙ → nhập `ws://<ip>:8090` → **Kết nối**. Quét chậm sàn/bàn đến khi
+4. App iOS → "3. AR 6DoF" → ⚙ → nhập `ws://<ip>:8090` → **Kết nối**. Quét chậm sàn/bàn đến khi
    "mặt phẳng" > 0, chĩa giữa màn vào chỗ muốn đặt → **Đặt lại trước mặt** → model đứng lên mặt phẳng.
 
 Ghi chú: ảnh CPU của ARCore thường 640×480 (đủ cho demo). Vài máy cảm biến lắp ngược (sensor 270°)

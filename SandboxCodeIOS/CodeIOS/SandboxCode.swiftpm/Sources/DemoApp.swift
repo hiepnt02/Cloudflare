@@ -34,10 +34,7 @@ struct HomeScreen: View {
                 NavigationLink("2. View AR (ARSCNView — cần iPad/iPhone thật)") {
                     DemoARScreen()
                 }
-                NavigationLink("3. Fake AR — nền là camera Android qua IP Webcam (chạy Simulator)") {
-                    FakeARScreen()
-                }
-                NavigationLink("4. AR 6DoF — camera + ARCore từ Android (app ARBridge, chạy Simulator)") {
+                NavigationLink("3. AR 6DoF — camera + ARCore từ Android (app ARBridge, chạy Simulator)") {
                     BridgeARScreen()
                 }
             }

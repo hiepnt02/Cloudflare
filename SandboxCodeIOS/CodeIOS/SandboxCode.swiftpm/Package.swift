@@ -21,7 +21,7 @@ let package = Package(
             // Màn AR cần quyền camera → sinh NSCameraUsageDescription
             capabilities: [.camera(purposeString: "Demo AR: vẽ point cloud lên hình camera")],
             appCategory: .developerTools,
-            // ATS exception cho http://<ip-android>:8080 (màn Fake AR)
+            // ATS exception cho http:// / ws:// tới điện thoại Android trong LAN (màn ARBridge)
             additionalInfoPlistContentFilePath: "AdditionalInfo.plist"
         )
     ],

@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Cho phép HTTP không mã hoá tới IP Webcam trong LAN (ATS mặc định chặn http://) -->
+	<!-- Cho phép http:// và ws:// không mã hoá tới điện thoại Android / server trong LAN (ATS mặc định chặn) -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -12,6 +12,6 @@
 	</dict>
 	<!-- iOS 14+: truy cập địa chỉ LAN cần khai báo mục đích -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Kết nối tới IP Webcam trên điện thoại Android trong cùng mạng LAN để lấy hình camera.</string>
+	<string>Kết nối tới app ARBridge trên điện thoại Android trong cùng mạng LAN để lấy hình camera và pose.</string>
 </dict>
 </plist>

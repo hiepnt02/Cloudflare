@@ -88,9 +88,10 @@ class DemoSceneContext: NSObject, DemoEventContext {
     private var pointCloudSize: Float?              // nil = giữ toạ độ gốc
     private var lastCloudSource: ModelSource = .none
 
-    // Gaussian splatting: node riêng với SplatProgram, sắp xếp độ sâu trong SplatCloud
+    // Gaussian splatting: node riêng, SplatRenderer vẽ bằng Metal thuần (quad instanced như web),
+    // sắp xếp độ sâu trong SplatCloud
     private(set) var splatCloud: SplatCloud?
-    private var splatProgram: SplatProgram?
+    private var splatRenderer: SplatRenderer?
     private var splatMode = true
     private var pointSizeValue: Float = 14
 
@@ -109,6 +110,60 @@ class DemoSceneContext: NSObject, DemoEventContext {
     func setSplatMode(_ on: Bool) {
         splatMode = on
         if case .url = lastCloudSource { loadPointCloud(lastCloudSource) }
+    }
+
+    // Đường .gsx: PLY → GSXEncoder (= Lambda gsplat-converter) → cache Caches → GSX.decodeAll → SplatCloud.
+    // Không LOD: giải mã cả file rồi lấy mẫu về maxPoints như đường PLY.
+    private var gsxMode = true
+
+    func setGSXMode(_ on: Bool) {
+        gsxMode = on
+        if case .url = lastCloudSource { loadPointCloud(lastCloudSource) }
+    }
+
+    /// Caches/<tên>.<size>.gsx — lần mở sau không convert lại (xoá app là mất).
+    private static func gsxCacheURL(for ply: URL) throws -> URL {
+        let size = (try? FileManager.default.attributesOfItem(atPath: ply.path)[.size] as? Int) ?? 0
+        let caches = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return caches.appendingPathComponent("\(ply.deletingPathExtension().lastPathComponent).\(size).gsx")
+    }
+
+    /// Lấy .gsx đã cache hoặc convert mới từ PLY (trong RAM, rồi ghi cache).
+    private static func gsxFromPLY(_ local: URL, status: @escaping (String) -> Void) throws -> Data {
+        let cache = try gsxCacheURL(for: local)
+        if let cached = try? Data(contentsOf: cache, options: [.alwaysMapped]), (try? GSX.readMeta(cached)) != nil {
+            status("Dùng .gsx đã convert trong Caches")
+            return cached
+        }
+        status("Đọc PLY…")
+        let raw = try PLYReader.loadRaw(url: local)
+        status("PLY → GSX: \(raw.count) splat…")
+        let (data, _) = GSXEncoder.encode(raw) { status("PLY → GSX · " + $0) }
+        try? data.write(to: cache)
+        return data
+    }
+
+    /// Dữ liệu .gsx giải mã → dạng SplatCloud cần: lật Y/Z (COLMAP → SceneKit), dời gốc theo phân vị
+    /// (như PLYReader.load). KHÔNG lấy mẫu: vẽ đủ splat như viewer web (`maxSplats` nil = tất cả).
+    private static func prepareSplats(_ b: GSX.Block, maxSplats: Int? = nil) -> (positions: [SIMD3<Float>], colors: [SIMD4<Float>],
+                                                          cov0: [SIMD3<Float>], cov1: [SIMD3<Float>], extent: SIMD3<Float>) {
+        let step = maxSplats.map { max(1, Int((Double(b.count) / Double($0)).rounded(.up))) } ?? 1
+        var positions: [SIMD3<Float>] = [], colors: [SIMD4<Float>] = [], cov0: [SIMD3<Float>] = [], cov1: [SIMD3<Float>] = []
+        let cap = b.count / step + 1
+        positions.reserveCapacity(cap); colors.reserveCapacity(cap); cov0.reserveCapacity(cap); cov1.reserveCapacity(cap)
+        for i in stride(from: 0, to: b.count, by: step) {
+            let p = b.positions[i]
+            positions.append(SIMD3(p.x, -p.y, -p.z))
+            colors.append(b.colors[i])
+            // Σ' = F·Σ·F với F = diag(1,−1,−1): Σxy, Σxz đổi dấu; Σxx, Σyy, Σyz, Σzz giữ nguyên
+            let a = b.cov0[i]
+            cov0.append(SIMD3(a.x, -a.y, -a.z))
+            cov1.append(b.cov1[i])
+        }
+        let (lo, mid, hi) = PLYReader.percentiles(of: positions)
+        let center = SIMD3(mid.x, lo.y, mid.z)
+        for i in positions.indices { positions[i] -= center }
+        return (positions, colors, cov0, cov1, hi - lo)
     }
 
     func setPointCloudSize(_ meters: Float?) {
@@ -131,11 +186,12 @@ class DemoSceneContext: NSObject, DemoEventContext {
         pointCloudNode = nil
         pointCloud = nil
         splatCloud = nil
-        splatProgram = nil
+        splatRenderer = nil
         pointCloudRequest += 1
         let request = pointCloudRequest
         lastCloudSource = source
         let wantSplats = splatMode
+        let wantGSX = gsxMode
         delegate?.demo(status: "Đang tạo point cloud…")
 
         Task.detached(priority: .userInitiated) { [weak self] in
@@ -148,6 +204,22 @@ class DemoSceneContext: NSObject, DemoEventContext {
                 case .none, .sample:
                     guard let c = MetalPointCloud.makeTerrain(device: device) else { throw CloudError("Không tạo được MTLBuffer") }
                     built = .points(c)
+                case .url(let url) where wantSplats && wantGSX:
+                    // ── Đường .gsx: PLY → .gsx trong app (cache) → giải mã cả file → SplatCloud ──
+                    var local = url.isFileURL ? url : try await ModelLoader.download(url)
+                    local = try PLYReader.assembleIfSplit(local)
+                    let status: (String) -> Void = { s in Task { @MainActor in self?.delegate?.demo(status: s) } }
+                    let gsx = try Self.gsxFromPLY(local, status: status)
+                    status("Giải mã .gsx…")
+                    let (meta, all) = try GSX.decodeAll(gsx) { i, n in status("Giải mã .gsx: \(i)/\(n) block") }
+                    let s = Self.prepareSplats(all)
+                    extent = s.extent
+                    guard let c = SplatCloud(device: device, positions: s.positions, colors: s.colors, cov0: s.cov0, cov1: s.cov1)
+                    else { throw CloudError("Không tạo được MTLBuffer") }
+                    built = .splats(c)
+                    info = String(format: "3DGS qua .gsx %d/%d splat · %d block · %.1f MB · %.1f × %.1f × %.1f",
+                                  s.positions.count, meta.header.splatCount, meta.header.blockCount,
+                                  Double(gsx.count) / 1048576, s.extent.x, s.extent.y, s.extent.z)
                 case .url(let url):
                     var local = url.isFileURL ? url : try await ModelLoader.download(url)
                     local = try PLYReader.assembleIfSplit(local)       // file cắt mảnh trong bundle → ghép lại
@@ -184,21 +256,18 @@ class DemoSceneContext: NSObject, DemoEventContext {
                         self.program.pointCount = Int32(cloud.count)
                         self.pointCloud = cloud
                     case .splats(let cloud):
-                        let program = SplatProgram()
-                        program.splatScale = self.pointSizeValue / 14
-                        program.opacity = self.program.opacity
-                        // Mỗi frame: đổi camera sang hệ local của node rồi hỏi SplatCloud có cần sắp lại không
-                        program.onFrame = { [weak cloud] splatNode, renderer in
-                            guard let cloud, let pov = renderer.pointOfView else { return }
-                            let camWorld = pov.simdWorldPosition
-                            let fwdWorld = -pov.simdWorldTransform.columns.2.xyz
-                            let camLocal = splatNode.simdConvertPosition(camWorld, from: nil)
-                            let dirLocal = simd_normalize(splatNode.simdConvertVector(fwdWorld, from: nil))
-                            cloud.requestSortIfNeeded(cameraLocal: camLocal, directionLocal: dirLocal)
-                        }
-                        node = SCNBuilder.createSplatNode(cloud, program: program)
+                        // Node có rendererDelegate: SceneKit KHÔNG vẽ geometry mà gọi SplatRenderer.renderNode
+                        // mỗi frame (= renderer.renderFrame của web). Geometry chỉ để SceneKit có boundingBox mà cull.
+                        let renderer = SplatRenderer(cloud: cloud, device: device)
+                        renderer.splatScale = self.pointSizeValue / 14
+                        renderer.opacity = self.program.opacity
+                        let size = cloud.max - cloud.min
+                        node = SCNNode(geometry: SCNBox(width: CGFloat(size.x), height: CGFloat(size.y), length: CGFloat(size.z), chamferRadius: 0))
+                        node.boundingBox = (SCNVector3(cloud.min.x, cloud.min.y, cloud.min.z), SCNVector3(cloud.max.x, cloud.max.y, cloud.max.z))
+                        node.rendererDelegate = renderer
+                        node.renderingOrder = 20                // vẽ sau model/point cloud để blend lên trên
                         self.splatCloud = cloud
-                        self.splatProgram = program
+                        self.splatRenderer = renderer
                     }
                     self.arNode.addChildNode(node)
                     self.pointCloudNode = node
@@ -226,7 +295,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
     func setPointSize(_ size: Float) {
         pointSizeValue = size
         program.pointSize = size
-        splatProgram?.splatScale = size / 14        // 14 = mặc định slider → splat đúng cỡ file
+        splatRenderer?.splatScale = size / 14       // 14 = mặc định slider → splat đúng cỡ file
     }
 
     func setPointCloudVisible(_ visible: Bool) {
@@ -235,7 +304,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
 
     func setOpacity(_ opacity: Float) {
         program.opacity = opacity
-        splatProgram?.opacity = opacity
+        splatRenderer?.opacity = opacity
         pointCloudNode?.isHidden = opacity == 0
         modelRoot.opacity = CGFloat(opacity)
     }
@@ -281,7 +350,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
 
     func recenter() { /* chỉ bản AR override */ }
 
-    func setDistance(_ meters: Float) { /* chỉ Fake AR override */ }
+    func setDistance(_ meters: Float) { /* màn con cần thì override */ }
 }
 
 // MARK: - Bản 3D: SCNView, camera của SceneKit, xoay bằng tay

@@ -11,7 +11,7 @@
 //
 //  pose = camera → world của ARCore = đúng thứ ARKit đưa trong frame.camera.transform:
 //  world Y lên theo trọng lực, mét, camera nhìn theo −Z — trùng quy ước SceneKit, gán thẳng.
-//  Ảnh và pose đi chung một message nên không bị lệch trễ như IP Webcam + Sensor Server.
+//  Ảnh và pose đi chung một message nên không bị lệch trễ.
 //
 
 import SwiftUI
