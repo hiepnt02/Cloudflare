@@ -133,6 +133,7 @@ struct ProjectGridCell: View, Equatable {
                     .frame(height: height)
                     .clipped()
                     .background(Color(.lightGray.withAlphaComponent(0.3)))
+                    .overlay(alignment: .bottomLeading) { imageCountBadge }
                     .overlay(alignment: .bottomTrailing) { rtkGpsBadge }
             } else if let img = thumbnailImage {
                 Image(uiImage: img)
@@ -141,6 +142,7 @@ struct ProjectGridCell: View, Equatable {
                     .frame(height: height)
                     .clipped()
                     .background(Color(.lightGray.withAlphaComponent(0.3)))
+                    .overlay(alignment: .bottomLeading) { imageCountBadge }
                     .overlay(alignment: .bottomTrailing) { rtkGpsBadge }
             } else {
                 Rectangle()
@@ -158,6 +160,21 @@ struct ProjectGridCell: View, Equatable {
                     .foregroundColor(.white)
                     .background(userManager.setting.getGpsRtkButtonColor(useVidoc ? 1 : 0))
             }
+        }
+    }
+
+    /// Image count on the bottom-left corner of the thumbnail, same style as the list view.
+    @ViewBuilder
+    private var imageCountBadge: some View {
+        if cat.numberOfImage > 0 {
+            Text("\(cat.numberOfImage)")
+                .font(.system(size: isIPhone ? 9 : 11, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.6))
+                .cornerRadius(4)
+                .padding(4)
         }
     }
 
