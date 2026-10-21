@@ -121,26 +121,38 @@ class DemoSceneContext: NSObject, DemoEventContext {
         if case .url = lastCloudSource { loadPointCloud(lastCloudSource) }
     }
 
-    /// Caches/<tên>.<size>.gsx — lần mở sau không convert lại (xoá app là mất).
-    private static func gsxCacheURL(for ply: URL) throws -> URL {
-        let size = (try? FileManager.default.attributesOfItem(atPath: ply.path)[.size] as? Int) ?? 0
-        let caches = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        return caches.appendingPathComponent("\(ply.deletingPathExtension().lastPathComponent).\(size).gsx")
+    /// Đổi hệ toạ độ lúc convert (chỉ đường .gsx). nil = không đổi.
+    private var crsTransform: (from: String, to: String)?
+
+    func setCRSTransform(from: String?, to: String?) {
+        if let from, let to { crsTransform = (from, to) } else { crsTransform = nil }
+        if case .url = lastCloudSource, gsxMode, splatMode { loadPointCloud(lastCloudSource) }
     }
 
-    /// Lấy .gsx đã cache hoặc convert mới từ PLY (trong RAM, rồi ghi cache).
-    private static func gsxFromPLY(_ local: URL, status: @escaping (String) -> Void) throws -> Data {
-        let cache = try gsxCacheURL(for: local)
+    /// Caches/<tên>.<size>[.from-to].gsx — lần mở sau không convert lại (xoá app là mất).
+    private static func gsxCacheURL(for ply: URL, crs: (from: String, to: String)?) throws -> URL {
+        let size = (try? FileManager.default.attributesOfItem(atPath: ply.path)[.size] as? Int) ?? 0
+        let caches = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let tag = crs.map { ".\($0.from)-\($0.to)".replacingOccurrences(of: ":", with: "") } ?? ""
+        return caches.appendingPathComponent("\(ply.deletingPathExtension().lastPathComponent).\(size)\(tag).gsx")
+    }
+
+    /// Lấy .gsx đã cache hoặc convert mới từ PLY (trong RAM, rồi ghi cache). `stats` nil khi dùng cache.
+    private static func gsxFromPLY(_ local: URL, crs: (from: String, to: String)?,
+                                   status: @escaping (String) -> Void) throws -> (Data, GSXEncoder.Stats?) {
+        let cache = try gsxCacheURL(for: local, crs: crs)
         if let cached = try? Data(contentsOf: cache, options: [.alwaysMapped]), (try? GSX.readMeta(cached)) != nil {
             status("Dùng .gsx đã convert trong Caches")
-            return cached
+            return (cached, nil)
         }
         status("Đọc PLY…")
         let raw = try PLYReader.loadRaw(url: local)
         status("PLY → GSX: \(raw.count) splat…")
-        let (data, _) = GSXEncoder.encode(raw) { status("PLY → GSX · " + $0) }
+        var params = GSXEncoder.Params()
+        params.crs = crs
+        let (data, stats) = try GSXEncoder.encode(raw, params: params) { status("PLY → GSX · " + $0) }
         try? data.write(to: cache)
-        return data
+        return (data, stats)
     }
 
     /// Dữ liệu .gsx giải mã → dạng SplatCloud cần: lật Y/Z (COLMAP → SceneKit), dời gốc theo phân vị
@@ -192,6 +204,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
         lastCloudSource = source
         let wantSplats = splatMode
         let wantGSX = gsxMode
+        let crs = crsTransform
         delegate?.demo(status: "Đang tạo point cloud…")
 
         Task.detached(priority: .userInitiated) { [weak self] in
@@ -209,7 +222,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
                     var local = url.isFileURL ? url : try await ModelLoader.download(url)
                     local = try PLYReader.assembleIfSplit(local)
                     let status: (String) -> Void = { s in Task { @MainActor in self?.delegate?.demo(status: s) } }
-                    let gsx = try Self.gsxFromPLY(local, status: status)
+                    let (gsx, stats) = try Self.gsxFromPLY(local, crs: crs, status: status)
                     status("Giải mã .gsx…")
                     let (meta, all) = try GSX.decodeAll(gsx) { i, n in status("Giải mã .gsx: \(i)/\(n) block") }
                     let s = Self.prepareSplats(all)
@@ -220,6 +233,14 @@ class DemoSceneContext: NSObject, DemoEventContext {
                     info = String(format: "3DGS qua .gsx %d/%d splat · %d block · %.1f MB · %.1f × %.1f × %.1f",
                                   s.positions.count, meta.header.splatCount, meta.header.blockCount,
                                   Double(gsx.count) / 1048576, s.extent.x, s.extent.y, s.extent.z)
+                    if let crs {
+                        if let i = stats?.crs, !i.identity {
+                            info += String(format: " · CRS %@→%@: xoay %.3f° · scale %.6f · tâm đích (%.1f, %.1f)",
+                                           crs.from, crs.to, i.yawDeg, i.scale, i.centerTarget.x, i.centerTarget.y)
+                        } else {
+                            info += " · CRS \(crs.from)→\(crs.to)" + (stats == nil ? " (cache)" : " (trùng hệ)")
+                        }
+                    }
                 case .url(let url):
                     var local = url.isFileURL ? url : try await ModelLoader.download(url)
                     local = try PLYReader.assembleIfSplit(local)       // file cắt mảnh trong bundle → ghép lại

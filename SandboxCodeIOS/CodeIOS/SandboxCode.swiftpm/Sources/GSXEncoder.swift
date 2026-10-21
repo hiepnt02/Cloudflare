@@ -40,40 +40,119 @@ enum GSXEncoder {
         var otherBits = 8
         var useHilbert = true
         var filter = true                  // bỏ opacity < 0.02, scale > 3 m, aniso > 200 (như Lambda)
+        /// Đổi hệ toạ độ TRƯỚC mọi thứ (= chỗ Lambda sẽ áp ma trận từ server). nil = không đổi.
+        var crs: (from: String, to: String)? = nil
+        var rotateQuat = true              // xoay quaternion + cộng ln(scale) theo ma trận cục bộ (đúng)
+        var subtractOrigin = true          // trừ tâm AABB, ghi origin f64 vào header byte 60–83
+    }
+
+    /// Ma trận cục bộ của phép đổi hệ tại tâm cảnh (như applyCrsTransform trong HTML).
+    struct CRSInfo {
+        var yawDeg: Double = 0, scale: Double = 1
+        var centerSource = SIMD2<Double>(), centerTarget = SIMD2<Double>()
+        var identity = true
     }
 
     struct Stats {
         var kept = 0, dropped = 0, nodes = 0, blocks = 0
         var seconds: Double = 0
         var bytes = 0
+        var crs: CRSInfo? = nil
+        var origin = SIMD3<Double>()
+    }
+
+    enum EncodeError: LocalizedError {
+        case unknownCRS(String)
+        var errorDescription: String? { if case .unknownCRS(let c) = self { return "CRS \(c) không có trong bảng" }; return nil }
+    }
+
+    // MARK: - Đổi hệ toạ độ (port applyCrsTransform): vị trí qua phép chiếu thật (phi tuyến),
+    // quaternion/scale dùng affine CỤC BỘ tại tâm cảnh lấy từ 3 điểm thăm dò C, C+1 m Đông, C+1 m Bắc. Z giữ nguyên.
+
+    static func applyCRS(_ P0: RawSplats, from fromCode: String, to toCode: String, rotateQuat: Bool,
+                         progress: (String) -> Void) throws -> (RawSplats, CRSInfo) {
+        var info = CRSInfo()
+        if fromCode == toCode || P0.count == 0 { return (P0, info) }
+        guard let from = CRS.byCode(fromCode) else { throw EncodeError.unknownCRS(fromCode) }
+        guard let to = CRS.byCode(toCode) else { throw EncodeError.unknownCRS(toCode) }
+        let n = P0.count
+        var cx = 0.0, cy = 0.0
+        for i in 0 ..< n { cx += Double(P0.x[i]); cy += Double(P0.y[i]) }
+        cx /= Double(n); cy /= Double(n)
+        let step = from.isGeographic ? 1e-5 : 1.0                       // "1 m" thăm dò
+        let C = CRS.forward(from: from, to: to, x: cx, y: cy)
+        let E = CRS.forward(from: from, to: to, x: cx + step, y: cy)
+        let N = CRS.forward(from: from, to: to, x: cx, y: cy + step)
+        let ex = (E.0 - C.0) / step, ey = (E.1 - C.1) / step, nx = (N.0 - C.0) / step, ny = (N.1 - C.1) / step
+        let yaw = atan2(ey, ex), scale = (hypot(ex, ey) + hypot(nx, ny)) / 2
+        info = CRSInfo(yawDeg: yaw * 180 / .pi, scale: scale, centerSource: SIMD2(cx, cy), centerTarget: SIMD2(C.0, C.1), identity: false)
+        // qR = quay quanh Z góc yaw, (w, x, y, z) — cùng thứ tự rot_0..3 của PLY
+        let h = yaw / 2, qR = (w: Float(cos(h)), x: Float(0), y: Float(0), z: Float(sin(h)))
+        let lnS = Float(log(scale))
+
+        var P = P0
+        for i in 0 ..< n {
+            let p = CRS.forward(from: from, to: to, x: Double(P0.x[i]), y: Double(P0.y[i]))
+            P.x[i] = Float(p.0); P.y[i] = Float(p.1)                     // z giữ nguyên
+            if rotateQuat {
+                let a = qR, b = (w: P0.rot0[i], x: P0.rot1[i], y: P0.rot2[i], z: P0.rot3[i])
+                P.rot0[i] = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
+                P.rot1[i] = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y
+                P.rot2[i] = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x
+                P.rot3[i] = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w
+                P.scale0[i] += lnS; P.scale1[i] += lnS; P.scale2[i] += lnS
+            }
+            if i % 200_000 == 0 { progress("đổi CRS \(fromCode) → \(toCode): \(i)/\(n)") }
+        }
+        return (P, info)
     }
 
     // MARK: - API
 
-    static func encode(_ input: RawSplats, params: Params = Params(), progress: @escaping (String) -> Void) -> (Data, Stats) {
+    static func encode(_ input: RawSplats, params: Params = Params(), progress: @escaping (String) -> Void) throws -> (Data, Stats) {
         let t0 = Date()
         var stats = Stats()
 
-        // ── filter ──
+        // ── đổi hệ toạ độ trước mọi thứ ──
         var P = input
+        if let crs = params.crs {
+            let (Pt, info) = try applyCRS(input, from: crs.from, to: crs.to, rotateQuat: params.rotateQuat, progress: progress)
+            P = Pt; stats.crs = info
+            if !info.identity {
+                progress(String(format: "CRS: xoay %.3f° · scale %.6f · tâm đích (%.2f, %.2f)", info.yawDeg, info.scale, info.centerTarget.x, info.centerTarget.y))
+            }
+        }
+
+        // ── filter ──
+        let src = P                                   // sau đổi hệ (hoặc chính input nếu không đổi)
         if params.filter {
-            var keep: [Int] = []; keep.reserveCapacity(input.count)
-            for i in 0 ..< input.count {
-                if sigmoid(input.opacity[i]) < 0.02 { continue }
-                let s0 = exp(input.scale0[i]), s1 = exp(input.scale1[i]), s2 = exp(input.scale2[i])
+            var keep: [Int] = []; keep.reserveCapacity(src.count)
+            for i in 0 ..< src.count {
+                if sigmoid(src.opacity[i]) < 0.02 { continue }
+                let s0 = exp(src.scale0[i]), s1 = exp(src.scale1[i]), s2 = exp(src.scale2[i])
                 let mx = max(s0, s1, s2); if mx > 3 { continue }
                 let mn = min(s0, s1, s2); if mx / max(mn, 1e-9) > 200 { continue }
                 keep.append(i)
             }
-            if keep.count < input.count { P = input.filtered(by: keep) }
+            if keep.count < src.count { P = src.filtered(by: keep) }
         }
-        stats.kept = P.count; stats.dropped = input.count - P.count
-        progress("filter: giữ \(P.count)/\(input.count)")
+        stats.kept = P.count; stats.dropped = src.count - P.count
+        progress("filter: giữ \(P.count)/\(src.count)")
 
         // ── AABB ──
         var gMin = SIMD3<Float>(repeating: .greatestFiniteMagnitude), gMax = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
         for i in 0 ..< P.count { let v = SIMD3(P.x[i], P.y[i], P.z[i]); gMin = simd_min(gMin, v); gMax = simd_max(gMax, v) }
         if P.count == 0 { gMin = .zero; gMax = .zero }
+
+        // ── trừ origin = tâm AABB để .gsx/GPU chỉ giữ số nhỏ (toạ độ UTM ~10⁵–10⁶ vào float32 sẽ rung) ──
+        if params.subtractOrigin && P.count > 0 {
+            let o = (SIMD3<Double>(gMin) + SIMD3<Double>(gMax)) * 0.5
+            stats.origin = o
+            let of = SIMD3<Float>(o)
+            for i in 0 ..< P.count { P.x[i] -= of.x; P.y[i] -= of.y; P.z[i] -= of.z }
+            gMin -= of; gMax -= of
+            progress(String(format: "origin: trừ (%.2f, %.2f, %.2f)", o.x, o.y, o.z))
+        }
 
         // ── octree ──
         progress("octree: reservoir sampling…")
@@ -158,6 +237,7 @@ enum GSXEncoder {
             f32(20, gMin.x); f32(24, gMin.y); f32(28, gMin.z); f32(32, gMax.x); f32(36, gMax.y); f32(40, gMax.z)
             raw[44] = UInt8(params.posBits); raw[45] = UInt8(shBits); raw[46] = UInt8(scBits); raw[47] = UInt8(rotBits); raw[48] = UInt8(opaBits)
             u32(52, UInt32(nodeCount)); i32(56, 0)
+            f64(60, stats.origin.x); f64(68, stats.origin.y); f64(76, stats.origin.z)     // origin f64 (đề xuất Atlas CRS)
             for i in 0 ..< nodeCount {
                 let o = indexOff + i * GSX.indexEntrySize, b = blocks[i]
                 f64(o, Double(offsets[i])); u32(o + 8, UInt32(b.compressed.count)); u32(o + 12, UInt32(b.sizeUncompressed))

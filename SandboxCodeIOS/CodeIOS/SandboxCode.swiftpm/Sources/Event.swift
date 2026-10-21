@@ -45,6 +45,9 @@ protocol DemoEventContext: AnyObject {
     /// 3DGS: true = PLY → .gsx trong app (như Lambda gsplat-converter) rồi giải mã .gsx để vẽ;
     /// false = đọc thẳng PLY. Nạp lại file hiện tại.
     func setGSXMode(_ on: Bool)
+    /// Đổi hệ toạ độ lúc convert PLY → .gsx (như dropdown "Hệ nguồn / Hệ đích" của ply-to-gsx-viewer.html).
+    /// nil = không đổi. Nạp lại file hiện tại.
+    func setCRSTransform(from: String?, to: String?)
 }
 
 protocol DemoEvent: Event {
@@ -105,6 +108,12 @@ final class SetGSXModeEvent: EventIdentity, DemoEvent {
     let on: Bool
     init(_ on: Bool) { self.on = on; super.init() }
     func call(_ context: DemoEventContext) { context.setGSXMode(on) }
+}
+
+final class SetCRSTransformEvent: EventIdentity, DemoEvent {
+    let from: String?, to: String?
+    init(from: String?, to: String?) { self.from = from; self.to = to; super.init() }
+    func call(_ context: DemoEventContext) { context.setCRSTransform(from: from, to: to) }
 }
 
 final class ChangePointCloudSizeEvent: EventIdentity, DemoEvent {

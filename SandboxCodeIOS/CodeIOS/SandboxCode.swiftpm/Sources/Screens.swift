@@ -135,6 +135,9 @@ struct ModelControls: View {
     @State private var cloudOriginal = true             // địa hình mẫu đã là mét
     @State private var splatMode = true                 // 3DGS: ellipse mờ thay vì chấm tròn
     @State private var gsxMode = true                   // 3DGS: PLY → .gsx trong app rồi giải mã để vẽ
+    @State private var crsOn = false                    // đổi hệ toạ độ lúc convert (chỉ đường .gsx)
+    @AppStorage("crs.from") private var crsFrom = "EPSG:32648"
+    @AppStorage("crs.to") private var crsTo = "EPSG:5897"
     @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
     @State private var originalSize = false
 
@@ -229,6 +232,30 @@ struct ModelControls: View {
                 .onChange(of: splatMode) { on in perform(SetSplatModeEvent(on)) }
             Toggle("3DGS: convert PLY → .gsx trong app rồi vẽ từ .gsx", isOn: $gsxMode)
                 .onChange(of: gsxMode) { on in perform(SetGSXModeEvent(on)) }
+            // Đổi hệ toạ độ lúc convert — như "Hệ nguồn / Hệ đích" của ply-to-gsx-viewer.html.
+            // Coi x,y của PLY là E,N trong hệ nguồn; vị trí qua phép chiếu thật, quaternion/scale xoay theo affine cục bộ.
+            Toggle("Đổi hệ toạ độ lúc convert (.gsx)", isOn: $crsOn)
+                .onChange(of: crsOn) { _ in sendCRS() }
+            if crsOn {
+                HStack {
+                    Text("Nguồn").font(.caption).frame(width: 48, alignment: .leading)
+                    Picker("Hệ nguồn", selection: $crsFrom) {
+                        ForEach(CRS.catalog, id: \.code) { c in Text(c.label).tag(c.code) }
+                    }
+                    .pickerStyle(.menu).labelsHidden()
+                    .onChange(of: crsFrom) { _ in sendCRS() }
+                }
+                HStack {
+                    Text("Đích").font(.caption).frame(width: 48, alignment: .leading)
+                    Picker("Hệ đích", selection: $crsTo) {
+                        ForEach(CRS.catalog, id: \.code) { c in Text(c.label).tag(c.code) }
+                    }
+                    .pickerStyle(.menu).labelsHidden()
+                    .onChange(of: crsTo) { _ in sendCRS() }
+                }
+                Text("Thấy gì: model xoay quanh trục đứng theo góc hội tụ kinh tuyến giữa hai múi, co/giãn theo tỉ lệ (k, scale datum). Dịch chuyển (hàng trăm km) bị trừ origin và dời về gốc nên không thấy; số tâm đích hiện ở dòng trạng thái.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             Text(".gsx: vẽ ĐỦ splat bằng Metal thuần như viewer web (quad instanced, bù antialias, không depth test); lần đầu convert mất vài chục giây, lưu Caches. Tắt .gsx: đọc PLY, tối đa \(PLYReader.maxPoints / 1000)k splat. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,6 +277,10 @@ struct ModelControls: View {
         pointCloudVisible = true
         // PLY thường không có đơn vị mét → mặc định ép về cỡ slider; địa hình mẫu thì giữ gốc
         if case .url = source { cloudOriginal = false } else { cloudOriginal = true }
+    }
+
+    private func sendCRS() {
+        perform(SetCRSTransformEvent(from: crsOn ? crsFrom : nil, to: crsOn ? crsTo : nil))
     }
 
     private func sendCloudSize() {
