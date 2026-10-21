@@ -61,6 +61,10 @@ enum CRS {
 
     static func byCode(_ code: String) -> Def? { catalog.first { $0.code == code } }
 
+    /// Hệ HIỂN THỊ cố định của viewer (= "Hệ đích (Quick3D)" mặc định trong ply-to-gsx-viewer.html).
+    /// PLY là raw, không có hệ; người dùng GÁN hệ gốc cho nó, app đổi sang hệ này để xem vật thể dịch đi đâu.
+    static let displaySystem = "EPSG:5897"
+
     // MARK: - forward(from → to), như proj4(from.def, to.def).forward([x, y])
 
     static func forward(from: Def, to: Def, x: Double, y: Double) -> (Double, Double) {

@@ -135,9 +135,8 @@ struct ModelControls: View {
     @State private var cloudOriginal = true             // địa hình mẫu đã là mét
     @State private var splatMode = true                 // 3DGS: ellipse mờ thay vì chấm tròn
     @State private var gsxMode = true                   // 3DGS: PLY → .gsx trong app rồi giải mã để vẽ
-    @State private var crsOn = false                    // đổi hệ toạ độ lúc convert (chỉ đường .gsx)
-    @AppStorage("crs.from") private var crsFrom = "EPSG:32648"
-    @AppStorage("crs.to") private var crsTo = "EPSG:5897"
+    @State private var crsCode = ""                     // "" = raw (chưa gán hệ); mã EPSG = hệ gốc gán cho PLY
+    @State private var showCRSPicker = false
     @State private var sizeLog: Double = 0          // 10^sizeLog m: 0.1 … ~30 m
     @State private var originalSize = false
 
@@ -232,30 +231,28 @@ struct ModelControls: View {
                 .onChange(of: splatMode) { on in perform(SetSplatModeEvent(on)) }
             Toggle("3DGS: convert PLY → .gsx trong app rồi vẽ từ .gsx", isOn: $gsxMode)
                 .onChange(of: gsxMode) { on in perform(SetGSXModeEvent(on)) }
-            // Đổi hệ toạ độ lúc convert — như "Hệ nguồn / Hệ đích" của ply-to-gsx-viewer.html.
-            // Coi x,y của PLY là E,N trong hệ nguồn; vị trí qua phép chiếu thật, quaternion/scale xoay theo affine cục bộ.
-            Toggle("Đổi hệ toạ độ lúc convert (.gsx)", isOn: $crsOn)
-                .onChange(of: crsOn) { _ in sendCRS() }
-            if crsOn {
-                HStack {
-                    Text("Nguồn").font(.caption).frame(width: 48, alignment: .leading)
-                    Picker("Hệ nguồn", selection: $crsFrom) {
-                        ForEach(CRS.catalog, id: \.code) { c in Text(c.label).tag(c.code) }
-                    }
-                    .pickerStyle(.menu).labelsHidden()
-                    .onChange(of: crsFrom) { _ in sendCRS() }
+            // PLY là raw, không có hệ → GÁN hệ gốc cho nó; app đổi sang hệ hiển thị cố định (CRS.displaySystem)
+            // và KHÔNG dời về gốc, nên vật thể dịch/xoay đúng bằng chênh lệch giữa hệ gốc đã gán và hệ hiển thị.
+            // Không dùng Picker(.menu): panel re-render theo status làm menu bị dựng lại khi đang mở → kẹt gesture,
+            // cả màn không nhận chạm ("System gesture gate timed out"). Dùng nút mở sheet danh sách.
+            HStack {
+                Text("Hệ gốc").font(.caption).frame(width: 70, alignment: .leading)
+                Button {
+                    showCRSPicker = true
+                } label: {
+                    Text(crsCode.isEmpty ? "Raw — chưa gán hệ (không đổi)" : (CRS.byCode(crsCode)?.label ?? crsCode))
+                        .lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                HStack {
-                    Text("Đích").font(.caption).frame(width: 48, alignment: .leading)
-                    Picker("Hệ đích", selection: $crsTo) {
-                        ForEach(CRS.catalog, id: \.code) { c in Text(c.label).tag(c.code) }
-                    }
-                    .pickerStyle(.menu).labelsHidden()
-                    .onChange(of: crsTo) { _ in sendCRS() }
-                }
-                Text("Thấy gì: model xoay quanh trục đứng theo góc hội tụ kinh tuyến giữa hai múi, co/giãn theo tỉ lệ (k, scale datum). Dịch chuyển (hàng trăm km) bị trừ origin và dời về gốc nên không thấy; số tâm đích hiện ở dòng trạng thái.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                .buttonStyle(.bordered)
             }
+            .sheet(isPresented: $showCRSPicker) {
+                CRSPickerSheet(selected: crsCode) { code in
+                    crsCode = code
+                    perform(SetCRSEvent(code.isEmpty ? nil : code))
+                }
+            }
+            Text("Hệ hiển thị cố định: \(CRS.displaySystem). Gán hệ gốc = \(CRS.displaySystem) thì vật thể đứng yên; gán hệ khác thì nó dịch/xoay theo chênh lệch hai hệ.")
+                .font(.caption2).foregroundStyle(.secondary)
             Text(".gsx: vẽ ĐỦ splat bằng Metal thuần như viewer web (quad instanced, bù antialias, không depth test); lần đầu convert mất vài chục giây, lưu Caches. Tắt .gsx: đọc PLY, tối đa \(PLYReader.maxPoints / 1000)k splat. Toạ độ 3DGS không phải mét → tắt \"gốc\" và kéo Cỡ cloud.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -279,16 +276,53 @@ struct ModelControls: View {
         if case .url = source { cloudOriginal = false } else { cloudOriginal = true }
     }
 
-    private func sendCRS() {
-        perform(SetCRSTransformEvent(from: crsOn ? crsFrom : nil, to: crsOn ? crsTo : nil))
-    }
-
     private func sendCloudSize() {
         perform(ChangePointCloudSizeEvent(cloudOriginal ? nil : Float(pow(10, cloudSizeLog))))
     }
 
     private func sendSize() {
         perform(ChangeModelSizeEvent(originalSize ? nil : Float(pow(10, sizeLog))))
+    }
+}
+
+/// Sheet chọn hệ gốc cho PLY: danh sách CRS.catalog có ô lọc, chọn xong tự đóng.
+struct CRSPickerSheet: View {
+    let selected: String
+    let onPick: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var filter = ""
+
+    private var items: [CRS.Def] {
+        let f = filter.trimmingCharacters(in: .whitespaces).lowercased()
+        return f.isEmpty ? CRS.catalog : CRS.catalog.filter { $0.label.lowercased().contains(f) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button { pick("") } label: { row("Raw — chưa gán hệ (không đổi)", "") }
+                ForEach(items, id: \.code) { c in
+                    Button { pick(c.code) } label: { row(c.label, c.code) }
+                }
+            }
+            .searchable(text: $filter, prompt: "Lọc: UTM, VN-2000, JGD, 5897…")
+            .navigationTitle("Hệ gốc của PLY")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Đóng") { dismiss() } } }
+        }
+    }
+
+    private func row(_ label: String, _ code: String) -> some View {
+        HStack {
+            Text(label).foregroundStyle(.primary)
+            Spacer()
+            if code == selected { Image(systemName: "checkmark").foregroundStyle(.tint) }
+        }
+    }
+
+    private func pick(_ code: String) {
+        onPick(code)
+        dismiss()
     }
 }
 

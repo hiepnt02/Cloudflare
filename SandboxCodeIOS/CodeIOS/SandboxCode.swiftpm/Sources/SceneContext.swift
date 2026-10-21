@@ -121,11 +121,14 @@ class DemoSceneContext: NSObject, DemoEventContext {
         if case .url = lastCloudSource { loadPointCloud(lastCloudSource) }
     }
 
-    /// Đổi hệ toạ độ lúc convert (chỉ đường .gsx). nil = không đổi.
-    private var crsTransform: (from: String, to: String)?
+    /// Hệ gốc GÁN cho PLY raw (chỉ đường .gsx). nil = raw, không đổi. Hệ hiển thị cố định = CRS.displaySystem.
+    private var crsCode: String?
+    /// Tâm (hệ SceneKit, đã lật) của lần nạp GỐC theo từng file → khi đổi hệ vẫn trừ tâm này,
+    /// nên model dịch đúng bằng chênh lệch giữa hai hệ thay vì bị kéo về gốc.
+    private var baseCenters: [String: SIMD3<Double>] = [:]
 
-    func setCRSTransform(from: String?, to: String?) {
-        if let from, let to { crsTransform = (from, to) } else { crsTransform = nil }
+    func setCRS(_ code: String?) {
+        crsCode = code
         if case .url = lastCloudSource, gsxMode, splatMode { loadPointCloud(lastCloudSource) }
     }
 
@@ -141,7 +144,8 @@ class DemoSceneContext: NSObject, DemoEventContext {
     private static func gsxFromPLY(_ local: URL, crs: (from: String, to: String)?,
                                    status: @escaping (String) -> Void) throws -> (Data, GSXEncoder.Stats?) {
         let cache = try gsxCacheURL(for: local, crs: crs)
-        if let cached = try? Data(contentsOf: cache, options: [.alwaysMapped]), (try? GSX.readMeta(cached)) != nil {
+        if let cached = try? Data(contentsOf: cache, options: [.alwaysMapped]),
+           let m = try? GSX.readMeta(cached), m.header.splatCount > 0 {
             status("Dùng .gsx đã convert trong Caches")
             return (cached, nil)
         }
@@ -151,31 +155,83 @@ class DemoSceneContext: NSObject, DemoEventContext {
         var params = GSXEncoder.Params()
         params.crs = crs
         let (data, stats) = try GSXEncoder.encode(raw, params: params) { status("PLY → GSX · " + $0) }
-        try? data.write(to: cache)
+        if stats.kept > 0 { try? data.write(to: cache) } else { try? FileManager.default.removeItem(at: cache) }
         return (data, stats)
     }
 
-    /// Dữ liệu .gsx giải mã → dạng SplatCloud cần: lật Y/Z (COLMAP → SceneKit), dời gốc theo phân vị
-    /// (như PLYReader.load). KHÔNG lấy mẫu: vẽ đủ splat như viewer web (`maxSplats` nil = tất cả).
-    private static func prepareSplats(_ b: GSX.Block, maxSplats: Int? = nil) -> (positions: [SIMD3<Float>], colors: [SIMD4<Float>],
-                                                          cov0: [SIMD3<Float>], cov1: [SIMD3<Float>], extent: SIMD3<Float>) {
-        let step = maxSplats.map { max(1, Int((Double(b.count) / Double($0)).rounded(.up))) } ?? 1
-        var positions: [SIMD3<Float>] = [], colors: [SIMD4<Float>] = [], cov0: [SIMD3<Float>] = [], cov1: [SIMD3<Float>] = []
-        let cap = b.count / step + 1
-        positions.reserveCapacity(cap); colors.reserveCapacity(cap); cov0.reserveCapacity(cap); cov1.reserveCapacity(cap)
-        for i in stride(from: 0, to: b.count, by: step) {
-            let p = b.positions[i]
-            positions.append(SIMD3(p.x, -p.y, -p.z))
+    /// Đường nét đứt (primitive .line, 120 vạch) từ gốc tới `end` + quả cầu ở hai đầu, màu vàng, vẽ đè
+    /// (không đọc/ghi depth) để luôn thấy dù model ở xa hay bị che.
+    private static func makeGuideLine(to end: SIMD3<Float>, dashes: Int = 60) -> SCNNode {
+        // SceneKit vẽ primitive .line chỉ 1 px → dùng hình trụ cho từng vạch để có độ dày, màu magenta phát sáng
+        let color = UIColor(red: 1, green: 0, blue: 0.85, alpha: 1)
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = color
+        material.emission.contents = color
+        material.readsFromDepthBuffer = false
+        material.writesToDepthBuffer = false
+
+        let root = SCNNode()
+        root.name = "crsGuide"
+        root.renderingOrder = 30
+        let len = simd_length(end)
+        let dir = end / len
+        let radius = CGFloat(max(len * 0.003, 0.01))              // độ dày theo độ dài để ở xa vẫn thấy
+        let dashLen = len / Float(dashes) * 0.55                  // vạch ~55 % đoạn, còn lại là khoảng trống
+        let dash = SCNCylinder(radius: radius, height: CGFloat(dashLen))
+        dash.radialSegmentCount = 6
+        dash.materials = [material]
+        // trục cylinder là Y → xoay theo hướng đường; ngược hẳn Y thì from:to: ra NaN → quay 180° quanh X
+        let orient = dir.y < -0.9999 ? simd_quatf(angle: .pi, axis: SIMD3(1, 0, 0)) : simd_quatf(from: SIMD3<Float>(0, 1, 0), to: dir)
+        for i in 0 ..< dashes {
+            let t = (Float(i) + 0.5) / Float(dashes)
+            let n = SCNNode(geometry: dash)
+            n.simdPosition = end * t
+            n.simdOrientation = orient
+            n.renderingOrder = 30
+            root.addChildNode(n)
+        }
+        // đánh dấu hai đầu: cầu nhỏ tại điểm đặt và cầu to hơn tại tâm model
+        for (p, r) in [(SIMD3<Float>(repeating: 0), len * 0.008), (end, len * 0.015)] {
+            let sphere = SCNSphere(radius: CGFloat(max(r, 0.02)))
+            sphere.materials = [material]
+            let n = SCNNode(geometry: sphere)
+            n.simdPosition = p
+            n.renderingOrder = 30
+            root.addChildNode(n)
+        }
+        return root
+    }
+
+    /// Dữ liệu .gsx giải mã → dạng SplatCloud cần: cộng lại origin (header), lật Y/Z (COLMAP → SceneKit),
+    /// trừ tâm. `center` nil = tự lấy theo phân vị như PLYReader.load; có = dùng tâm cho sẵn (để thấy model dịch).
+    /// Làm bằng Double vì toạ độ UTM ~10⁵–10⁶ m. KHÔNG lấy mẫu: vẽ đủ splat như viewer web.
+    private static func prepareSplats(_ b: GSX.Block, origin: SIMD3<Double>, center fixed: SIMD3<Double>?)
+        -> (positions: [SIMD3<Float>], colors: [SIMD4<Float>], cov0: [SIMD3<Float>], cov1: [SIMD3<Float>],
+            extent: SIMD3<Float>, center: SIMD3<Double>) {
+        var world = [SIMD3<Double>](); world.reserveCapacity(b.count)
+        var colors: [SIMD4<Float>] = [], cov0: [SIMD3<Float>] = [], cov1: [SIMD3<Float>] = []
+        colors.reserveCapacity(b.count); cov0.reserveCapacity(b.count); cov1.reserveCapacity(b.count)
+        for i in 0 ..< b.count {
+            let p = origin + SIMD3<Double>(b.positions[i])
+            world.append(SIMD3(p.x, -p.y, -p.z))
             colors.append(b.colors[i])
             // Σ' = F·Σ·F với F = diag(1,−1,−1): Σxy, Σxz đổi dấu; Σxx, Σyy, Σyz, Σzz giữ nguyên
             let a = b.cov0[i]
             cov0.append(SIMD3(a.x, -a.y, -a.z))
             cov1.append(b.cov1[i])
         }
-        let (lo, mid, hi) = PLYReader.percentiles(of: positions)
-        let center = SIMD3(mid.x, lo.y, mid.z)
-        for i in positions.indices { positions[i] -= center }
-        return (positions, colors, cov0, cov1, hi - lo)
+        // phân vị trên mẫu ≤ 50k (float đủ vì chỉ để lấy tâm/extent tương đối)
+        let step = max(1, world.count / 50_000)
+        var sample: [SIMD3<Float>] = []; sample.reserveCapacity(world.count / step + 1)
+        let anchor = world.first ?? .zero
+        for i in stride(from: 0, to: world.count, by: step) { sample.append(SIMD3<Float>(world[i] - anchor)) }
+        let (lo, mid, hi) = sample.isEmpty ? (SIMD3<Float>(), SIMD3<Float>(), SIMD3<Float>()) : PLYReader.percentiles(of: sample)
+        let own = anchor + SIMD3<Double>(SIMD3(mid.x, lo.y, mid.z))
+        let center = fixed ?? own
+        var positions = [SIMD3<Float>](); positions.reserveCapacity(world.count)
+        for w in world { positions.append(SIMD3<Float>(w - center)) }
+        return (positions, colors, cov0, cov1, hi - lo, own)
     }
 
     func setPointCloudSize(_ meters: Float?) {
@@ -193,18 +249,39 @@ class DemoSceneContext: NSObject, DemoEventContext {
 
     /// Giả lập SfmProject + BVHReader: đọc/sinh dữ liệu ở thread nền, về main tạo node.
     /// `.none`/`.sample` = địa hình sinh bằng code; `.url` = file .ply (thường hoặc Gaussian splatting).
-    func loadPointCloud(_ source: ModelSource) {
-        pointCloudNode?.removeFromParentNode()
+    /// Renderer cũ giữ thêm một lúc: SCNNode.rendererDelegate là `assign` (không giữ, không tự về nil),
+    /// thread render có thể đang giữa frame còn gọi renderNode → thả ngay là objc_msgSend vào object đã chết.
+    private var retiredRenderers: [SplatRenderer] = []
+
+    private func retireSplatNode() {
+        if let node = pointCloudNode {
+            node.rendererDelegate = nil
+            node.enumerateChildNodes { child, _ in child.rendererDelegate = nil }
+            node.removeFromParentNode()
+        }
+        if let r = splatRenderer {
+            retiredRenderers.append(r)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.retiredRenderers.removeAll { $0 === r }
+            }
+        }
         pointCloudNode = nil
+        splatRenderer = nil
+    }
+
+    func loadPointCloud(_ source: ModelSource) {
+        retireSplatNode()
         pointCloud = nil
         splatCloud = nil
-        splatRenderer = nil
         pointCloudRequest += 1
         let request = pointCloudRequest
         lastCloudSource = source
         let wantSplats = splatMode
         let wantGSX = gsxMode
-        let crs = crsTransform
+        let crs = crsCode.map { (from: $0, to: CRS.displaySystem) }       // hệ gốc đã gán → hệ hiển thị
+        var fileKey = ""
+        if case .url(let u) = source { fileKey = u.absoluteString }
+        let baseCenter = crs == nil ? nil : baseCenters[fileKey]
         delegate?.demo(status: "Đang tạo point cloud…")
 
         Task.detached(priority: .userInitiated) { [weak self] in
@@ -213,6 +290,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
                 let built: BuiltCloud
                 var info = "Địa hình mẫu"
                 var extent: SIMD3<Float>?
+                var shift: SIMD3<Float>?                 // tâm model mới − điểm đặt (hệ local node) khi đổi hệ toạ độ
                 switch source {
                 case .none, .sample:
                     guard let c = MetalPointCloud.makeTerrain(device: device) else { throw CloudError("Không tạo được MTLBuffer") }
@@ -225,20 +303,26 @@ class DemoSceneContext: NSObject, DemoEventContext {
                     let (gsx, stats) = try Self.gsxFromPLY(local, crs: crs, status: status)
                     status("Giải mã .gsx…")
                     let (meta, all) = try GSX.decodeAll(gsx) { i, n in status("Giải mã .gsx: \(i)/\(n) block") }
-                    let s = Self.prepareSplats(all)
+                    let s = Self.prepareSplats(all, origin: meta.header.origin, center: baseCenter)
                     extent = s.extent
                     guard let c = SplatCloud(device: device, positions: s.positions, colors: s.colors, cov0: s.cov0, cov1: s.cov1)
                     else { throw CloudError("Không tạo được MTLBuffer") }
                     built = .splats(c)
-                    info = String(format: "3DGS qua .gsx %d/%d splat · %d block · %.1f MB · %.1f × %.1f × %.1f",
-                                  s.positions.count, meta.header.splatCount, meta.header.blockCount,
+                    if crs == nil { await MainActor.run { self?.baseCenters[fileKey] = s.center } }
+                    info = String(format: "3DGS qua .gsx %d splat · %d block · %.1f MB · %.1f × %.1f × %.1f",
+                                  s.positions.count, meta.header.blockCount,
                                   Double(gsx.count) / 1048576, s.extent.x, s.extent.y, s.extent.z)
                     if let crs {
-                        if let i = stats?.crs, !i.identity {
-                            info += String(format: " · CRS %@→%@: xoay %.3f° · scale %.6f · tâm đích (%.1f, %.1f)",
-                                           crs.from, crs.to, i.yawDeg, i.scale, i.centerTarget.x, i.centerTarget.y)
+                        info += " · gốc \(crs.from) → hiển thị \(crs.to)"
+                        if let base = baseCenter {
+                            let d = s.center - base          // hệ SceneKit: x Đông, z = −Bắc
+                            shift = SIMD3<Float>(d)
+                            info += String(format: " · dịch Δ Đông %.1f m, Bắc %.1f m (%.1f km)", d.x, -d.z, simd_length(SIMD2(d.x, d.z)) / 1000)
                         } else {
-                            info += " · CRS \(crs.from)→\(crs.to)" + (stats == nil ? " (cache)" : " (trùng hệ)")
+                            info += " · (chưa có tâm gốc: nạp 'Gốc PLY' trước để thấy dịch chuyển)"
+                        }
+                        if let i = stats?.crs, !i.identity {
+                            info += String(format: " · xoay %.3f° · scale %.6f", i.yawDeg, i.scale)
                         }
                     }
                 case .url(let url):
@@ -294,6 +378,11 @@ class DemoSceneContext: NSObject, DemoEventContext {
                     self.pointCloudNode = node
                     self.pointCloudExtent = extent
                     self.applyPointCloudSize()
+                    if let shift, simd_length(shift) > 0.01 {
+                        // Đường nét đứt từ điểm đặt (gốc node = chỗ model đứng khi Raw) tới tâm model ở hệ mới.
+                        // Là con của node cloud nên ăn theo scale "Cỡ cloud" và theo arNode khi đặt trong AR.
+                        node.addChildNode(Self.makeGuideLine(to: shift))
+                    }
                     self.delegate?.demo(didLoad: built.count)
                     self.delegate?.demo(status: info)
                 }
@@ -306,6 +395,7 @@ class DemoSceneContext: NSObject, DemoEventContext {
     func clear() {
         delegate = nil
         DispatchQueue.main.async {
+            self.retireSplatNode()
             self.arNode.enumerateChildNodes { node, _ in node.removeFromParentNode() }
             self.arNode.removeFromParentNode()
         }

@@ -84,7 +84,10 @@ enum GSXEncoder {
         let E = CRS.forward(from: from, to: to, x: cx + step, y: cy)
         let N = CRS.forward(from: from, to: to, x: cx, y: cy + step)
         let ex = (E.0 - C.0) / step, ey = (E.1 - C.1) / step, nx = (N.0 - C.0) / step, ny = (N.1 - C.1) / step
-        let yaw = atan2(ey, ex), scale = (hypot(ex, ey) + hypot(nx, ny)) / 2
+        var yaw = atan2(ey, ex), scale = (hypot(ex, ey) + hypot(nx, ny)) / 2
+        // Toạ độ raw gán nhầm hệ (vd. lat/lon mà số không phải độ) → phép chiếu ra NaN/∞: không để trap ở quantize
+        if !yaw.isFinite { yaw = 0 }
+        if !scale.isFinite || scale <= 0 { scale = 1 }
         info = CRSInfo(yawDeg: yaw * 180 / .pi, scale: scale, centerSource: SIMD2(cx, cy), centerTarget: SIMD2(C.0, C.1), identity: false)
         // qR = quay quanh Z góc yaw, (w, x, y, z) — cùng thứ tự rot_0..3 của PLY
         let h = yaw / 2, qR = (w: Float(cos(h)), x: Float(0), y: Float(0), z: Float(sin(h)))
@@ -93,7 +96,11 @@ enum GSXEncoder {
         var P = P0
         for i in 0 ..< n {
             let p = CRS.forward(from: from, to: to, x: Double(P0.x[i]), y: Double(P0.y[i]))
-            P.x[i] = Float(p.0); P.y[i] = Float(p.1)                     // z giữ nguyên
+            if p.0.isFinite && p.1.isFinite && abs(p.0) < 1e9 && abs(p.1) < 1e9 {
+                P.x[i] = Float(p.0); P.y[i] = Float(p.1)                 // z giữ nguyên
+            } else {
+                P.opacity[i] = -100                                      // sigmoid ≈ 0 → filter bỏ splat này
+            }
             if rotateQuat {
                 let a = qR, b = (w: P0.rot0[i], x: P0.rot1[i], y: P0.rot2[i], z: P0.rot3[i])
                 P.rot0[i] = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
@@ -113,31 +120,42 @@ enum GSXEncoder {
         let t0 = Date()
         var stats = Stats()
 
-        // ── đổi hệ toạ độ trước mọi thứ ──
+        // ── filter trên dữ liệu GỐC (opacity < 0.02, scale > 3 m, aniso > 200) ──
+        // Lambda lọc sau khi đổi hệ; ở đây lọc trước, vì gán hệ gốc không hợp số raw (vd. lat/lon cho số mét)
+        // sẽ cộng ln(scale) rất lớn vào mọi splat → "scale > 3 m" bỏ sạch, ra file rỗng.
         var P = input
-        if let crs = params.crs {
-            let (Pt, info) = try applyCRS(input, from: crs.from, to: crs.to, rotateQuat: params.rotateQuat, progress: progress)
-            P = Pt; stats.crs = info
-            if !info.identity {
-                progress(String(format: "CRS: xoay %.3f° · scale %.6f · tâm đích (%.2f, %.2f)", info.yawDeg, info.scale, info.centerTarget.x, info.centerTarget.y))
-            }
-        }
-
-        // ── filter ──
-        let src = P                                   // sau đổi hệ (hoặc chính input nếu không đổi)
         if params.filter {
-            var keep: [Int] = []; keep.reserveCapacity(src.count)
-            for i in 0 ..< src.count {
-                if sigmoid(src.opacity[i]) < 0.02 { continue }
-                let s0 = exp(src.scale0[i]), s1 = exp(src.scale1[i]), s2 = exp(src.scale2[i])
+            var keep: [Int] = []; keep.reserveCapacity(input.count)
+            for i in 0 ..< input.count {
+                if sigmoid(input.opacity[i]) < 0.02 { continue }
+                if !(input.x[i].isFinite && input.y[i].isFinite && input.z[i].isFinite) { continue }
+                let s0 = exp(input.scale0[i]), s1 = exp(input.scale1[i]), s2 = exp(input.scale2[i])
                 let mx = max(s0, s1, s2); if mx > 3 { continue }
                 let mn = min(s0, s1, s2); if mx / max(mn, 1e-9) > 200 { continue }
                 keep.append(i)
             }
-            if keep.count < src.count { P = src.filtered(by: keep) }
+            if keep.count < input.count { P = input.filtered(by: keep) }
         }
-        stats.kept = P.count; stats.dropped = src.count - P.count
-        progress("filter: giữ \(P.count)/\(src.count)")
+        stats.kept = P.count; stats.dropped = input.count - P.count
+        progress("filter: giữ \(P.count)/\(input.count)")
+
+        // ── đổi hệ toạ độ (= chỗ Lambda sẽ áp ma trận từ server) ──
+        if let crs = params.crs {
+            let (Pt, info) = try applyCRS(P, from: crs.from, to: crs.to, rotateQuat: params.rotateQuat, progress: progress)
+            stats.crs = info
+            // bỏ điểm không hữu hạn sau phép chiếu (applyCRS đã đánh dấu opacity = -100)
+            var keep: [Int] = []; keep.reserveCapacity(Pt.count)
+            for i in 0 ..< Pt.count where Pt.opacity[i] > -99 && Pt.x[i].isFinite && Pt.y[i].isFinite { keep.append(i) }
+            P = keep.count < Pt.count ? Pt.filtered(by: keep) : Pt
+            if !info.identity {
+                progress(String(format: "CRS: xoay %.3f° · scale %.6f · tâm đích (%.2f, %.2f) · giữ %d/%d",
+                                info.yawDeg, info.scale, info.centerTarget.x, info.centerTarget.y, P.count, Pt.count))
+                if info.scale > 1.5 || info.scale < 0.67 {
+                    progress(String(format: "CẢNH BÁO: scale cục bộ %.3f bất thường → hệ gốc gán không hợp với số raw của PLY", info.scale))
+                }
+            }
+            stats.kept = P.count; stats.dropped = input.count - P.count
+        }
 
         // ── AABB ──
         var gMin = SIMD3<Float>(repeating: .greatestFiniteMagnitude), gMax = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)

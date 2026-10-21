@@ -42,6 +42,8 @@ enum GSX {
         var aabbMin = SIMD3<Float>(repeating: 0)
         var aabbMax = SIMD3<Float>(repeating: 0)
         var posBits = 12, shBits = 8, scaleBits = 8, rotBits = 8, opaBits = 8
+        /// Origin f64 đã trừ lúc convert (byte 60–83, đề xuất Atlas CRS). Toạ độ thật = origin + toạ độ trong block.
+        var origin = SIMD3<Double>(repeating: 0)
     }
 
     struct BlockEntry {
@@ -107,6 +109,8 @@ enum GSX {
             h.posBits = Int(raw[44]); h.shBits = Int(raw[45]); h.scaleBits = Int(raw[46]); h.rotBits = Int(raw[47]); h.opaBits = Int(raw[48])
             h.nodeCount = Int(raw.loadUnaligned(fromByteOffset: 52, as: UInt32.self))
             h.rootNodeId = raw.loadUnaligned(fromByteOffset: 56, as: Int32.self)
+            h.origin = SIMD3(raw.loadUnaligned(fromByteOffset: 60, as: Double.self), raw.loadUnaligned(fromByteOffset: 68, as: Double.self), raw.loadUnaligned(fromByteOffset: 76, as: Double.self))
+            if !h.origin.x.isFinite || !h.origin.y.isFinite || !h.origin.z.isFinite { h.origin = .zero }
             return h
         }
         let need = headerSize + header.blockCount * indexEntrySize + header.nodeCount * nodeSize
