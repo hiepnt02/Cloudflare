@@ -10,6 +10,7 @@
 		08FAE3E295F9C5B9109373FD /* RTKConnectionProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A5F3B950DBBD9EA0B1975B /* RTKConnectionProfileTests.swift */; };
 		00531547DA5F67E22028EE9D /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368F701A59C9DE561ED49594 /* SortOption.swift */; };
 		0F84B7115F922996EF809D16 /* ProjectListViewType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D85048E03CFD66D9553715 /* ProjectListViewType.swift */; };
+		10BBC1E0BB58DE7D4C56ABDF /* ViewARApplyCalibrationBaselineEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A052C64A156C8D8274E9593 /* ViewARApplyCalibrationBaselineEvent.swift */; };
 		1412AA0002000000ABCDEF02 /* DropdownLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1412AA0001000000ABCDEF01 /* DropdownLayout.swift */; };
 		1412AA0003000000ABCDEF03 /* DropdownLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1412AA0001000000ABCDEF01 /* DropdownLayout.swift */; };
 		1412AA0012000000ABCDEF12 /* DropdownDisplayable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1412AA0011000000ABCDEF11 /* DropdownDisplayable.swift */; };
@@ -666,6 +667,7 @@
 		A1231423C7000001AAAA0001 /* UploadBatchResultPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1231423C7000002AAAA0002 /* UploadBatchResultPopup.swift */; };
 		BCCF2CC47CAD439F8BA895D2 /* UploadPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FF4142B3CF48A4A5D32233 /* UploadPhase.swift */; };
 		C65104D8E07F64009A136C42 /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368F701A59C9DE561ED49594 /* SortOption.swift */; };
+		AF20DFB419546AB8507D0319 /* ViewARApplyCalibrationBaselineEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A052C64A156C8D8274E9593 /* ViewARApplyCalibrationBaselineEvent.swift */; };
 		C7556C4E2C0D610E006658CF /* UploadProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7556C4D2C0D610E006658CF /* UploadProject.swift */; };
 		C7556C4F2C0D610E006658CF /* UploadProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7556C4D2C0D610E006658CF /* UploadProject.swift */; };
 		C77A95442CB7BD6C006F8C8F /* BaseUploadPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77A95432CB7BD6C006F8C8F /* BaseUploadPopup.swift */; };
@@ -1152,6 +1154,7 @@
 		A1231423C3000003AAAA0003 /* UploadQueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueueManager.swift; sourceTree = "<group>"; };
 		A1231423C4000001AAAA0001 /* UploadTransports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadTransports.swift; sourceTree = "<group>"; };
 		A1231423C7000002AAAA0002 /* UploadBatchResultPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadBatchResultPopup.swift; sourceTree = "<group>"; };
+		9A052C64A156C8D8274E9593 /* ViewARApplyCalibrationBaselineEvent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewARApplyCalibrationBaselineEvent.swift; sourceTree = "<group>"; };
 		A7EE273941EBA113C634F4E0 /* ManualCalibrationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCalibrationEvent.swift; sourceTree = "<group>"; };
 		AB0A82243DB838260CA5716E /* RTKProfileCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RTKProfileCard.swift; sourceTree = "<group>"; };
 		B2E5791A16C4FBD41893AFB9 /* ManualCalibrationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCalibrationContext.swift; sourceTree = "<group>"; };
@@ -1638,6 +1641,7 @@
 				8441B9C33024392600B7577D /* ViewARPointcloudVisibleEvent.swift */,
 				8441B9C43024392600B7577D /* ViewARShowHideLightEvent.swift */,
 				8441B9C53024392600B7577D /* ViewARUpdatePositionEvent.swift */,
+				9A052C64A156C8D8274E9593 /* ViewARApplyCalibrationBaselineEvent.swift */,
 			);
 			path = ViewAR;
 			sourceTree = "<group>";
@@ -2760,6 +2764,7 @@
 				762A7AFA10FD36B1869704E0 /* RTKProfileOrdering.swift in Sources */,
 				DBD734EA8C480A1937BC8D73 /* RTKProfileRadioCard.swift in Sources */,
 				E1BE0A33DC374416C61B3311 /* RTKProfileRadioList.swift in Sources */,
+				10BBC1E0BB58DE7D4C56ABDF /* ViewARApplyCalibrationBaselineEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3095,6 +3100,7 @@
 				0F84B7115F922996EF809D16 /* ProjectListViewType.swift in Sources */,
 				CBD0E981CDDDFD893B75A4F1 /* ProjectListColumnToggle.swift in Sources */,
 				F2866E3AFE3B567B5C1D9DF3 /* ProjectListColumnSettingsSection.swift in Sources */,
+				AF20DFB419546AB8507D0319 /* ViewARApplyCalibrationBaselineEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

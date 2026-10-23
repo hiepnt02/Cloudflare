@@ -539,8 +539,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "方向点が基準点に近すぎます。別の点を選択してください。";
 "CALIBRATION_COMPLETE" = "完了";
 "CALIBRATION_BACK" = "戻る";
-"CALIBRATION_GUIDE_STEP1" = "モデル上で基準点と方向点を選択してください";
-"CALIBRATION_GUIDE_STEP2" = "基準点と方向点を配置する場所を指示して下さい。";
+"CALIBRATION_GUIDE_STEP1" = "【モデル上】で基準点と方向点を選択してください。";
+"CALIBRATION_GUIDE_STEP2" = "【現実空間】で基準点と方向点を配置する場所を指示してください。";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "VRS提供会社";

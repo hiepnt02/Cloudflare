@@ -78,7 +78,8 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
         } else {
             start()
         }
-        arSceneView?.debugOptions = [.showFeaturePoints]
+        // QUICK-1049: điểm đặc trưng gây rối khung hình ở màn hiệu chỉnh, ẩn đi.
+        arSceneView?.debugOptions = []
     }
 
     func end() {
@@ -283,7 +284,7 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
         let dotNode = SCNNode(geometry: sphere)
         dotNode.name = CalibrationNames.cameraDot
         dotNode.simdPosition = worldPosition
-        dotNode.renderingOrder = CalibrationVectorArrow.renderingOrder
+        dotNode.renderingOrder = CalibrationVectorArrow.dotRenderingOrder
 
         DispatchQueue.main.async { [weak self] in
             self?.arSceneView?.scene.rootNode.addChildNode(dotNode)

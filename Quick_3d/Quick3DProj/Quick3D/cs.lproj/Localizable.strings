@@ -539,8 +539,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "Směrový bod je příliš blízko referenčního bodu. Vyberte jiný bod.";
 "CALIBRATION_COMPLETE" = "Hotovo";
 "CALIBRATION_BACK" = "Zpět";
-"CALIBRATION_GUIDE_STEP1" = "Vyberte prosím na modelu referenční bod a směrový bod.";
-"CALIBRATION_GUIDE_STEP2" = "Určete prosím, kam umístit referenční bod a směrový bod.";
+"CALIBRATION_GUIDE_STEP1" = "Na modelu: klepněte na referenční bod a směrový bod.";
+"CALIBRATION_GUIDE_STEP2" = "V reálném světě: klepněte na místo, kam je umístit.";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "Poskytovatel VRS";

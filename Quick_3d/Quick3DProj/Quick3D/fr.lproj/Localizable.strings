@@ -539,8 +539,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "Le point de direction est trop proche du point de référence. Veuillez en sélectionner un autre.";
 "CALIBRATION_COMPLETE" = "Terminé";
 "CALIBRATION_BACK" = "Retour";
-"CALIBRATION_GUIDE_STEP1" = "Veuillez sélectionner le point de référence et le point de direction sur le modèle.";
-"CALIBRATION_GUIDE_STEP2" = "Veuillez indiquer où placer le point de référence et le point de direction.";
+"CALIBRATION_GUIDE_STEP1" = "Sur le modèle : touchez le point de référence et le point de direction.";
+"CALIBRATION_GUIDE_STEP2" = "Dans le monde réel : touchez l’endroit où les placer.";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "Fournisseur VRS";

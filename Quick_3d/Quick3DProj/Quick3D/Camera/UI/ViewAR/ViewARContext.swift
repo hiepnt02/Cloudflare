@@ -391,6 +391,12 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
         }
     }
 
+    func applyCalibrationBaseline(position: SIMD3<Float>, eulerAngles: SIMD3<Float>, scale: Float) {
+        self.arPosition = position
+        self.arEulerAngles = eulerAngles
+        updateARPosition(position: .zero, eulerAngles: .zero, scale: scale)
+    }
+
     func updateAxisPosition() {
         if Thread.isMainThread {
             axisNode.simdPosition = arNode.simdPosition
