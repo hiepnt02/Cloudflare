@@ -258,6 +258,7 @@
 "REMOVED_POINT_CLOUD" = "点群除去済み";
 "REMOVE_POINT_CLOUD" = "点群除去";
 "INTERPOLATE_SETTING_C1" = "Smart Construction Dashboardにアップロード時、穴補間を行う";
+"AI_PROCESSING_OPTION" = "AI処理";
 "INTERPOLATE_SETTING_D1" = "このオプションはSmart Construction Dashboardへアップロードのボタンがonの時のみ有効となります。";
 "INTERPOLATE_SETTING_D2" =  "このオプションをonにすることで、生成した点群の中で穴（閉領域）となっている部分に関しては穴が補完された状態でアップロードされます。";
 "ADVANCED_SETTINGS" = "詳細設定";

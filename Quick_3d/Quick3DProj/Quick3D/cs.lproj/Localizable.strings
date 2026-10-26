@@ -259,6 +259,7 @@
 "REMOVED_POINT_CLOUD" = "Odstraněno mračna bodů";
 "REMOVE_POINT_CLOUD" = "Odstraněno mračna bodů";
 "INTERPOLATE_SETTING_C1" = "Při nahrávání do Smart Construction Dashboard proveďte interpolaci děr";
+"AI_PROCESSING_OPTION" = "Zpracování AI";
 "INTERPOLATE_SETTING_D1" = "Tato možnost je platná pouze v případě, že je zapnuté tlačítko Nahrát na řídicí panel inteligentní výstavby.";
 "INTERPOLATE_SETTING_D2" = "Zapnutím této možnosti budou části generovaného mračna bodů, které jsou dírami (uzavřenými oblastmi), nahrány s vyplněnými dírami.";
 "ADVANCED_SETTINGS" = "Pokročilé nastavení";

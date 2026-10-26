@@ -121,7 +121,7 @@ struct Quick3DApp: App {
                     searchText: $newProject.jobSiteName,
                     siteSelected: $newProject.jobSiteValue,
                     isInQueue: $newProject.isInQueue
-                ) { jobSite, useARMarker, coordinateSetting, linkDashboard, shouldInterpolate, vCoord, hCoord, cat in
+                ) { jobSite, useARMarker, coordinateSetting, linkDashboard, shouldInterpolate, useAiProcessing, vCoord, hCoord, cat in
                     guard let receiveUrl = newProject.url else {
                         return
                     }
@@ -149,7 +149,8 @@ struct Quick3DApp: App {
                             useARMarker: useARMarker,
                             coordinateSetting: coordinateSetting,
                             linkDashboard: linkDashboard,
-                            shouldInterpolate: shouldInterpolate
+                            shouldInterpolate: shouldInterpolate,
+                            useAiProcessing: useAiProcessing
                         )
                     )
                 }
@@ -166,7 +167,7 @@ struct Quick3DApp: App {
                     searchText: $editProject.jobSiteName,
                     siteSelected: $editProject.jobSiteValue,
                     isInQueue: $editProject.isInQueue
-                ) { jobSite, useARMarker, coordinateSetting, linkDashboard, shouldInterpolate, vCoord, hCoord, cat in
+                ) { jobSite, useARMarker, coordinateSetting, linkDashboard, shouldInterpolate, useAiProcessing, vCoord, hCoord, cat in
                     guard var cat = cat else { return }
                     // Update coordinate
                     cat.vertical = vCoord
@@ -193,7 +194,8 @@ struct Quick3DApp: App {
                             useARMarker: useARMarker,
                             coordinateSetting: coordinateSetting,
                             linkDashboard: linkDashboard,
-                            shouldInterpolate: shouldInterpolate
+                            shouldInterpolate: shouldInterpolate,
+                            useAiProcessing: useAiProcessing
                         )
                     )
                 }
@@ -300,6 +302,7 @@ struct Quick3DApp: App {
                 }
                 .zIndex(11)
                 .environmentObject(userManager)
+
             }
             .onLoad {
                 userManager.getUserInfo {

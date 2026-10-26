@@ -258,6 +258,7 @@
 "REMOVED_POINT_CLOUD" = "Punktwolke entfernt";
 "REMOVE_POINT_CLOUD" = "Punktwolke entfernt";
 "INTERPOLATE_SETTING_C1" = "Führen Sie beim Hochladen in das Smart Construction Dashboard eine Lochinterpolation durch";
+"AI_PROCESSING_OPTION" = "KI-Verarbeitung";
 "INTERPOLATE_SETTING_D1" = "Diese Option ist nur gültig, wenn die Schaltfläche „Auf Smart Construction Dashboard hochladen“ aktiviert ist.";
 "INTERPOLATE_SETTING_D2" = "Wenn Sie diese Option aktivieren, werden Teile der generierten Punktwolke, die Löcher (geschlossene Bereiche) sind, mit ausgefüllten Löchern hochgeladen.";
 "ADVANCED_SETTINGS" = "Erweiterte Einstellung";

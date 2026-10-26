@@ -125,7 +125,7 @@ class UploadBackgroundTask: NSObject {
         return data
     }
     
-    func uploadStream(with cat: Cat, fileUrl: URL, jobsite: String, useARMarker: Bool, coordinateSetting: Bool, linkDashboard: Bool, shouldInterpolate: Bool) {
+    func uploadStream(with cat: Cat, fileUrl: URL, jobsite: String, useARMarker: Bool, coordinateSetting: Bool, linkDashboard: Bool, shouldInterpolate: Bool, useAiProcessing: Bool = false) {
         var request = URLRequest(url: URL(string: Constant.baseUrl + "api/v1/project")!)
         
         if cat.projectId != nil {
@@ -166,6 +166,7 @@ class UploadBackgroundTask: NSObject {
                         "coordinateSetting": coordinateSetting ? "1" : "0",
                         "linkDashboard": linkDashboard ? "1" : "0",
                         "shouldInterpolate": shouldInterpolate ? "1" : "0",
+                        "useAiProcessing": useAiProcessing ? "1" : "0",
                         "timeStamp": cat.createDate.toString(format: Constant.rfcFormat, timeZone: .utc),
                         "timezone": TimeZone.current.secondsFromGMT()/60,
                         "vertical": cat.vertical ?? "",

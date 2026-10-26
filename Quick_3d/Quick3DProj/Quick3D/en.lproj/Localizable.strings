@@ -259,6 +259,7 @@
 "REMOVED_POINT_CLOUD" = "Removed point cloud";
 "REMOVE_POINT_CLOUD" = "Remove point cloud";
 "INTERPOLATE_SETTING_C1" = "When uploading to the Smart Construction Dashboard, perform hole interpolation";
+"AI_PROCESSING_OPTION" = "AI processing";
 "INTERPOLATE_SETTING_D1" = "This option is only available when the Upload to Smart Construction Dashboard button is on.";
 "INTERPOLATE_SETTING_D2" = "By turning this option on, any holes (closed areas) in the generated point cloud will be filled before uploading.";
 "ADVANCED_SETTINGS" = "Advanced Settings";

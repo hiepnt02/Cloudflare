@@ -80,7 +80,8 @@ final class ZipStreamTransport: UploadJobTransport {
                 useARMarker: parameters.useARMarker,
                 coordinateSetting: parameters.coordinateSetting,
                 linkDashboard: parameters.linkDashboard,
-                shouldInterpolate: parameters.shouldInterpolate
+                shouldInterpolate: parameters.shouldInterpolate,
+                useAiProcessing: parameters.useAiProcessing
             )
         }
     }

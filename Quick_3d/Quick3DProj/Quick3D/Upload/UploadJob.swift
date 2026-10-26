@@ -71,7 +71,8 @@ extension UploadJob {
         useARMarker: Bool,
         coordinateSetting: Bool,
         linkDashboard: Bool,
-        shouldInterpolate: Bool
+        shouldInterpolate: Bool,
+        useAiProcessing: Bool = false
     ) -> UploadJob {
         UploadJob(
             cat: cat,
@@ -82,7 +83,8 @@ extension UploadJob {
                     useARMarker: useARMarker,
                     coordinateSetting: coordinateSetting,
                     linkDashboard: linkDashboard,
-                    shouldInterpolate: shouldInterpolate
+                    shouldInterpolate: shouldInterpolate,
+                    useAiProcessing: useAiProcessing
                 )
             )
         )
@@ -94,6 +96,7 @@ extension UploadJob {
         let coordinateSetting: Bool
         let linkDashboard: Bool
         let shouldInterpolate: Bool
+        let useAiProcessing: Bool
     }
 
     struct ARFileParameters {

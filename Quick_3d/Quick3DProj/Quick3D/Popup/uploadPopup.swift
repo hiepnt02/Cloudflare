@@ -40,6 +40,7 @@ struct UploadPopup: View {
         Bool, // is on coordinate setting
         Bool, // is link dashboard
         Bool, // is should interpolate
+        Bool, // is use AI processing
         String, // vertical coordinate key
         String, // horiznotal coordinate key
         Cat? // cat
@@ -52,7 +53,8 @@ struct UploadPopup: View {
     @State private var coordinateSetting: Bool = false
     @State private var linkDashboard: Bool = false
     @State private var shouldInterpolate: Bool = true
-    
+    @State private var useAiProcessing: Bool = false
+
     @State private var addvancedSettingIsExpanded = false
     @State private var coordinateSettingDisable: Bool = false
 
@@ -125,6 +127,7 @@ struct UploadPopup: View {
                 )
                 .background(userManager.setting.themeColor)
                 .border(.gray, width: 1)
+
             }
         }
         .onTapGesture {
@@ -329,7 +332,12 @@ struct UploadPopup: View {
             )
             .padding(.leading, contentPadding)
             .padding(.bottom, 16)
-            
+
+            // MARK: AI processing (SC_QUICK-2182)
+            aiProcessingView()
+                .padding(.leading, contentPadding)
+                .padding(.bottom, 16)
+
             // MARK: Bottom Buttons View
             bottomButtons()
         }
@@ -348,6 +356,7 @@ struct UploadPopup: View {
             isPjNameValid = true
             isDisableSmartAlign = false
             shouldInterpolate = true
+            useAiProcessing = false
             addvancedSettingIsExpanded = false
             self.coordinateJobSite = nil
             self.vCoordInputted = ""
@@ -773,7 +782,25 @@ struct UploadPopup: View {
         }
         .padding(.bottom, UserSession.isIPhone ? 5 : 10)
     }
-    
+
+    // SC_QUICK-2182: Enable automatic AI cleanup after upload.
+    func aiProcessingView() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack() {
+                Text("AI_PROCESSING_OPTION".localized(userManager.userLanguage))
+                    .font(.body)
+                    .foregroundColor(userManager.setting.textColor)
+
+                Spacer()
+
+                Toggle(isOn: $useAiProcessing){}
+                    .frame(width: 30)
+                    .padding(.trailing, 30)
+            }
+
+        }
+    }
+
     func bottomButtons() -> some View {
         HStack(spacing: 20) {
             // Need to check condition like when clicking button "x"
@@ -933,6 +960,7 @@ extension UploadPopup {
                 coordinateJobSite == nil ? false : coordinateSetting,
                 coordinateJobSite == nil ? false : linkDashboard,
                 shouldInterpolate,
+                useAiProcessing,
                 vCoordKeyFinal,
                 hCoordKeyFinal,
                 cat

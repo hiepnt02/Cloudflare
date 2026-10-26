@@ -259,6 +259,7 @@
 "REMOVED_POINT_CLOUD" = "Punktwolke entfernt";
 "REMOVE_POINT_CLOUD" = "Punktwolke entfernt";
 "INTERPOLATE_SETTING_C1" = "Effectuer une interpolation des trous lors du téléchargement vers Smart Construction Dashboard";
+"AI_PROCESSING_OPTION" = "Traitement IA";
 "INTERPOLATE_SETTING_D1" = "Cette option est valide uniquement lorsque le bouton Télécharger vers le tableau de bord Smart Construction est activé.";
 "INTERPOLATE_SETTING_D2" = "En activant cette option, les parties du nuage de points généré qui sont des trous (zones fermées) seront téléchargées avec les trous remplis.";
 "ADVANCED_SETTINGS" = "Paramètre avancé";
