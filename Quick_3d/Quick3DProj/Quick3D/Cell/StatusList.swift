@@ -94,9 +94,20 @@ struct StatusList: Codable, Equatable {
     var isSfmCompleted: Bool {
         sfm_processing == 2
     }
+
+    var isSfmProcessing: Bool {
+        sfm_processing == ProjectStatus.processing.rawValue ||
+        sfm_processing == ProjectStatus.waiting.rawValue
+    }
     
     var isHelmertCompleted: Bool {
         helmert_transformation == 2 || coordinate_transformation == 2
+    }
+
+    var isHelmertProcessing: Bool {
+        let processingStatuses = [ProjectStatus.processing.rawValue, ProjectStatus.waiting.rawValue]
+        return processingStatuses.contains(helmert_transformation) ||
+        processingStatuses.contains(coordinate_transformation)
     }
     
     var isHelmertFail: Bool {
@@ -164,6 +175,12 @@ struct StatusList: Codable, Equatable {
         }
         else if isARFail {
             return "AR_DATA_CONVERT_ERROR".localized(lang)
+        }
+        else if isHelmertProcessing {
+            return "COORDINATE_CHANGE_PROCESSING".localized(lang)
+        }
+        else if isSfmProcessing {
+            return "SFM_PROCESSING".localized(lang)
         }
         else if(isHelmertFail && !isHelmertCompleted){
             return "COORDINATE_CHANGE_ERROR".localized(lang)

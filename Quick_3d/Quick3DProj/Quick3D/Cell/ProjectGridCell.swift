@@ -240,8 +240,8 @@ struct ProjectGridCell: View, Equatable {
         HStack(spacing: isIPhone ? 4 : 6) {
             if let status = cat.statusList {
                 StatusView(index: 1, status: status.isUploaded ? .completed : (status.isUploadFail ? .error : .normal))
-                StatusView(index: 2, status: status.isSfmCompleted ? .completed : (status.isSfmFail ? .error : .normal))
-                StatusView(index: 3, status: status.isHelmertCompleted ? .completed : (status.isHelmertFail ? .error : .normal))
+                StatusView(index: 2, status: status.isSfmCompleted ? .completed : (status.isSfmFail ? .error : (status.isSfmProcessing ? .processing : .normal)))
+                StatusView(index: 3, status: status.isHelmertCompleted ? .completed : (status.isHelmertFail ? .error : (status.isHelmertProcessing ? .processing : .normal)))
                 StatusView(index: 4, status: status.isVerificationCompleted ? .completed : .normal)
                 StatusView(index: 5, status: status.isDashboardUploaded ? .dashboard_upload : .normal)
             } else {

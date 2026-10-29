@@ -30,6 +30,8 @@
 "COORDINATE_CHANGE_ERROR" = "Chyba souřadnicového systému nebo\npřevodu souřadnic";
 "SFM_PROCESSING_ERROR" = "Chyba zpracování SfM";
 "PROCESSING_DONE" = "Zpracování SfM dokončeno";
+"SFM_PROCESSING" = "Probíhá zpracování SfM";
+"COORDINATE_CHANGE_PROCESSING" = "Probíhá zpracování souřadnicového systému nebo\npřevodu souřadnic";
 "ACCURACY_VERIFY_COMP" = "Potvrzení přesnosti dokončeno";
 "DASHBOARD_UPLOAD_COMPLETE" = "Mraku bodů Nahrávání dokončeno";
 "Details" = "Podrobnosti";

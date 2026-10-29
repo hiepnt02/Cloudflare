@@ -30,6 +30,8 @@
 "COORDINATE_CHANGE_ERROR" = "座標系変換または\n座標変換エラー";
 "SFM_PROCESSING_ERROR" = "SfM処理エラー";
 "PROCESSING_DONE" = "SfM処理完了";
+"SFM_PROCESSING" = "SfM処理中";
+"COORDINATE_CHANGE_PROCESSING" = "座標系変換または\n座標変換処理中";
 "ACCURACY_VERIFY_COMP" = "精度検証完了";
 "DASHBOARD_UPLOAD_COMPLETE" = "点群アップロード完了";
 "Details" = "詳細";

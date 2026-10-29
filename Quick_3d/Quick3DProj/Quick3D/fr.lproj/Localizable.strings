@@ -30,6 +30,8 @@
 "COORDINATE_CHANGE_ERROR" = "Erreur de système de coordonnées ou\nde conversion de coordonnées";
 "SFM_PROCESSING_ERROR" = "Erreur de traitement SfM";
 "PROCESSING_DONE" = "Traitement SfM terminé";
+"SFM_PROCESSING" = "Traitement SfM en cours";
+"COORDINATE_CHANGE_PROCESSING" = "Traitement du système de coordonnées ou\nde la conversion des coordonnées en cours";
 "ACCURACY_VERIFY_COMP" = "Validation de la précision terminée";
 "DASHBOARD_UPLOAD_COMPLETE" = "Nuage de points Téléchargement terminé";
 "Details" = "Détails";

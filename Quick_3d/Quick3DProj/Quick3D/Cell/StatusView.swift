@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StatusView: View {
     enum Status {
-        case normal, completed, error, dashboard_upload
+        case normal, processing, completed, error, dashboard_upload
     }
     let index: Int
     let status: Status
@@ -26,6 +26,18 @@ struct StatusView: View {
                 Text("\(index)")
                     .font(.system(size: UIDevice.current.isIphone ? 10 : 13))
                     .foregroundColor(.white)
+            }
+        case .processing:
+            ZStack {
+                Circle()
+                    .fill(Color(hex: 0xD9D029))
+                    .frame(width: size, height: size)
+                Image("editing")
+                    .resizable()
+                    .renderingMode(.template)
+                    .foregroundColor(.white)
+                    .rotationEffect(.degrees(180))
+                    .frame(width: size, height: size)
             }
         case .completed:
             Image("check")
