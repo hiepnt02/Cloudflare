@@ -106,11 +106,11 @@ struct BaseUploadPopup: View {
     private var dataTypes: [DataType] {
         let all: [DataType] = [
             DataType(type: .Ifc,  label: "DESIGN_DATA_IFC".localized(userManager.userLanguage)),
-            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
+//            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
             DataType(type: .Las,  label: "POINT_DATA_LAS".localized(userManager.userLanguage)),
             DataType(type: .Tif,  label: "GEO_TIF".localized(userManager.userLanguage)),
             DataType(type: .Json, label: "GEO_JSON".localized(userManager.userLanguage)),
-            DataType(type: .Ply,  label: "GAUSSIAN_SPLATTING_PLY".localized(userManager.userLanguage))
+//            DataType(type: .Ply,  label: "GAUSSIAN_SPLATTING_PLY".localized(userManager.userLanguage))
         ]
         return isCurrentAR ? all : all.filter { $0.type != .Las }
     }

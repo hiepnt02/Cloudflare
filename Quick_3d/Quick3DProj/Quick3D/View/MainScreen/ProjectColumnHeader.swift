@@ -73,6 +73,7 @@ struct ProjectColumnHeader: View {
             }
             .padding(.horizontal, ProjectListColumnLayout.Metrics.horizontalPadding(isIPhone: isIPhone))
             .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(userManager.setting.themeColor)
 
