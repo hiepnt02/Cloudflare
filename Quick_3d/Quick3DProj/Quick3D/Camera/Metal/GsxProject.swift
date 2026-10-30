@@ -43,15 +43,6 @@ struct GaussianSplatGeoreference: @unchecked Sendable {
 
 /// Where a project's Gaussian splats come from and how many of them a device keeps loaded.
 enum GsxProject {
-    /// Project list entries do not consistently expose GSX; use the converter lookup.
-    static func isAvailable(projectId: String) async -> Bool {
-        struct Lookup: Decodable { let outputKey: String? }
-        let url = URL(string: Constant.baseUrl + "api/v1/convert/gsplat/by-project/\(projectId)")!
-        let response = await AF.request(url, requestModifier: { $0.timeoutInterval = 15 })
-            .validate().serializingDecodable(Lookup.self).response
-        return response.value?.outputKey?.isEmpty == false
-    }
-
     /// Splats kept loaded. 8 GB phones report ~7.4 GiB, so the tiers sit below the nominal sizes.
     static var defaultBudget: Int {
         let gb = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824

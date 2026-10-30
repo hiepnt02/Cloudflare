@@ -17,8 +17,6 @@ struct ProductDetailView: View {
     @EnvironmentObject var productData: ProductData
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var isShowLoginWebview = false
-    @State private var gaussianProjectId: String?
-    @State private var projectViewerChecked = false
     @EnvironmentObject var userManager: UserManager
     
     @State private var url: URL? = nil
@@ -57,10 +55,6 @@ struct ProductDetailView: View {
     private var isUploading: Bool {
         return isShowUploadingView || isShowUploadedResult
     }
-
-    private var hasOtherProjectLayers: Bool {
-        [cat.las_file, cat.ifc_file, cat.design_file].contains { !($0?.isEmpty ?? true) }
-    }
     
     var btnBack : some View {
         HStack() {
@@ -74,7 +68,7 @@ struct ProductDetailView: View {
                     .resizable()
                     .renderingMode(.template)
                     .foregroundColor(
-                        gaussianProjectId != nil || !projectViewerChecked || cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!) == nil ?
+                        cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!) == nil ?
                             .white
                         : userManager.setting.textColor
                     )
@@ -115,12 +109,6 @@ struct ProductDetailView: View {
     var body: some View {
         ZStack() {
             VStack() {
-                if !projectViewerChecked {
-                    ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let projectId = gaussianProjectId {
-                    GaussianProject3DView(projectId: projectId, title: cat.title)
-                        .id(projectId)
-                } else {
                 ProductWebView(
                     url: cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!),
                     pointCloudUrl: cat.pointCloudFile,
@@ -142,7 +130,6 @@ struct ProductDetailView: View {
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
                     ProductWebView.webView?.scrollView.setContentOffset(CGPoint.init(x: 0, y: 0), animated: true)
                     ProductWebView.webView?.scrollView.isScrollEnabled = false
-                }
                 }
             }
             HStack(alignment: .top) {
@@ -170,18 +157,6 @@ struct ProductDetailView: View {
         }
         .navigationBarHidden(true)
         .edgesIgnoringSafeArea(.bottom)
-        .task(id: cat.projectId) {
-            projectViewerChecked = false
-            gaussianProjectId = nil
-            // Native GSX view is for Gaussian-only projects. Mixed projects keep their
-            // existing viewer so their point-cloud/design layers and tools stay available.
-            if let projectId = cat.projectId, !hasOtherProjectLayers {
-                let hasGSX = await GsxProject.isAvailable(projectId: projectId)
-                guard !Task.isCancelled, cat.projectId == projectId else { return }
-                gaussianProjectId = hasGSX ? projectId : nil
-            }
-            projectViewerChecked = true
-        }
         .onLoad(perform: {
             productData.fetchJobSiteData()
 //            productData.fetchARSelectionData()
