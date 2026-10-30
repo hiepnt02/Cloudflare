@@ -630,7 +630,10 @@ extension ViewARContext {
     /// share its frame.
     private func followPointCloudWithSplats() {
         guard let pointCloudNode else { return }
-        gaussianSplat.followPointCloud(position: pointCloudNode.simdPosition)
+        gaussianSplat.followPointCloud(
+            position: pointCloudNode.simdPosition,
+            projectOffset: project?.offset ?? .zero
+        )
     }
 
     func downloadARProject(projectId: String, isAR: Bool) {

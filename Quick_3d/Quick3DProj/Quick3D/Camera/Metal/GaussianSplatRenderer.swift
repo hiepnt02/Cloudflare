@@ -44,6 +44,9 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     private var stream: GsxStream?
     /// Whether `node.position` places the data (see `followPointCloud`).
     private var followsPointCloud = false
+    private var georeference: GaussianSplatGeoreference?
+    private var georeferenceShift: SIMD3<Double> = .zero
+    private var pointCloudShift: SIMD3<Double> = .zero
 
     // Render-thread state.
     private var pipelines: [String: MTLRenderPipelineState] = [:]
@@ -66,11 +69,12 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     func load(projectId: String) {
         unload()
         hasSplats = Task { [weak self] in
-            guard let url = await GsxProject.fileURL(projectId: projectId) else { return false }
+            guard let file = await GsxProject.file(projectId: projectId) else { return false }
             // unload() runs on the main thread too, so this check cannot race it.
             return await MainActor.run { [weak self] in
                 guard !Task.isCancelled, let self else { return false }
-                self.start(url: url)
+                self.setGeoreference(file.georeference)
+                self.start(url: file.url)
                 return true
             }
         }
@@ -83,6 +87,9 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
             let s = stream
             stream = nil
             followsPointCloud = false
+            georeference = nil
+            georeferenceShift = .zero
+            pointCloudShift = .zero
             return s
         }
         old?.stop()
@@ -91,9 +98,32 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     /// Splats share the point cloud's local frame (the web viewer draws both in one scene with
     /// no transform between them), so they take the point cloud node's position and line up
     /// with it and with the IFC, which is placed relative to the point cloud.
-    func followPointCloud(position: SIMD3<Float>) {
+    func followPointCloud(position: SIMD3<Float>, projectOffset: SIMD3<Double>) {
         node.simdPosition = position
-        lock.withLock { followsPointCloud = true }
+        lock.withLock {
+            followsPointCloud = true
+            // BVHReader centers its node by -center. Adding that position back to
+            // SfmProject.offset yields the stable negative LAS origin, like Web getOffset().
+            // BVHReader has changed the offset to SceneKit Y-up (x, z, -y); convert it back
+            // to project Z-up before composing with projectFromPly.
+            let yUpPosition = SIMD3<Double>(Double(position.x), Double(position.y), Double(position.z))
+            let yUpShift = projectOffset + yUpPosition
+            pointCloudShift = [yUpShift.x, -yUpShift.z, yUpShift.y]
+            if georeference != nil {
+                georeferenceShift = pointCloudShift
+            }
+        }
+    }
+
+    private func setGeoreference(_ georeference: GaussianSplatGeoreference?) {
+        lock.withLock {
+            self.georeference = georeference
+            if let georeference {
+                georeferenceShift = followsPointCloud ? pointCloudShift : georeference.referenceShift
+            } else {
+                georeferenceShift = .zero
+            }
+        }
     }
 
     private func start(url: URL) {
@@ -117,8 +147,15 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
               let target = pass.colorAttachments[0].texture,
               let modelView = arguments[SCNModelViewTransform] as? NSValue,
               let projection = arguments[SCNProjectionTransform] as? NSValue,
-              let current = lock.withLock({ self.stream.map { (stream: $0, follows: followsPointCloud) } }),
-              let model = dataToNode(current.stream, followsPointCloud: current.follows) else { return }
+              let current = lock.withLock({ self.stream.map {
+                  (stream: $0, follows: followsPointCloud, georeference: georeference, shift: georeferenceShift)
+              } }),
+              let model = dataToNode(
+                  current.stream,
+                  followsPointCloud: current.follows,
+                  georeference: current.georeference,
+                  shift: current.shift
+              ) else { return }
         let stream = current.stream
 
         let proj = simd_float4x4(projection.scnMatrix4Value)
@@ -199,8 +236,32 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     /// .gsx data space → node space: same convention as the point cloud readers, which turn
     /// Z-up project coordinates (x, y, z) into (x, z, -y). Centred on the splats themselves
     /// until `followPointCloud(position:)` hands the placement to the node.
-    private func dataToNode(_ stream: GsxStream, followsPointCloud: Bool) -> simd_float4x4? {
+    private func dataToNode(
+        _ stream: GsxStream,
+        followsPointCloud: Bool,
+        georeference: GaussianSplatGeoreference?,
+        shift: SIMD3<Double>
+    ) -> simd_float4x4? {
         let zUpToYUp = simd_float4x4(simd_quatf(angle: -.pi / 2, axis: [1, 0, 0]))
+        if let georeference {
+            let localShift = simd_double4x4(columns: (
+                SIMD4<Double>(1, 0, 0, 0),
+                SIMD4<Double>(0, 1, 0, 0),
+                SIMD4<Double>(0, 0, 1, 0),
+                SIMD4<Double>(shift, 1)
+            ))
+            // Compose in Double precision before converting to the renderer's Float matrix.
+            // Project CRS coordinates can be millions of metres from the origin.
+            let projectLocalFromPly = localShift * georeference.projectFromPly
+            let c = projectLocalFromPly.columns
+            let model = simd_float4x4(columns: (
+                SIMD4<Float>(Float(c.0.x), Float(c.0.y), Float(c.0.z), Float(c.0.w)),
+                SIMD4<Float>(Float(c.1.x), Float(c.1.y), Float(c.1.z), Float(c.1.w)),
+                SIMD4<Float>(Float(c.2.x), Float(c.2.y), Float(c.2.z), Float(c.2.w)),
+                SIMD4<Float>(Float(c.3.x), Float(c.3.y), Float(c.3.z), Float(c.3.w))
+            ))
+            return zUpToYUp * model
+        }
         if followsPointCloud { return zUpToYUp }
         guard let bounds = stream.bounds else { return nil }
         var center = matrix_identity_float4x4
