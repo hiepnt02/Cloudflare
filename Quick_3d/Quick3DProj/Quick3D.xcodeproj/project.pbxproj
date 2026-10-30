@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A2234A010000000000000002 /* GaussianProject3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2234A010000000000000001 /* GaussianProject3DView.swift */; };
+		A2234A010000000000000003 /* GaussianProject3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2234A010000000000000001 /* GaussianProject3DView.swift */; };
 		00531547DA5F67E22028EE9D /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368F701A59C9DE561ED49594 /* SortOption.swift */; };
 		0F84B7115F922996EF809D16 /* ProjectListViewType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D85048E03CFD66D9553715 /* ProjectListViewType.swift */; };
 		1E824ECF1AAC2C882DE4A5C3 /* ProjectListViewType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D85048E03CFD66D9553715 /* ProjectListViewType.swift */; };
@@ -785,6 +787,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A2234A010000000000000001 /* GaussianProject3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianProject3DView.swift; sourceTree = "<group>"; };
 		07C311741CAE7CF4B273859C /* ManualCalibrationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCalibrationDelegate.swift; sourceTree = "<group>"; };
 		0D5F9ADDD3020C2A4ADDB8FB /* Pods_Quick3D.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Quick3D.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1412AA0001000000ABCDEF01 /* DropdownLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropdownLayout.swift; sourceTree = "<group>"; };
@@ -1428,6 +1431,7 @@
 				52245CB32816C97500D90DAA /* DisclaimerAlert.swift */,
 				230D3013281146B500DB951A /* LoginWebView.swift */,
 				230D304D281316A000DB951A /* ProductDetailView.swift */,
+				A2234A010000000000000001 /* GaussianProject3DView.swift */,
 				230D3051281326BF00DB951A /* ProductWebView.swift */,
 				5A68109528D0753100715F4A /* AccountWebView.swift */,
 				5231E12C282A4AC70025067E /* JobSiteWebView.swift */,
@@ -2355,6 +2359,7 @@
 				52AE8C17280C24D400AB2385 /* LoginView.swift in Sources */,
 				FA5C28862E5C16F3007C8403 /* GroupwarePopup.swift in Sources */,
 				230D304E281316A000DB951A /* ProductDetailView.swift in Sources */,
+				A2234A010000000000000002 /* GaussianProject3DView.swift in Sources */,
 				FA817BC82FC82F2300402F37 /* ButtonOpenCamera.swift in Sources */,
 				230D302C28127A4F00DB951A /* UIImage++.swift in Sources */,
 				C7B1FC8C2C8F1068006EFCA2 /* DocumentPicker.swift in Sources */,
@@ -2741,6 +2746,7 @@
 				5AF4382D284E19E8006E6745 /* LoginView.swift in Sources */,
 				FA817BC52FC82EC300402F37 /* ProgressLoadingView.swift in Sources */,
 				5AF4382E284E19E8006E6745 /* ProductDetailView.swift in Sources */,
+				A2234A010000000000000003 /* GaussianProject3DView.swift in Sources */,
 				FAC133E22E4302A1000D5496 /* ButtonSelectFile.swift in Sources */,
 				FA817B932FC7F37E00402F37 /* MainScreen.swift in Sources */,
 				5AF4382F284E19E8006E6745 /* UIImage++.swift in Sources */,

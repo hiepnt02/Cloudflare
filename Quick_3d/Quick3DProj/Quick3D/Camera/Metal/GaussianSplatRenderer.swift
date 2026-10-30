@@ -233,6 +233,41 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
 
     // MARK: - Helpers
 
+    /// Bounds in the containing scene, including the JSON transform. Ordinary SCNView
+    /// uses these to fit its orbit camera without relying on an AR session or geometry.
+    @MainActor
+    func sceneBounds() -> (minimum: SIMD3<Float>, maximum: SIMD3<Float>)? {
+        guard let current = lock.withLock({ self.stream.map {
+            (stream: $0, follows: followsPointCloud, geo: georeference, shift: georeferenceShift)
+        } }), let bounds = current.stream.bounds,
+              let local = dataToNode(current.stream, followsPointCloud: current.follows,
+                                     georeference: current.geo, shift: current.shift) else { return nil }
+        let model = node.simdTransform * local
+        var minimum = SIMD3<Float>(repeating: .infinity)
+        var maximum = SIMD3<Float>(repeating: -.infinity)
+        for corner in 0..<8 {
+            let sign = SIMD3<Float>((corner & 1) == 0 ? -1 : 1,
+                                    (corner & 2) == 0 ? -1 : 1,
+                                    (corner & 4) == 0 ? -1 : 1)
+            let p = model * SIMD4<Float>(bounds.center + sign * bounds.extent / 2, 1)
+            guard p.x.isFinite, p.y.isFinite, p.z.isFinite else { return nil }
+            minimum = simd_min(minimum, SIMD3<Float>(p.x, p.y, p.z))
+            maximum = simd_max(maximum, SIMD3<Float>(p.x, p.y, p.z))
+        }
+        return (minimum, maximum)
+    }
+
+    var hasVisibleSplats: Bool {
+        lock.withLock { stream?.drawState() != nil }
+    }
+
+    var streamFailure: String? {
+        lock.withLock {
+            guard let stats = stream?.stats, stats.state == "failed" else { return nil }
+            return stats.lastError
+        }
+    }
+
     /// .gsx data space → node space: same convention as the point cloud readers, which turn
     /// Z-up project coordinates (x, y, z) into (x, z, -y). Centred on the splats themselves
     /// until `followPointCloud(position:)` hands the placement to the node.

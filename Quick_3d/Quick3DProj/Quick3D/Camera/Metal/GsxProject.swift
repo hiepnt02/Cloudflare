@@ -15,7 +15,7 @@ struct GaussianGeoMetadata: Decodable {
     }
 
     let csType: String
-    let refGPS: ReferenceGPS
+    let refGPS: ReferenceGPS?
     let offset: [Double]
     let rvec: [Double]
     let scale: Double
@@ -43,6 +43,15 @@ struct GaussianSplatGeoreference: @unchecked Sendable {
 
 /// Where a project's Gaussian splats come from and how many of them a device keeps loaded.
 enum GsxProject {
+    /// Project list entries do not consistently expose GSX; use the converter lookup.
+    static func isAvailable(projectId: String) async -> Bool {
+        struct Lookup: Decodable { let outputKey: String? }
+        let url = URL(string: Constant.baseUrl + "api/v1/convert/gsplat/by-project/\(projectId)")!
+        let response = await AF.request(url, requestModifier: { $0.timeoutInterval = 15 })
+            .validate().serializingDecodable(Lookup.self).response
+        return response.value?.outputKey?.isEmpty == false
+    }
+
     /// Splats kept loaded. 8 GB phones report ~7.4 GiB, so the tiers sit below the nominal sizes.
     static var defaultBudget: Int {
         let gb = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
@@ -56,10 +65,11 @@ enum GsxProject {
     static func file(projectId: String) async -> GsxProjectFile? {
         let jobURL = URL(string: Constant.baseUrl + "api/v1/convert/gsplat/by-project/\(projectId)")!
         let job = await AF.request(jobURL).validate().serializingDecodable(JobResponse.self).response
-        // Converted files keep the uploaded name, which may contain spaces.
-        guard let key = job.value?.outputKey?.drop(while: { $0 == "/" })
-                .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let fileURL = URL(string: Constant.baseUrl + key) else {
+        // 2238 serves GSX via a presigned URL; older servers still use outputKey.
+        let signedURL = try? await downloadURL(projectId: projectId, type: "GSX")
+        let key = job.value?.outputKey?.drop(while: { $0 == "/" })
+            .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+        guard let fileURL = signedURL ?? key.flatMap({ URL(string: Constant.baseUrl + $0) }) else {
             // 404: the project has no converted splats.
             if let error = job.error, job.response?.statusCode != 404 {
                 print("[gsplat] by-project failed: \(error)")
@@ -68,24 +78,51 @@ enum GsxProject {
         }
         // The file sits behind CloudFront: get this project's signed cookies first. They land in
         // HTTPCookieStorage.shared, which GsxStream's session also uses.
-        let cookieURL = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)/cookie")!
-        let cookie = await AF.request(cookieURL).serializingData().response
-        if cookie.response?.statusCode != 200 {
-            print("[gsplat] project cookie failed: HTTP \(cookie.response?.statusCode ?? 0)")
-        }
-        let georeference: GaussianSplatGeoreference?
-        if let metadata = job.value?.metadata {
-            do {
-                georeference = try await makeGeoreference(metadata: metadata, projectId: projectId)
-            } catch {
-                // Keep legacy/local rendering available if the project CRS endpoint is unavailable.
-                print("[gsplat] georeference failed; rendering in local coordinates: \(error)")
-                georeference = nil
+        if signedURL == nil {
+            let cookieURL = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)/cookie")!
+            let cookie = await AF.request(cookieURL).serializingData().response
+            if cookie.response?.statusCode != 200 {
+                print("[gsplat] project cookie failed: HTTP \(cookie.response?.statusCode ?? 0)")
             }
-        } else {
-            georeference = nil
         }
-        return GsxProjectFile(url: fileURL, georeference: georeference)
+        do {
+            // Deployed 2238 stores JSON separately; retain inline metadata for older projects.
+            let data = await metadataData(projectId: projectId)
+            let metadata = try data.map { try JSONDecoder().decode(GaussianGeoMetadata.self, from: $0) }
+                ?? job.value?.metadata
+            var georeference: GaussianSplatGeoreference?
+            if let metadata {
+                georeference = try await makeGeoreference(metadata: metadata, projectId: projectId)
+                print("[gsplat] applied offset JSON: \(metadata.csType)")
+            }
+            try Task.checkCancellation()
+            return GsxProjectFile(url: fileURL, georeference: georeference)
+        } catch {
+            print("[gsplat] cannot load project georeference: \(error)")
+            return nil
+        }
+    }
+
+    private static func downloadURL(projectId: String, type: String) async throws -> URL? {
+        let endpoint = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)/ARdownload/\(type)")!
+        let response = await AF.request(endpoint).validate().serializingString().response
+        if response.response?.statusCode == 404 { return nil }
+        let path = try response.result.get()
+        guard let url = URL(string: path), ["https", "http"].contains(url.scheme ?? "") else {
+            throw GeoreferenceError.invalidFileURL
+        }
+        return url
+    }
+
+    private static func metadataData(projectId: String) async -> Data? {
+        do {
+            guard let url = try await downloadURL(projectId: projectId, type: "JSON") else { return nil }
+            return try await AF.request(url).validate().serializingData().value
+        } catch {
+            // JSON is optional, as in Web 2238. S3 may return 403/404 for an absent file.
+            print("[gsplat] offset JSON unavailable: \(error)")
+            return nil
+        }
     }
 
     private struct JobResponse: Decodable {
@@ -110,19 +147,41 @@ enum GsxProject {
         metadata: GaussianGeoMetadata,
         projectId: String
     ) async throws -> GaussianSplatGeoreference {
-        guard metadata.csType == "LOCAL_ENU_CS",
-              metadata.offset.count == 3,
+        guard metadata.offset.count == 3,
               metadata.rvec.count == 3,
               metadata.offset.allSatisfy({ $0.isFinite }),
               metadata.rvec.allSatisfy({ $0.isFinite }),
               metadata.scale.isFinite,
-              metadata.scale != 0 else {
+              metadata.scale > 0 else {
             throw GeoreferenceError.invalidMetadata
         }
 
-        let geographicBasis = enuBasis(metadata.refGPS)
+        let rvec = SIMD3<Double>(metadata.rvec[0], metadata.rvec[1], metadata.rvec[2])
+        let angle = simd_length(rvec)
+        guard angle.isFinite else { throw GeoreferenceError.invalidMetadata }
+        let rotation = angle > 0
+            ? simd_double4x4(simd_quatd(angle: angle, axis: rvec / angle))
+            : matrix_identity_double4x4
+        let offset = SIMD3<Double>(metadata.offset[0], metadata.offset[1], metadata.offset[2])
+        // Web 2238: p_project/ENU = R(rvec) * (scale * p_PLY) + offset.
+        let scaledRotation = simd_double4x4(columns: (
+            rotation.columns.0 * metadata.scale,
+            rotation.columns.1 * metadata.scale,
+            rotation.columns.2 * metadata.scale,
+            SIMD4<Double>(offset, 1)
+        ))
+        if metadata.csType == "PROJECTED_CS" {
+            return GaussianSplatGeoreference(projectFromPly: scaledRotation, referenceShift: -offset)
+        }
+        guard metadata.csType == "LOCAL_ENU_CS", let gps = metadata.refGPS,
+              [gps.latitude, gps.longitude, gps.altitude].allSatisfy({ $0.isFinite }),
+              abs(gps.latitude) <= 90, abs(gps.longitude) <= 180 else {
+            throw GeoreferenceError.invalidMetadata
+        }
+        let geographicBasis = enuBasis(gps)
         var projectedBasis: [SIMD3<Double>] = []
         for point in geographicBasis {
+            try Task.checkCancellation()
             let location = LocationModel(
                 latitude: point.latitude,
                 longitude: point.longitude,
@@ -151,17 +210,6 @@ enum GsxProject {
             throw GeoreferenceError.invalidProjectionBasis
         }
 
-        let rvec = SIMD3<Double>(metadata.rvec[0], metadata.rvec[1], metadata.rvec[2])
-        let angle = simd_length(rvec)
-        let rotation = angle > 0
-            ? simd_double4x4(simd_quatd(angle: angle, axis: rvec / angle))
-            : matrix_identity_double4x4
-        let scaledRotation = simd_double4x4(columns: (
-            rotation.columns.0 * metadata.scale,
-            rotation.columns.1 * metadata.scale,
-            rotation.columns.2 * metadata.scale,
-            SIMD4<Double>(SIMD3<Double>(metadata.offset[0], metadata.offset[1], metadata.offset[2]), 1)
-        ))
         let projectFromPly = projectFromENU * scaledRotation
 
         return GaussianSplatGeoreference(
@@ -208,6 +256,7 @@ enum GsxProject {
 
     private enum GeoreferenceError: Error {
         case invalidMetadata
+        case invalidFileURL
         case coordinateTransformFailed
         case invalidProjectionBasis
     }
