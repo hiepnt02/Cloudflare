@@ -26,10 +26,7 @@ struct GNSSQualityBar: View {
     }
     
     private func getQualityStatus(_ quality: RTKQuality) -> String {
-        if rtk.isWaitingForSignal {
-            return rtkNotAvailableText
-        }
-        if rtk.satelliteCountToDisplay == 0 {
+        if rtk.satelliteMessagePVT?.satelliteCount ?? 0 == 0 {
             return "RTK_STATUS_UNAVAILABLE".localized(userManager.userLanguage)
         }
         switch quality {

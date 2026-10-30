@@ -293,8 +293,8 @@
 "DETAIL_INFO" = "Podrobné informace";
 "SHOOTING_DATA_ZIP" = "Údaje o natáčení (zip)";
 "DESIGN_DATA_IFC" = "Návrhová data (IFC, LandXML)";
-"POINT_DATA_LAS" = "Data mračna bodů (LAS, LAZ, CSV, TXT)";
 "DESIGN_DATA_FBX" = "Návrhová data (FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "Data mračna bodů (LAS)";
 "DATA_TYPE" = "Typ dat";
 "INSUFFICIENT_PHOTOS_NUMBER" = "Obrázků je málo.";
 "TAKE_TEN_MORE_PICTURE" = "Udělejte prosím alespoň 10 obrázků.";
@@ -516,7 +516,6 @@
 "RTK_DEVICE_SETTING" = "Nastavení zařízení RTK";
 "RTK_MOUNTPOINT" = "MOUNTPOINT";
 "RTK_NTRIP_AUTH_ERROR" = "Chyba ověření";
-"RTK_NTRIP_INVALID_CHARACTER" = "Obsahuje nepovolené znaky";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Definováno poskytovatelem služeb NTRIP";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Vybrat souřadnicový systém NTRIP";
 "RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "ZADEJTE REFERENČNÍ SOUŘADNICOVÝ SYSTÉM";
@@ -539,8 +538,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "Směrový bod je příliš blízko referenčního bodu. Vyberte jiný bod.";
 "CALIBRATION_COMPLETE" = "Hotovo";
 "CALIBRATION_BACK" = "Zpět";
-"CALIBRATION_GUIDE_STEP1" = "Na modelu: klepněte na referenční bod a směrový bod.";
-"CALIBRATION_GUIDE_STEP2" = "V reálném světě: klepněte na místo, kam je umístit.";
+"CALIBRATION_GUIDE_STEP1" = "Vyberte prosím na modelu referenční bod a směrový bod.";
+"CALIBRATION_GUIDE_STEP2" = "Určete prosím, kam umístit referenční bod a směrový bod.";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "Poskytovatel VRS";
@@ -551,19 +550,6 @@
 "RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
 "RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
 "RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "Název";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "Zadejte název tohoto připojení";
-"RTK_PROFILE_CREATE" = "+ Vytvořit";
-"RTK_PROFILE_LIST_TITLE" = "Profily připojení";
-"RTK_PROFILE_EDIT" = "Upravit";
-"RTK_PROFILE_NEW" = "Nový profil";
-"RTK_PROFILE_EMPTY_TITLE" = "Žádné profily RTK";
-"RTK_PROFILE_EMPTY_DESC" = "Vytvořte nový profil RTK pro připojení k roveru RTK se správným offsetem kamery a přihlašovacími údaji NTRIP.";
-"RTK_PROFILE_DELETE_CONFIRM" = "Chcete odstranit „%@“?";
-"RTK_MOUNTPOINT_LABEL" = "Mountpoint";
-"RTK_COORDINATE_SYSTEM_LABEL" = "Souřadnicový systém";
 "PROJECT_LIST_COLUMN_SETTINGS" = "Nastavení sloupců seznamu projektů";
 
 /* SC_QUICK-1945 */

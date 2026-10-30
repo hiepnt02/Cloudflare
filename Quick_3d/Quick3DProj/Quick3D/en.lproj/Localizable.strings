@@ -293,8 +293,8 @@
 "DETAIL_INFO" = "Detailed information";
 "SHOOTING_DATA_ZIP" = "Shooting data (zip)";
 "DESIGN_DATA_IFC" = "Design data (IFC, LandXML)";
-"POINT_DATA_LAS" = "Point cloud data (LAS, LAZ, CSV, TXT)";
 "DESIGN_DATA_FBX" = "Design data (FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "Point cloud data (LAS)";
 "DATA_TYPE" = "Type of data";
 "INSUFFICIENT_PHOTOS_NUMBER" = "There aren't enough images.";
 "TAKE_TEN_MORE_PICTURE" = "Please take 10 or more images.";
@@ -516,7 +516,6 @@
 "RTK_DEVICE_SETTING" = "RTK Device Settings";
 "RTK_MOUNTPOINT" = "MOUNTPOINT";
 "RTK_NTRIP_AUTH_ERROR" = "Authentication error";
-"RTK_NTRIP_INVALID_CHARACTER" = "Contains invalid characters";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Defined by the NTRIP service provider";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Select NTRIP Coordinate System";
 "RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "INPUT COORDINATE REFERENCE SYSTEM";
@@ -539,8 +538,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "Direction point is too close to reference point. Please select a different point.";
 "CALIBRATION_COMPLETE" = "Done";
 "CALIBRATION_BACK" = "Back";
-"CALIBRATION_GUIDE_STEP1" = "On the model: Tap the base point and direction point.";
-"CALIBRATION_GUIDE_STEP2" = "In the real world: Tap where to place them.";
+"CALIBRATION_GUIDE_STEP1" = "Please select the reference point and the direction point on the model.";
+"CALIBRATION_GUIDE_STEP2" = "Please indicate where to place the reference point and the direction point.";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "VRS provider";
@@ -551,19 +550,6 @@
 "RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
 "RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
 "RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "Name";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "Type a name for this connection";
-"RTK_PROFILE_CREATE" = "+ Create";
-"RTK_PROFILE_LIST_TITLE" = "Connection profiles";
-"RTK_PROFILE_EDIT" = "Edit";
-"RTK_PROFILE_NEW" = "New profile";
-"RTK_PROFILE_EMPTY_TITLE" = "No RTK profiles created";
-"RTK_PROFILE_EMPTY_DESC" = "Create a new RTK profile to connect to your RTK rover with the correct camera offset and NTRIP credentials.";
-"RTK_PROFILE_DELETE_CONFIRM" = "Do you want to delete %@?";
-"RTK_MOUNTPOINT_LABEL" = "Mountpoint";
-"RTK_COORDINATE_SYSTEM_LABEL" = "Coordinate system";
 "PROJECT_LIST_COLUMN_SETTINGS" = "Project List Column Settings";
 
 /* SC_QUICK-1945 */

@@ -46,13 +46,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         setInitialUserProperties()
 
         resetDisclaimerOnFirstRun()
-
-        // Dựng profile RTK đầu tiên từ cấu hình đơn lẻ của bản cũ. Phải chạy ở đây chứ
-        // không phải trong popup: RTKAutoConnectionHelper nối lại ngay khi mở camera, có
-        // thể trước khi người dùng mở màn cài đặt RTK lần nào.
-        RTKProfileStore.shared.migrateIfNeeded()
-
-
+        
         if let sessionId = UserSession.shared.sessionId {
             let cookieProps = [
                 HTTPCookiePropertyKey.domain: Constant.domainUrl,

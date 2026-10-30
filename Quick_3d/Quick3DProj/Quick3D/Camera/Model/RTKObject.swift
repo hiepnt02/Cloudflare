@@ -16,19 +16,9 @@ final class RTKObject: ObservableObject {
     static let shared = RTKObject()
     
     @Published var isReady: Bool = false
-
-    @Published var isRecovering: Bool = false
-    
-    @Published var isWaitingForSignal: Bool = false
     
     @Published var state: RTKState = .disconnected
-
-    /// Thiết bị đang kết nối và danh sách thiết bị quét được. Ở đây thay vì trên
-    /// `RTKProfileDraft` vì vòng đời của chúng là cả phiên chạy app, còn draft chỉ sống
-    /// trong một lần mở màn sửa profile.
-    @Published var vidocConnected: Peripheral?
-    @Published var devices: [CBPeripheral] = []
-
+    
     @Published var location: LocationModel?
     @Published var accuracy: (horizontal: Double, vertical: Double) = (-1.0, -1.0)
     
@@ -57,31 +47,12 @@ final class RTKObject: ObservableObject {
                 self?.isReady = isReady
             }.store(in: &subscription)
         
-        RTKManager.shared.isRecovering
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isRecovering in
-                self?.isRecovering = isRecovering
-            }.store(in: &subscription)
-        
-        RTKManager.shared.isWaitingForSignal
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isWaitingForSignal in
-                self?.isWaitingForSignal = isWaitingForSignal
-            }.store(in: &subscription)
-        
         RTKManager.shared.state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.state = state
-                self?.vidocConnected = state == .connected ? RTKManager.shared.connectedDevice : nil
             }.store(in: &subscription)
-
-        RTKManager.shared.devices
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] devices in
-                self?.devices = devices
-            }.store(in: &subscription)
-
+        
         RTKManager.shared.location
             .receive(on: DispatchQueue.main)
             .sink { [weak self] location in

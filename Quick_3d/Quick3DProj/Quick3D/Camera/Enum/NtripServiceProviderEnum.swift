@@ -9,7 +9,7 @@ import Foundation
 
 /// Nhà cung cấp dịch vụ NTRIP (VRS). Mỗi case trừ `.other` gắn cứng một cặp
 /// hostname/port; chọn provider sẽ tự điền và khoá hai ô đó ở phần nhập NTRIP.
-enum NtripServiceProviderEnum: String, CaseIterable, Identifiable, Codable {
+enum NtripServiceProviderEnum: String, CaseIterable, Identifiable {
     case docomo = "DOCOMO"
     case softbank = "SOFTBANK"
     case jenoba = "JENOBA"

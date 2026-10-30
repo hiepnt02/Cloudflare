@@ -11,7 +11,7 @@ import CoreBluetooth
 struct RTKDeviceOffsetView: View {
     @EnvironmentObject private var userManager: UserManager
     
-    @EnvironmentObject private var rtk: RTKProfileDraft
+    @EnvironmentObject private var rtk: RTKStateObject
     
     @State private var offsetTypes: [CameraOffsetEnum] = []
     @State private var rtkTypes: [RTKRoverEnum] = [.viDoc, .viDocLight, .viDoc24]
@@ -98,17 +98,12 @@ struct RTKDeviceOffsetView: View {
         // Validate offsetTypeSelected to make sure offsetTypeSelected is one option of offsetTypes
         if !offsetTypes.contains(rtk.cameraOffsetSegment) {
             rtk.cameraOffsetSegment = offsetTypes.first ?? .Custom
+            UserSession.shared.cameraOffsetSegment = rtk.cameraOffsetSegment
         }
     }
     
     private func getOffsetValue() {
-        // Đọc từ draft, không phải config đang active — màn này sửa một profile,
-        // nó không được đụng vào bộ cấu hình đang chạy.
-        let offset = AntennaOffsetResolver.offset(
-            rtkType: rtk.rtkDeviceType,
-            offsetSegment: rtk.cameraOffsetSegment,
-            custom: rtk.customOffsetVidoc
-        )
+        let offset = RTKManager.shared.mapToAntennaOffset()
 
         if rtk.cameraOffsetSegment == .Custom {
             offsetX = str2DoubleFormatter.string(from: NSNumber(value: offset.x)) ?? "\(offset.x)"
@@ -152,6 +147,7 @@ struct RTKDeviceOffsetView: View {
                 str2DoubleFormatter.number(from: offsetZ)?.doubleValue ?? 0.0
             )
             rtk.customOffsetVidoc = customOffset
+            UserSession.shared.customOffsetVidoc = customOffset
         }
     }
     
@@ -225,6 +221,7 @@ struct RTKDeviceOffsetView: View {
                     Button {
                         withAnimation {
                             rtk.cameraOffsetSegment = value
+                            UserSession.shared.cameraOffsetSegment = value
                         }
                     } label: {
                         VStack(alignment: .center, spacing: UIDevice.current.isIphone ? 6 : 8) {
@@ -306,7 +303,16 @@ struct RTKDeviceOffsetView: View {
     }
     
     private func mapOffsetTypeToString(offsetType: CameraOffsetEnum) -> String {
-        offsetType.displayName(userManager.userLanguage)
+        switch offsetType {
+        case .SPC:
+            return "SPC"
+        case .SPCPlus:
+            return "SPC+"
+        case .CasetifySPCPlus:
+            return "Casetify SPC+"
+        case .Custom:
+            return "RTK_CAMERA_OFFSET_CUSTOM".localized(userManager.userLanguage)
+        }
     }
     
     private func imageNameForOffsetType(_ offsetType: CameraOffsetEnum) -> String {
@@ -321,7 +327,14 @@ struct RTKDeviceOffsetView: View {
     }
 
     private func mapRtkTypeToString(_ rtkType: RTKRoverEnum) -> String {
-        rtkType.displayName
+        switch rtkType {
+        case .viDoc:
+            return "viDoc"
+        case .viDoc24:
+            return "viDoc 24"
+        case .viDocLight:
+            return "viDoc Light"
+        }
     }
     
     private func line(width: CGFloat? = nil, height: CGFloat? = nil) -> some View {

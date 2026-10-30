@@ -293,8 +293,8 @@
 "DETAIL_INFO" = "Informations détaillées";
 "SHOOTING_DATA_ZIP" = "Données de prise de vue (zip)";
 "DESIGN_DATA_IFC" = "Données de conception (IFC, LandXML)";
-"POINT_DATA_LAS" = "Données de nuages ​​de points (LAS, LAZ, CSV, TXT)";
 "DESIGN_DATA_FBX" = "Données de conception (FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "Données de nuages ​​de points (LAS)";
 "DATA_TYPE" = "Type de données";
 "INSUFFICIENT_PHOTOS_NUMBER" = "Il n'y a pas assez d'images.";
 "TAKE_TEN_MORE_PICTURE" = "Veuillez prendre au moins 10 images";
@@ -516,7 +516,6 @@
 "RTK_DEVICE_SETTING" = "Paramètres du périphérique RTK";
 "RTK_MOUNTPOINT" = "MOUNTPOINT";
 "RTK_NTRIP_AUTH_ERROR" = "Erreur d'authentification";
-"RTK_NTRIP_INVALID_CHARACTER" = "Contient des caractères non autorisés";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "Défini par le fournisseur de services NTRIP";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "Sélectionner le système de coordonnées NTRIP";
 "RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "SYSTÈME DE RÉFÉRENCE DE COORDONNÉES D'ENTRÉE";
@@ -539,8 +538,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "Le point de direction est trop proche du point de référence. Veuillez en sélectionner un autre.";
 "CALIBRATION_COMPLETE" = "Terminé";
 "CALIBRATION_BACK" = "Retour";
-"CALIBRATION_GUIDE_STEP1" = "Sur le modèle : touchez le point de référence et le point de direction.";
-"CALIBRATION_GUIDE_STEP2" = "Dans le monde réel : touchez l’endroit où les placer.";
+"CALIBRATION_GUIDE_STEP1" = "Veuillez sélectionner le point de référence et le point de direction sur le modèle.";
+"CALIBRATION_GUIDE_STEP2" = "Veuillez indiquer où placer le point de référence et le point de direction.";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "Fournisseur VRS";
@@ -551,19 +550,6 @@
 "RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
 "RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
 "RTK_NTRIP_PROVIDER_TERASAT" = "Terasat";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "Nom";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "Saisir un nom pour cette connexion";
-"RTK_PROFILE_CREATE" = "+ Créer";
-"RTK_PROFILE_LIST_TITLE" = "Profils de connexion";
-"RTK_PROFILE_EDIT" = "Modifier";
-"RTK_PROFILE_NEW" = "Nouveau profil";
-"RTK_PROFILE_EMPTY_TITLE" = "Aucun profil RTK créé";
-"RTK_PROFILE_EMPTY_DESC" = "Créez un profil RTK pour vous connecter à votre rover RTK avec le bon décalage de caméra et les identifiants NTRIP.";
-"RTK_PROFILE_DELETE_CONFIRM" = "Voulez-vous supprimer « %@ » ?";
-"RTK_MOUNTPOINT_LABEL" = "Point de montage";
-"RTK_COORDINATE_SYSTEM_LABEL" = "Système de coordonnées";
 "PROJECT_LIST_COLUMN_SETTINGS" = "Paramètres des colonnes de la liste de projets";
 
 /* SC_QUICK-1945 */

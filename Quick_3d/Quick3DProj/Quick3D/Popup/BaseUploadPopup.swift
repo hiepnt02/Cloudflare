@@ -106,11 +106,11 @@ struct BaseUploadPopup: View {
     private var dataTypes: [DataType] {
         let all: [DataType] = [
             DataType(type: .Ifc,  label: "DESIGN_DATA_IFC".localized(userManager.userLanguage)),
-//            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
+            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
             DataType(type: .Las,  label: "POINT_DATA_LAS".localized(userManager.userLanguage)),
             DataType(type: .Tif,  label: "GEO_TIF".localized(userManager.userLanguage)),
             DataType(type: .Json, label: "GEO_JSON".localized(userManager.userLanguage)),
-//            DataType(type: .Ply,  label: "GAUSSIAN_SPLATTING_PLY".localized(userManager.userLanguage))
+            DataType(type: .Ply,  label: "GAUSSIAN_SPLATTING_PLY".localized(userManager.userLanguage))
         ]
         return isCurrentAR ? all : all.filter { $0.type != .Las }
     }
@@ -305,41 +305,17 @@ private extension BaseUploadPopup {
             sectionLabel("UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE".localized(userManager.userLanguage))
 
             fileSourceRow(
-                fileTypes: [FileTypes[FileType.las]!, FileTypes[FileType.laz]!, FileTypes[FileType.csv]!, FileTypes[FileType.txt]!],
+                fileTypes: [FileTypes[FileType.las]!],
                 fileURL: $lasFileURL,
                 isValidUpload: $isValidUploadLas
             )
             .padding(.bottom, contentSpacing)
-
-//            HStack {
-//                sectionLabel("PLEASE_SELECT_DXF_FILE".localized(userManager.userLanguage))
-//
-//                HelpPopoverView(
-//                    manager: popoverManager,
-//                    id: "dxf_notice",
-//                    content: "DXF_FILE_NOTICE".localized(userManager.userLanguage),
-//                    frameWidth: 300,
-//                    frameHeight: 50,
-//                    offsetValue: CGSize(width: 0, height: -50),
-//                    onClicked: {}
-//                )
-//                .zIndex(3)
-//            }
-//
-//            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.dxf]!]) { fileUrl, _ in
-//                dxfFileURL = fileUrl
-//            }
-//            .padding(.leading, contentSpacing)
-//            .padding(.bottom, contentSpacing)
 
             bottomButtons(
                 isValidUpload: $isValidUploadLas,
                 onClickCancel: resetLasSelection,
                 onClickUpload: handleUploadLas
             )
-        }
-        .onChange(of: lasFileURL) { _ in
-            isValidUploadLas = lasFileURL != nil
         }
         .onChange(of: groupwareSelected) { newGroupware in
             applyGroupwareSelection(

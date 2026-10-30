@@ -10,7 +10,7 @@ import CoreBluetooth
 
 struct RTKDeviceNTRIPView: View {
     @EnvironmentObject private var userManager: UserManager
-    @EnvironmentObject private var rtk: RTKProfileDraft
+    @EnvironmentObject private var rtk: RTKStateObject
     
     @Binding var isShowMountpoints: Bool
     @Binding var isShowCoordinates: Bool
@@ -113,14 +113,14 @@ struct RTKDeviceNTRIPView: View {
                 RoundedRectangle(cornerRadius: 2)
                     .stroke(sapphireBlue, lineWidth: 1)
             )
-            .disabled(!rtk.allowNtripValid || rtk.isMountpointsFetching)
+            .disabled(!rtk.allowNtripValid)
             .padding(.bottom, 16)
             .padding(.horizontal, 16)
             
             HStack(spacing: 8) {
                 buttonOpenList(
-                    label: "RTK_MOUNTPOINT_LABEL".localized(userManager.userLanguage),
-                    description: rtk.currentMountpoint.isEmpty ? "RTK_MOUNTPOINT_LABEL".localized(userManager.userLanguage) : rtk.currentMountpoint,
+                    label: "Mountpoint",
+                    description: rtk.currentMountpoint.isEmpty ? "Choose mountpoint" :  rtk.currentMountpoint,
                     isValid: isMountpointValid,
                     icon: Image(systemName: "globe").font(.system(size: 24)).foregroundColor(userManager.setting.textColor)) {
                         isShowMountpoints = true
@@ -128,8 +128,8 @@ struct RTKDeviceNTRIPView: View {
                     .disabled(!rtk.isNtripProviderStatus)
                 
                 buttonOpenList(
-                    label: "RTK_COORDINATE_SYSTEM_LABEL".localized(userManager.userLanguage),
-                    description: rtk.currentNtripCoordinateSystem?.id ?? "RTK_COORDINATE_SYSTEM_LABEL".localized(userManager.userLanguage),
+                    label: "Coordinate system",
+                    description: rtk.currentNtripCoordinateSystem?.id ?? "Coordinate system",
                     isValid: isCoordinateValid,
                     icon: Image(userManager.setting.colorTheme == .light ? "ic_coordinate" : "ic_coordinate_dark").frame(width: 24, height: 24)
                 ) {
@@ -319,9 +319,7 @@ struct RTKDeviceNTRIPView: View {
                 .textInputAutocapitalization(.never)
                 .disabled(readOnly)
                 .font(.system(size: 16))
-                .foregroundColor(readOnly ? steelGray : userManager.setting.textColor)
-                // Không còn làm mờ theo trạng thái kết nối: màn này sửa một profile,
-                // sửa được cả khi đang có phiên RTK khác chạy.
+                .foregroundColor(readOnly || rtk.isReady ? steelGray : userManager.setting.textColor)
                 .frame(height: 32)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -336,7 +334,7 @@ struct RTKDeviceNTRIPView: View {
                 }
         }
     }
-
+    
     private func doInvalid(_ err: Error? = nil) {
         rtk.isNtripProviderStatus = false
         rtk.isNtripMountpointStatus = false

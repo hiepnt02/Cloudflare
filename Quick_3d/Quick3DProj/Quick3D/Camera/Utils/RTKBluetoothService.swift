@@ -66,14 +66,6 @@ final class RTKBluetoothService: RTKTemplate {
         rtkDevice.state
     }
     
-    public var isReady: Bool {
-        rtkDevice.isReady
-    }
-    
-    public var hasReceivedNmea: Bool {
-        rtkDevice.hasReceivedNmea
-    }
-    
     private var isDisconnecting = false
     
     private var lostSignalTimer: Timer?
@@ -84,9 +76,6 @@ final class RTKBluetoothService: RTKTemplate {
     /// Also kept out of `subscription`, the other way round: stopping a scan must
     /// not cancel a connect that is already in flight.
     private var scanSubscription: AnyCancellable?
-
-    private var isScanning = false
-    private var emittedDeviceIDs = Set<UUID>()
     
     override init(manager: RTKManager? = nil) {
         self.rtkDevice = RTKDevice(manager: manager)
@@ -97,6 +86,7 @@ final class RTKBluetoothService: RTKTemplate {
     func setup() {
         self.service = Vigram.bluetoothService()
         observeBluetoothState()
+        scanDevices()
     }
     
     private func observeBluetoothState() {
@@ -104,35 +94,17 @@ final class RTKBluetoothService: RTKTemplate {
             .receive(on: queue)
             .sink { [weak self] state in
                 self?.logger?.logInfo("BLUETOOTH", "Manager state \(state.rawValue)")
-                // A scan started before the freshly created manager is powered on can be dropped.
-                self?.manager?.isBluetoothReady.send(state == .poweredOn)
             }
     }
     
     public func scanDevices() {
+        logger?.logInfo("BLUETOOTH", "Scanning...")
         DispatchQueue.main.async {
-            self.stopScanDevices()
-            self.startScan()
-        }
-    }
-
-    private func startScan() {
-        DispatchQueue.main.async {
-            guard !self.isScanning else { return }
-
-            self.isScanning = true
-            self.emittedDeviceIDs.removeAll(keepingCapacity: true)
-            self.logger?.logInfo("BLUETOOTH", "Scanning...")
             self.scanSubscription = self.service?.observeAvailableDevices()
-                .receive(on: DispatchQueue.main)
+                .receive(on: self.queue)
                 .sink { [weak self] devices in
-                    guard let self else { return }
-                    guard self.isScanning else { return }
-                    let deviceIDs = Set(devices.map(\.identifier))
-                    guard deviceIDs != self.emittedDeviceIDs else { return }
-                    self.emittedDeviceIDs = deviceIDs
-                    self.logger?.logInfo("BLUETOOTH", "Found \(devices.count) device(s): \(devices.map { $0.name ?? $0.identifier.uuidString }.joined(separator: ", "))")
-                    self.manager?.devices.send(devices)
+                    self?.logger?.logInfo("BLUETOOTH", "Found \(devices.count) device(s): \(devices.map { $0.name ?? $0.identifier.uuidString }.joined(separator: ", "))")
+                    self?.manager?.devices.send(devices)
                 }
             self.service?.startScan()
         }
@@ -140,9 +112,7 @@ final class RTKBluetoothService: RTKTemplate {
     
     public func stopScanDevices() {
         DispatchQueue.main.async {
-            self.isScanning = false
             self.scanSubscription = nil
-            self.emittedDeviceIDs.removeAll(keepingCapacity: true)
             self.service?.stopScan()
             self.manager?.devices.send([])
         }
@@ -162,23 +132,8 @@ final class RTKBluetoothService: RTKTemplate {
         scanDevices()
     }
     
-    /// For a peripheral that never connected: the SDK sends no state change for it, so the
-    /// disconnected callback that normally resets this service never arrives.
-    func abandonConnection() {
-        DispatchQueue.main.async {
-            self.service?.disconnect()
-        }
-        reset()
-    }
-    
     public func disconnect() {
-        // Nothing connected or pending: the SDK call could only cancel a reconnect that starts right after.
-        guard rtkDevice.device != nil else { return }
-        // When the link already dropped (viDoc switched off), no disconnected callback follows to clear
-        // the flag, and a stale flag would cut the next connection the moment it comes up.
-        if rtkDevice.state != .disconnected {
-            isDisconnecting = true
-        }
+        isDisconnecting = true
         if rtkDevice.state == .connected {
             rtkDevice.setState(.disconnecting)
         }
@@ -191,7 +146,6 @@ final class RTKBluetoothService: RTKTemplate {
         if rtkDevice.state != .disconnected {
             throw NSError(domain: "RTKBluetoothService", code: 0, userInfo: [NSLocalizedDescriptionKey: "The device is unavailable."])
         }
-        isDisconnecting = false
         DispatchQueue.main.async {
             let device = Vigram.peripheral(peripheral, configuration: peripheralConfig)
             self.connect(device)
@@ -211,7 +165,6 @@ final class RTKBluetoothService: RTKTemplate {
                 case .failure(let error):
                     _self.manager?.logError("BLUETOOTH", "Connect failed: \(error)")
                     _self.manager?.error.send(RTKError(level: .bluetooth, error: error))
-                    _self.manager?.onBluetoothConnectFailed()
                 }
             }){ _ in }.store(in: &subscription)
     }

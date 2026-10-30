@@ -292,8 +292,8 @@
 "DETAIL_INFO" = "詳細情報";
 "SHOOTING_DATA_ZIP" = "撮影データ(zip)";
 "DESIGN_DATA_IFC" = "設計データ(IFC, LandXML)";
-"POINT_DATA_LAS" = "点群データ(LAS, LAZ, CSV, TXT)";
 "DESIGN_DATA_FBX" = "設計データ(FBX, GLB, DWG)";
+"POINT_DATA_LAS" = "点群データ(LAS)";
 "DATA_TYPE" = "データの種類";
 "INSUFFICIENT_PHOTOS_NUMBER" = "画像枚数が不足しています。";
 "TAKE_TEN_MORE_PICTURE" = "10枚以上撮影してください。";
@@ -326,7 +326,7 @@
 "JOBSITE" = "現場名";
 "TYPE" = "種類";
 "OPEN_PIX_4D" = "撮影[Pix4D Catch]";
-"NUMBER_OF_PHOTOS" = "画像枚数";
+"NUMBER_OF_PHOTOS" = "画像";
 "SORT_BY" = "並び順";
 "SORT_CAPTURED_DATE" = "撮影日";
 "SORT_UPLOAD_DATE" = "アップロード日";
@@ -516,7 +516,6 @@
 "RTK_DEVICE_SETTING" = "RTKデバイス設定";
 "RTK_MOUNTPOINT" = "マウントポイント";
 "RTK_NTRIP_AUTH_ERROR" = "認証エラー";
-"RTK_NTRIP_INVALID_CHARACTER" = "使用できない文字が含まれています";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_MESSAGE" = "NTRIPサービスプロバイダーによって定義されます";
 "RTK_NTRIP_COORDINATE_SYSTEM_SELECT_TITLE" = "NTRIP座標系を選択";
 "RTK_NTRIP_INPUT_COORDINATE_REFERENCE_SYSTEM" = "入力座標参照系";
@@ -539,8 +538,8 @@
 "CALIBRATION_POINTS_TOO_CLOSE" = "方向点が基準点に近すぎます。別の点を選択してください。";
 "CALIBRATION_COMPLETE" = "完了";
 "CALIBRATION_BACK" = "戻る";
-"CALIBRATION_GUIDE_STEP1" = "【モデル上】で基準点と方向点を選択してください。";
-"CALIBRATION_GUIDE_STEP2" = "【現実空間】で基準点と方向点を配置する場所を指示してください。";
+"CALIBRATION_GUIDE_STEP1" = "モデル上で基準点と方向点を選択してください";
+"CALIBRATION_GUIDE_STEP2" = "基準点と方向点を配置する場所を指示して下さい。";
 
 /* QUICK-1012 — NTRIP service provider */
 "RTK_NTRIP_VRS_PROVIDER" = "VRS提供会社";
@@ -551,19 +550,6 @@
 "RTK_NTRIP_PROVIDER_SC_EDGE" = "SmartConstruction Edge";
 "RTK_NTRIP_PROVIDER_SC_ROVER" = "SmartConstruction Rover / CSmatePro";
 "RTK_NTRIP_PROVIDER_TERASAT" = "テラサット";
-
-/* QUICK-971 — saved RTK connection profiles */
-"RTK_PROFILE_NAME" = "名前";
-"RTK_PROFILE_NAME_PLACEHOLDER" = "この接続情報の名前を入力";
-"RTK_PROFILE_CREATE" = "＋ 新規作成";
-"RTK_PROFILE_LIST_TITLE" = "接続プロファイル";
-"RTK_PROFILE_EDIT" = "編集";
-"RTK_PROFILE_NEW" = "新しいプロファイル";
-"RTK_PROFILE_EMPTY_TITLE" = "RTK接続情報がありません";
-"RTK_PROFILE_EMPTY_DESC" = "RTKローバーに接続するには、正しいカメラオフセットとNTRIP認証情報を含む接続情報を作成してください。";
-"RTK_PROFILE_DELETE_CONFIRM" = "「%@」を削除しますか？";
-"RTK_MOUNTPOINT_LABEL" = "マウントポイント";
-"RTK_COORDINATE_SYSTEM_LABEL" = "座標系";
 "PROJECT_LIST_COLUMN_SETTINGS" = "プロジェクト一覧の列設定";
 
 /* SC_QUICK-1945 */

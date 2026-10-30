@@ -58,63 +58,6 @@ struct RTKError {
     let error: Error
 }
 
-enum RTKConnectionPhase: Equatable {
-    case bluetooth
-    case waitingFix
-    case ntrip
-    case connected
-    
-    static func current(bluetooth: RTKState, isReady: Bool, ntrip: RTKState) -> RTKConnectionPhase {
-        if bluetooth != .connected {
-            return .bluetooth
-        }
-        if !isReady {
-            return .waitingFix
-        }
-        return ntrip == .connected ? .connected : .ntrip
-    }
-    
-    var needsForceReset: Bool {
-        return self == .bluetooth
-    }
-}
-
-enum RTKTimeoutAction: Equatable {
-    case ignore
-    case abort
-    case disconnect
-    case extend
-    
-    /// Only a connect still in progress is timed out; once it has connected or is already
-    /// being torn down, a late fire must not cut a link or an NTRIP auto-reconnect.
-    /// A viDoc that has sat idle can take far longer than the screen's timeout to report a
-    /// position after reconnecting, so a link that is up and streaming gets more time instead.
-    static func on(state: RTKState, phase: RTKConnectionPhase, receivingData: Bool, canExtend: Bool) -> RTKTimeoutAction {
-        guard state == .connecting else { return .ignore }
-        if phase.needsForceReset {
-            return .abort
-        }
-        if canExtend && receivingData && (phase == .waitingFix || phase == .ntrip) {
-            return .extend
-        }
-        return .disconnect
-    }
-}
-
-enum RTKLostSignal {
-    /// A lost-signal timer can outlive the session that started it, and a reset device reports
-    /// `.invalid` by default, so only the timer still held by a ready device may disconnect.
-    static func shouldDisconnect(isCurrentTimer: Bool, isReady: Bool, quality: RTKQuality) -> Bool {
-        return isCurrentTimer && isReady && quality == .invalid
-    }
-}
-
-enum RTKBluetoothReadiness {
-    static func shouldReauthenticate(serviceReady: Bool, authInFlight: Bool) -> Bool {
-        return !serviceReady && !authInFlight
-    }
-}
-
 class RTKDebugLogger: CSVLogger {
     
     let formatter = DateFormatter()
@@ -174,19 +117,6 @@ final class RTKManager: NSObject {
     
     public let devices = CurrentPublisher<[CBPeripheral]>([])
     
-    public let isBluetoothReady = CurrentPublisher<Bool>(false)
-    
-    /// Emits the viDoc whose Bluetooth link dropped without the app asking for it.
-    public let connectionLost = PassthroughSubject<UUID, Never>()
-    
-    /// True from an unexpected drop until the viDoc is back or the wait for it is over.
-    public let isRecovering = CurrentPublisher<Bool>(false)
-    
-    /// The part of a recovery before the viDoc shows up again.
-    public let isWaitingForSignal = CurrentPublisher<Bool>(false)
-    
-    public let recoveryFailed = PassthroughSubject<Void, Never>()
-    
     public var deviceMessage = CurrentPublisher<DeviceMessage?>(nil)
     
     public let error = CurrentPublisher<RTKError?>(nil)
@@ -219,22 +149,7 @@ final class RTKManager: NSObject {
     
     private var isAutoConnectToNtrip: Bool = false
     
-    private var connectedIdentifier: UUID?
-    
     private var timeoutTimer: Timer?
-
-    private var isAuthenticating: Bool = false
-    
-    private var disconnectWatchdog: DispatchWorkItem?
-    
-    private let disconnectWatchdogTimeout: TimeInterval = 5
-    
-    /// Total time, counted from the start of a connect, that a streaming device may take to get a fix and NTRIP.
-    private let fixWaitLimit: TimeInterval = 60
-    
-    private var connectWaitLimit: TimeInterval = 60
-    
-    private var connectStartedAt: Date?
     
     private var previousState: RTKState?
     
@@ -245,10 +160,6 @@ final class RTKManager: NSObject {
     public var lastVidocConnected: UUID? {
         UserSession.shared.lastVidocConnected
     }
-    
-    public var isNtripConfigured: Bool {
-        UserSession.shared.ntripInfo != nil && UserSession.shared.mountPointNtrip?.isEmpty == false
-    }
 
     private var onDisconnected: (() -> Void)? = nil
     
@@ -256,10 +167,25 @@ final class RTKManager: NSObject {
         super.init()
         _ = ConnectivityMonitor.shared
         Configuration.debug = false
+        setupSDKLogger()
         setupNtripReconnect()
         bluetoothService = RTKBluetoothService(manager: self)
         ntripService = RTKNtripService(manager: self)
         authenticationToken()
+    }
+    
+    /// SDK-internal BLE/NTRIP log in JSON Lines, written next to `rtk.log`.
+    /// Debug/beta only: the file has no rotation and grows for the whole install.
+    private func setupSDKLogger() {
+#if DEBUG || BETA
+        let url = StorageManager.shared.getCameraFileURL("vigram-sdk.log")
+        do {
+            try Vigram.Logger(url: url, mode: .diagnostic)
+            logInfo("SDK", "Vigram logger enabled: \(url.lastPathComponent)")
+        } catch {
+            logError("SDK", "Vigram logger failed: \(error.localizedDescription)")
+        }
+#endif
     }
     
     /// Values carried over from the retry loop the app used to run itself before
@@ -278,7 +204,6 @@ final class RTKManager: NSObject {
         if token.isEmpty {
             logError("AUTH", "Vidoc key is empty, RTK is disabled")
         } else {
-            isAuthenticating = true
             Vigram.initial(token: token.replacingOccurrences(of: "/\\/" , with: "//"))
                 .check()
                 .receive(on: DispatchQueue.main)
@@ -287,12 +212,10 @@ final class RTKManager: NSObject {
                     case .finished:
                         break
                     case .failure(let error):
-                        self?.isAuthenticating = false
                         self?.logError("AUTH", "Authentication failed: \(error.localizedDescription)")
                         self?.error.send(RTKError(level: .auth, error: error))
                     }
                 }) { [weak self] resultAuthentication in
-                    self?.isAuthenticating = false
                     switch resultAuthentication {
                     case .success:
                         self?.logInfo("AUTH", "Authentication succeeded")
@@ -304,16 +227,6 @@ final class RTKManager: NSObject {
                 }.store(in: &subscription)
         }
         
-    }
-    
-    /// Authentication runs once at init and is never retried by itself, so a launch without
-    /// network would otherwise leave RTK without a Bluetooth service until the app restarts.
-    func ensureBluetoothService() {
-        DispatchQueue.main.async {
-            guard RTKBluetoothReadiness.shouldReauthenticate(serviceReady: self.bluetoothService?.service != nil,
-                                                             authInFlight: self.isAuthenticating) else { return }
-            self.authenticationToken()
-        }
     }
     
     private func setState(_ value: RTKState) {
@@ -377,8 +290,8 @@ final class RTKManager: NSObject {
         }.store(in: &subscription)
     }
     
-    /// Cleared synchronously so a fresh subscriber is not handed the previous scan's list.
     func scanDevices() {
+        bluetoothService?.stopScanDevices()
         bluetoothService?.scanDevices()
     }
     
@@ -409,8 +322,6 @@ final class RTKManager: NSObject {
         
         self.isAutoConnectToNtrip = isAutoConnectToNtrip
         
-        connectedIdentifier = nil
-        
         autoDisconnect = false
         
         // Create Configuration
@@ -432,8 +343,6 @@ final class RTKManager: NSObject {
         setState(.connecting)
         
         if isAutoConnectToNtrip {
-            connectStartedAt = Date()
-            connectWaitLimit = isRecovering.value ? timeout : fixWaitLimit
             startTimeoutTimer(timeout)
         }
         
@@ -457,47 +366,7 @@ final class RTKManager: NSObject {
         setState(RTKState.disconnecting)
         ready.send(false)
         stopTimeoutTimer()
-        startDisconnectWatchdog()
         ntripService?.disconnect()
-    }
-    
-    /// Ends an attempt whose peripheral never connected; see `RTKBluetoothService.abandonConnection()`.
-    private func abortConnection() {
-        stopTimeoutTimer()
-        cancelDisconnectWatchdog()
-        ready.send(false)
-        bluetoothService?.abandonConnection()
-        setState(.disconnected)
-        onDisconnected?()
-        onDisconnected = nil
-    }
-    
-    private func startDisconnectWatchdog() {
-        cancelDisconnectWatchdog()
-        let work = DispatchWorkItem { [weak self] in
-            guard let _self = self, _self.currentState == .disconnecting else { return }
-            _self.abortConnection()
-        }
-        disconnectWatchdog = work
-        queue.asyncAfter(deadline: .now() + disconnectWatchdogTimeout, execute: work)
-    }
-    
-    private func cancelDisconnectWatchdog() {
-        disconnectWatchdog?.cancel()
-        disconnectWatchdog = nil
-    }
-    
-    private var connectionPhase: RTKConnectionPhase {
-        RTKConnectionPhase.current(bluetooth: bluetoothService?.state ?? .disconnected,
-                                   isReady: bluetoothService?.isReady ?? false,
-                                   ntrip: ntripState.value)
-    }
-    
-    func onBluetoothConnectFailed() {
-        queue.async {
-            guard self.currentState == .connecting, self.connectionPhase.needsForceReset else { return }
-            self.abortConnection()
-        }
     }
     
     func disconnectNTRIP() {
@@ -554,24 +423,9 @@ final class RTKManager: NSObject {
             self.timeoutTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
                 guard let _self = self else { return }
                 _self.queue.async {
-                    let phase = _self.connectionPhase
-                    let remaining = _self.connectWaitLimit - Date().timeIntervalSince(_self.connectStartedAt ?? Date())
-                    let action = RTKTimeoutAction.on(state: _self.currentState,
-                                                     phase: phase,
-                                                     receivingData: _self.bluetoothService?.hasReceivedNmea ?? false,
-                                                     canExtend: remaining >= 1)
-                    switch action {
-                    case .ignore:
-                        return
-                    case .extend:
-                        _self.startTimeoutTimer(remaining)
-                    case .abort, .disconnect:
+                    if _self.currentState != .connected {
                         _self.logError("MANAGER", "Connection timeout.")
-                        if action == .abort {
-                            _self.abortConnection()
-                        } else {
-                            _self.disconnect()
-                        }
+                        _self.disconnect()
                     }
                 }
             }
@@ -602,23 +456,12 @@ extension RTKManager {
 
 extension RTKManager: RTKBluetoothStateDelegate {
     func onBluetoothDisconnected() {
-        let lostIdentifier = currentState == .disconnecting ? nil : connectedIdentifier
-        connectedIdentifier = nil
-        cancelDisconnectWatchdog()
         setState(.disconnected)
         onDisconnected?()
         onDisconnected = nil
         if ntripState.value != .disconnected {
             ready.send(false)
             ntripService?.disconnect()
-        }
-        if let identifier = lostIdentifier {
-            isRecovering.send(true)
-            isWaitingForSignal.send(true)
-            // Queued behind the state change above so listeners already see `.disconnected`.
-            queue.async {
-                self.connectionLost.send(identifier)
-            }
         }
     }
     
@@ -671,11 +514,8 @@ extension RTKManager: RTKNtripStateDelegate {
         
         setState(.connected)
         
-        stopTimeoutTimer()
-        
         if let identifier = bluetoothService?.identifier {
             UserSession.shared.lastVidocConnected = identifier
-            connectedIdentifier = identifier
         }
     }
     

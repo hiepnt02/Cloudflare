@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum GNSSEnum: String, CaseIterable, Identifiable, Codable {
+enum GNSSEnum: String, CaseIterable, Identifiable {
     case GPS
     case GALILEO
     case QZSS

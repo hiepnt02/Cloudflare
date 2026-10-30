@@ -10,19 +10,19 @@ import SwiftUI
 fileprivate let defaultDeviceName = "Unknown Device"
 
 struct RTKSettingsPopup: View {
-
+    
     @EnvironmentObject private var userManager: UserManager
-
-    @ObservedObject private var rtk: RTKObject = .shared
-
+    
+    @StateObject private var rtk: RTKStateObject = .init()
+    
     @Binding var isShow: Bool
-
+    
     @State private var isScanning = false
     @State private var timer: Timer?
 
     @State private var deviceName: String = defaultDeviceName
     @State private var identifier: UUID?
-
+    
     private let scanTimeout: TimeInterval = 60
 
     var body: some View {
@@ -35,9 +35,9 @@ struct RTKSettingsPopup: View {
                     onClose()
                 }
             )
-
+            
             Divider().background(lightGray).padding(.bottom, 10)
-
+            
             contentView
         }
         .onLoad {
@@ -52,6 +52,7 @@ struct RTKSettingsPopup: View {
             }
         }
         .background(userManager.setting.themeColor)
+        .environmentObject(rtk)
     }
 
     @ViewBuilder
@@ -70,7 +71,7 @@ struct RTKSettingsPopup: View {
                     withAnimation {
                         self.isShow = false
                     }
-
+                    
                 }
             )
         } else {
@@ -96,7 +97,7 @@ struct RTKSettingsPopup: View {
         stopTimer()
         isScanning = true
         isRescan ? RTKManager.shared.rescanDevices() : RTKManager.shared.scanDevices()
-
+        
         timer = Timer.scheduledTimer(withTimeInterval: scanTimeout, repeats: false) { _ in
             isScanning = false
         }
@@ -106,11 +107,10 @@ struct RTKSettingsPopup: View {
         timer?.invalidate()
         timer = nil
     }
-
+    
     private func onClose() {
         stopTimer()
         if !rtk.isReady {
-            RTKManager.shared.stopBluetooth()
             RTKManager.shared.disconnect()
         }
     }
