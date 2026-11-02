@@ -37,7 +37,9 @@ struct UploadJob: Identifiable {
         case .arData(let parameters):
             switch parameters.source {
             case .local(let file1URL, let file2URL):
-                return [file1URL.displayFileName] + (file2URL.map { [$0.displayFileName] } ?? [])
+                return [file1URL.displayFileName]
+                    + (file2URL.map { [$0.displayFileName] } ?? [])
+                    + (parameters.geoDescFileURL.map { [$0.displayFileName] } ?? [])
             case .groupware(let groupware):
                 return [groupware.name]
             case .groupwareWithLocalFile(let groupware, let file2URL):
@@ -106,6 +108,7 @@ extension UploadJob {
     struct ARDataParameters {
         let source: ARUploadSource
         let arColor: String
+        var geoDescFileURL: URL? = nil
     }
 
     private static func byteWeight(of kind: Kind) -> Int64? {
@@ -115,7 +118,12 @@ extension UploadJob {
         case .arFile(let parameters):
             return parameters.fileURL.fileSize.map(Int64.init)
         case .arData(let parameters):
-            return parameters.source.byteWeight
+            guard let sourceBytes = parameters.source.byteWeight else { return nil }
+            if let jsonURL = parameters.geoDescFileURL {
+                guard let jsonBytes = jsonURL.fileSize else { return nil }
+                return sourceBytes + Int64(jsonBytes)
+            }
+            return sourceBytes
         }
     }
 }

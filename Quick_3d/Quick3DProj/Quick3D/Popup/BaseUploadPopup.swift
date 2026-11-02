@@ -55,6 +55,9 @@ struct BaseUploadPopup: View {
     @State private var xmlFileURL: URL?
     @State private var jsonFileURL: URL?
     @State private var plyFileUrl: URL?
+    @State private var plyGeoFileURL: URL?
+    @State private var plyPickerID = UUID()
+    @State private var plyGeoPickerID = UUID()
 
     @State private var arColor = Color(hex: BaseUploadPopup.defaultARColor)
     @State private var selectedFileName: String = ""
@@ -389,20 +392,55 @@ private extension BaseUploadPopup {
     }
     
     var plySection: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
             sectionLabel("PLEASE_SELECT_FILE".localized(userManager.userLanguage))
             
             ButtonSelectFile(
-                buttonText: nil,
-                fileTypes: [FileTypes[FileType.ply]!]
+                buttonText: (plyFileUrl == nil ? "FILE_SELECT" : "FILE_CHANGE").localized(userManager.userLanguage),
+                fileTypes: [FileTypes[FileType.ply]!],
+                buttonWidth: 175,
+                buttonHeight: 42
             ) { fileUrl, fileName in
                 plyFileUrl = fileUrl
             }
+            .id(plyPickerID)
+            .padding(.leading, 30)
+            .padding(.top, 10)
+            .padding(.bottom, 15)
+
+            HStack(spacing: 10) {
+                sectionLabel("UPLOAD_GS_COORDINATE_FILE".localized(userManager.userLanguage))
+                HelpPopoverView(
+                    manager: popoverManager,
+                    id: "ply_coordinate_json",
+                    content: "UPLOAD_GS_COORDINATE_FILE_HINT".localized(userManager.userLanguage),
+                    frameWidth: 240,
+                    frameHeight: nil,
+                    offsetValue: CGSize(width: 100, height: 55),
+                    trailingPadding: 0,
+                    onClicked: {}
+                )
+                .zIndex(1)
+            }
+            .zIndex(1)
+
+            ButtonSelectFile(
+                buttonText: (plyGeoFileURL == nil ? "FILE_SELECT" : "FILE_CHANGE").localized(userManager.userLanguage),
+                fileTypes: [FileTypes[FileType.json]!],
+                buttonWidth: 175,
+                buttonHeight: 42
+            ) { fileUrl, _ in
+                plyGeoFileURL = fileUrl
+            }
+            .id(plyGeoPickerID)
+            .padding(.leading, 30)
+            .padding(.top, 10)
+            .padding(.bottom, 15)
             
             bottomButtons(
                 isValidUpload: $isValidUploadPly,
                 onClickCancel: {
-                    plyFileUrl = nil
+                    resetPlySelection()
                 },
                 onClickUpload: {
                     handleUploadPly()
@@ -674,17 +712,23 @@ private extension BaseUploadPopup {
     }
     
     func handleUploadPly() {
-        guard let plyUrl = plyFileUrl else {
-            return
-        }
-        
-        upload(
-            cat: cat,
-            fileURL: plyUrl,
-            fileName: plyUrl.lastPathComponent,
-            arColor: currentARColor
+        guard let cat = cat, let plyUrl = plyFileUrl else { return }
+
+        // Same multipart contract as Web 2238: uploadFile + optional geoDescFile.
+        uploadQueue.enqueue(
+            UploadJob(
+                cat: cat,
+                jobsiteId: jobsite?.id ?? "",
+                kind: .arData(
+                    UploadJob.ARDataParameters(
+                        source: .local(file1URL: plyUrl, file2URL: nil),
+                        arColor: currentARColor,
+                        geoDescFileURL: plyGeoFileURL
+                    )
+                )
+            )
         )
-        
+        resetDataTypeSelection()
         show = false
     }
     
@@ -700,6 +744,7 @@ private extension BaseUploadPopup {
         isValidUploadGeo = jsonFileURL != nil
         isValidUploadLas = lasFileURL != nil
         isValidUploadModel3D = model3DFileURL != nil
+        isValidUploadPly = plyFileUrl != nil
     }
 
     func applyGroupwareSelection(
@@ -752,12 +797,22 @@ private extension BaseUploadPopup {
         isValidUploadLas = false
         isValidUploadTif = false
         isValidUploadGeo = false
+        resetPlySelection()
         popoverManager.hideAll()
+    }
+
+    func resetPlySelection() {
+        plyFileUrl = nil
+        plyGeoFileURL = nil
+        isValidUploadPly = false
+        plyPickerID = UUID()
+        plyGeoPickerID = UUID()
     }
 
     func closePopup() {
         projectName = ""
         resetIfcSelection()
+        resetPlySelection()
         show = false
     }
 }

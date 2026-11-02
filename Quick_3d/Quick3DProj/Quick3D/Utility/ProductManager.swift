@@ -1147,6 +1147,7 @@ final class ProductData: ObservableObject {
         jobsiteId: String,
         arColor: String,
         source: ARUploadSource,
+        geoDescFileURL: URL? = nil,
         progress progressHandler: ((Double) -> Void)? = nil,
         completion: @escaping (AFDataResponse<Any>) -> Void
     ) {
@@ -1184,7 +1185,11 @@ final class ProductData: ObservableObject {
                 if let f2URL = file2URL {
                     form.append(f2URL, withName: "uploadFile2", fileName: f2URL.lastPathComponent, mimeType: "application/octet-stream")
                 }
+                if let jsonURL = geoDescFileURL {
+                    form.append(jsonURL, withName: "geoDescFile", fileName: jsonURL.lastPathComponent, mimeType: "application/json")
+                }
             }, to: url, method: .post)
+            .validate()
             .uploadProgress { progressHandler?($0.fractionCompleted) }
             .responseJSON { [weak self] response in
                 debugPrint(response)

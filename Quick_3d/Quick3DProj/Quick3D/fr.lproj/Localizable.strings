@@ -588,3 +588,8 @@
 "GSX_UPDATE_SUMMARY_DONE" = "Terminé";
 "GSX_DOWNLOAD_CELLULAR_WARNING" = "Vous utilisez les données mobiles. Ce téléchargement fait %@. Voulez-vous continuer ?";
 "GSX_DOWNLOAD_CELLULAR_RESUME" = "Le Wi-Fi a été perdu et le téléchargement est en pause. Voulez-vous continuer avec les données mobiles ?";
+
+"UPLOAD_GS_COORDINATE_FILE" = "Veuillez sélectionner un fichier JSON (facultatif)";
+"UPLOAD_GS_COORDINATE_FILE_HINT" = "Sert à convertir le PLY dans le système de coordonnées du projet. S'il n'est pas sélectionné, le PLY est utilisé tel quel.";
+"FILE_SELECT" = "Sélection de fichiers";
+"FILE_CHANGE" = "changement de fichier";

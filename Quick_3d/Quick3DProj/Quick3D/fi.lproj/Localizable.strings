@@ -11,3 +11,8 @@
 "SORT_BY" = "Lajitteluperuste";
 "SORT_CAPTURED_DATE" = "Kuvauspäivä";
 "SORT_UPLOAD_DATE" = "Lähetyksen päivämäärä";
+
+"UPLOAD_GS_COORDINATE_FILE" = "Valitse JSON-tiedosto (valinnainen)";
+"UPLOAD_GS_COORDINATE_FILE_HINT" = "Käytetään PLY:n muuntamiseen projektin koordinaattijärjestelmään. Jos tiedostoa ei valita, PLY:tä käytetään sellaisenaan.";
+"FILE_SELECT" = "Valitse tiedosto";
+"FILE_CHANGE" = "Vaihda tiedosto";

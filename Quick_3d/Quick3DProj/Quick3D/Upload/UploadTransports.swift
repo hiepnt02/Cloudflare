@@ -211,6 +211,7 @@ final class ARDataTransport: UploadJobTransport {
             jobsiteId: job.jobsiteId,
             arColor: parameters.arColor,
             source: parameters.source,
+            geoDescFileURL: parameters.geoDescFileURL,
             progress: { fraction in
                 DispatchQueue.main.async { onProgress(fraction) }
             },

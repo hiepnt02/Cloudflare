@@ -587,3 +587,8 @@
 "GSX_UPDATE_SUMMARY_DONE" = "Fertig";
 "GSX_DOWNLOAD_CELLULAR_WARNING" = "Sie verwenden mobile Daten. Dieser Download umfasst %@. Möchten Sie fortfahren?";
 "GSX_DOWNLOAD_CELLULAR_RESUME" = "Die WLAN-Verbindung wurde getrennt und der Download pausiert. Mit mobilen Daten fortfahren?";
+
+"UPLOAD_GS_COORDINATE_FILE" = "Bitte wählen Sie eine JSON-Datei aus (optional)";
+"UPLOAD_GS_COORDINATE_FILE_HINT" = "Dient zur Umrechnung der PLY in das Koordinatensystem des Projekts. Wird keine Datei gewählt, wird die PLY unverändert verwendet.";
+"FILE_SELECT" = "Dateiauswahl";
+"FILE_CHANGE" = "Datei ändern";

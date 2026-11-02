@@ -588,3 +588,8 @@
 "GSX_UPDATE_SUMMARY_DONE" = "完了";
 "GSX_DOWNLOAD_CELLULAR_WARNING" = "モバイルデータ通信を使用しています。ダウンロードサイズは %@ です。続行しますか？";
 "GSX_DOWNLOAD_CELLULAR_RESUME" = "Wi-Fi が切断されたため、ダウンロードを一時停止しました。モバイルデータ通信で続行しますか？";
+
+"UPLOAD_GS_COORDINATE_FILE" = "JSONファイルを選択してください(任意)";
+"UPLOAD_GS_COORDINATE_FILE_HINT" = "PLYをプロジェクトの座標系に変換するために使用します。選択しない場合、PLYはそのまま使用されます。";
+"FILE_SELECT" = "ファイル選択";
+"FILE_CHANGE" = "ファイル変更";

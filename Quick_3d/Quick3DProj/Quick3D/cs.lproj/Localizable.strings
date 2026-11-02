@@ -588,3 +588,8 @@
 "GSX_UPDATE_SUMMARY_DONE" = "Hotovo";
 "GSX_DOWNLOAD_CELLULAR_WARNING" = "Používáte mobilní data. Velikost stahování je %@. Chcete pokračovat?";
 "GSX_DOWNLOAD_CELLULAR_RESUME" = "Připojení Wi-Fi bylo ztraceno a stahování je pozastaveno. Chcete pokračovat přes mobilní data?";
+
+"UPLOAD_GS_COORDINATE_FILE" = "Vyberte soubor JSON (volitelné)";
+"UPLOAD_GS_COORDINATE_FILE_HINT" = "Používá se k převodu PLY do souřadnicového systému projektu. Pokud není vybrán, použije se PLY beze změny.";
+"FILE_SELECT" = "Vybrat soubor";
+"FILE_CHANGE" = "Změnit soubor";
