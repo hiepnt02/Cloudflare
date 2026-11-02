@@ -94,29 +94,11 @@ enum GsxProject {
                 print("[gsplat] project cookie failed: HTTP \(cookie.response?.statusCode ?? 0)")
             }
         }
-        do {
-            // Deployed 2238 stores JSON separately; retain inline metadata for older projects.
-            let data = await metadataData(projectId: projectId, reportJSON: reportJSON)
-            let metadata = try data.map { try JSONDecoder().decode(GaussianGeoMetadata.self, from: $0) }
-                ?? job.value?.metadata
-            var georeference: GaussianSplatGeoreference?
-            if let metadata {
-                reportJSON(data == nil
-                    ? "JSON: using API metadata fallback; calculating transform"
-                    : "JSON: file decoded; calculating transform")
-                georeference = try await makeGeoreference(metadata: metadata, projectId: projectId)
-                print("[gsplat] applied offset JSON: \(metadata.csType)")
-                reportJSON(data == nil
-                    ? "JSON: API fallback transform ready (\(metadata.csType))"
-                    : "JSON: file downloaded; transform ready (\(metadata.csType))")
-            }
-            try Task.checkCancellation()
-            return GsxProjectFile(url: fileURL, georeference: georeference)
-        } catch {
-            reportJSON("JSON: decode / transform failed — \(error.localizedDescription)")
-            print("[gsplat] cannot load project georeference: \(error)")
-            return nil
-        }
+        // Temporary isolation: download and display JSON only. Do not decode georeference,
+        // convert coordinates or apply any JSON transform to the GSX renderer.
+        _ = await metadataData(projectId: projectId, reportJSON: reportJSON)
+        guard !Task.isCancelled else { return nil }
+        return GsxProjectFile(url: fileURL, georeference: nil)
     }
 
     private static func downloadURL(projectId: String, type: String) async throws -> URL? {
@@ -131,18 +113,31 @@ enum GsxProject {
     }
 
     private static func metadataData(projectId: String, reportJSON: @Sendable (String) -> Void) async -> Data? {
+        var fileName = "(URL not received)"
         do {
-            reportJSON("JSON: requesting file URL")
+            reportJSON("JSON transform: OFF\nJSON: requesting file URL")
             guard let url = try await downloadURL(projectId: projectId, type: "JSON") else {
-                reportJSON("JSON: file URL not found (404); no file transform")
+                reportJSON("JSON transform: OFF\nJSON: file URL not found (404)")
                 return nil
             }
-            reportJSON("JSON: downloading file")
+            fileName = url.lastPathComponent
+            reportJSON("JSON transform: OFF\nFile: \(fileName)\nJSON: downloading file")
             let data = try await AF.request(url).validate().serializingData().value
-            reportJSON("JSON: downloaded \(data.count) bytes; decoding")
+            let header = "JSON transform: OFF\nFile: \(fileName)\nDownloaded: \(data.count) bytes"
+            do {
+                let object = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+                let pretty = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed])
+                let content = String(decoding: pretty, as: UTF8.self)
+                // Metadata should be small; cap the overlay for unexpected large files.
+                let preview = String(content.prefix(12_000))
+                reportJSON(header + "\nJSON structure / values:\n" + preview
+                    + (content.count > 12_000 ? "\n[Preview truncated]" : ""))
+            } catch {
+                reportJSON(header + "\nInvalid JSON: " + error.localizedDescription)
+            }
             return data
         } catch {
-            reportJSON("JSON: download failed; no file transform — \(error.localizedDescription)")
+            reportJSON("JSON transform: OFF\nFile: \(fileName)\nDownload failed: \(error.localizedDescription)")
             // JSON is optional, as in Web 2238. S3 may return 403/404 for an absent file.
             print("[gsplat] offset JSON unavailable: \(error)")
             return nil

@@ -14,14 +14,16 @@ private struct GaussianJSONDebugBadge: View {
 
     var body: some View {
         if !status.text.isEmpty {
-            Text("AR Trial DEBUG\n" + status.text)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundColor(.white)
-                .padding(8)
-                .background(Color.black.opacity(0.8))
-                .cornerRadius(6)
-                .frame(maxWidth: 320, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                Text("AR Trial DEBUG\n" + status.text)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+            }
+            .frame(width: 320, height: 220)
+            .background(Color.black.opacity(0.8))
+            .cornerRadius(6)
         }
     }
 }
@@ -101,7 +103,6 @@ struct ViewARScreen: View {
             GaussianJSONDebugBadge(status: context.gaussianSplat.jsonDebugStatus)
                 .padding(.horizontal, 12)
                 .padding(.top, 60)
-                .allowsHitTesting(false)
         }
         .contentShape(Rectangle())
         .onTapGesture { hideKeyboard() }
