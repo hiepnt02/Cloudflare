@@ -396,10 +396,8 @@ private extension BaseUploadPopup {
             sectionLabel("PLEASE_SELECT_FILE".localized(userManager.userLanguage))
             
             ButtonSelectFile(
-                buttonText: (plyFileUrl == nil ? "FILE_SELECT" : "FILE_CHANGE").localized(userManager.userLanguage),
-                fileTypes: [FileTypes[FileType.ply]!],
-                buttonWidth: 175,
-                buttonHeight: 42
+                buttonText: plyFileUrl == nil ? nil : "FILE_CHANGE".localized(userManager.userLanguage),
+                fileTypes: [FileTypes[FileType.ply]!]
             ) { fileUrl, fileName in
                 plyFileUrl = fileUrl
             }
@@ -425,10 +423,8 @@ private extension BaseUploadPopup {
             .zIndex(1)
 
             ButtonSelectFile(
-                buttonText: (plyGeoFileURL == nil ? "FILE_SELECT" : "FILE_CHANGE").localized(userManager.userLanguage),
-                fileTypes: [FileTypes[FileType.json]!],
-                buttonWidth: 175,
-                buttonHeight: 42
+                buttonText: plyGeoFileURL == nil ? nil : "FILE_CHANGE".localized(userManager.userLanguage),
+                fileTypes: [FileTypes[FileType.json]!]
             ) { fileUrl, _ in
                 plyGeoFileURL = fileUrl
             }

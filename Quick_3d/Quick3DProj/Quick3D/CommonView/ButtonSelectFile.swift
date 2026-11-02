@@ -14,8 +14,6 @@ struct ButtonSelectFile: View {
     var buttonText: String?
     var fileTypes: [UTType]
     var isHideFileName: Bool = false
-    var buttonWidth: CGFloat = 150
-    var buttonHeight: CGFloat = UserSession.isIPhone ? 35 : 45
     var callback: (
         URL?,   // Url of file selected
         String? // Name of file selected with extension. Ex: "memo.zip"
@@ -25,6 +23,8 @@ struct ButtonSelectFile: View {
     @State private var selectedFileName: String = ""
     @State private var selectedFileSize: String = ""
     
+    private let btnWidth: CGFloat = 150
+    private let btnHeight: CGFloat = UserSession.isIPhone ? 35 : 45
     private let textMinHeight: CGFloat = UserSession.isIPhone ? 20 : 30
     
     var body: some View {
@@ -36,8 +36,8 @@ struct ButtonSelectFile: View {
                     .foregroundColor(.white)
                     .font(UserSession.isIPhone ? .body : .title3)
                     .frame(
-                        width: buttonWidth,
-                        height: buttonHeight,
+                        width: btnWidth,
+                        height: btnHeight,
                         alignment: .center
                     )
             }

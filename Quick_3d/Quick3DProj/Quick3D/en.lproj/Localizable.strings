@@ -591,6 +591,5 @@
 
 "UPLOAD_GS_COORDINATE_FILE" = "Please select a JSON file (optional)";
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "Used to convert the PLY to the project's coordinate system. If not selected, the PLY is used as it is.";
-"FILE_SELECT" = "SELECT YOUR FILE";
 "FILE_CHANGE" = "file change";
 "GAUSSIAN_SPLATTING" = "Gaussian Splatting";
