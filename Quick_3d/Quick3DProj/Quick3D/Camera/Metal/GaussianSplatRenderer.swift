@@ -30,6 +30,7 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     static let renderingOrder = 10_000
 
     let node = SCNNode()
+    let jsonDebugStatus = GaussianJSONDebugStatus()
 
     /// Splats closer to the camera than this (metres) are not drawn.
     var nearCull: Float = 0.15
@@ -69,11 +70,19 @@ final class GaussianSplatRenderer: NSObject, SCNNodeRendererDelegate, @unchecked
     func load(projectId: String) {
         unload()
         hasSplats = Task { [weak self] in
-            guard let file = await GsxProject.file(projectId: projectId) else { return false }
+            guard let self else { return false }
+            let status = self.jsonDebugStatus
+            guard let file = await GsxProject.file(projectId: projectId, reportJSON: { message in
+                guard !Task.isCancelled else { return }
+                status.report(message)
+            }) else { return false }
             // unload() runs on the main thread too, so this check cannot race it.
             return await MainActor.run { [weak self] in
                 guard !Task.isCancelled, let self else { return false }
                 self.setGeoreference(file.georeference)
+                if file.georeference != nil {
+                    status.markApplied()
+                }
                 self.start(url: file.url)
                 return true
             }

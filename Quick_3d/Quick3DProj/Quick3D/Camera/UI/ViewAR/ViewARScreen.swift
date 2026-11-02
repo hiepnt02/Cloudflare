@@ -8,6 +8,24 @@
 import SwiftUI
 import SceneKit
 
+// Temporary overlay for verifying JSON without an Xcode connection.
+private struct GaussianJSONDebugBadge: View {
+    @ObservedObject var status: GaussianJSONDebugStatus
+
+    var body: some View {
+        if !status.text.isEmpty {
+            Text("AR Trial DEBUG\n" + status.text)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundColor(.white)
+                .padding(8)
+                .background(Color.black.opacity(0.8))
+                .cornerRadius(6)
+                .frame(maxWidth: 320, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
 struct ViewARScreen: View {
     
     @Environment(\.presentationMode) private var presentationMode
@@ -78,6 +96,13 @@ struct ViewARScreen: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        // Temporary diagnostics: visible in QR-installed builds, including Release.
+        .overlay(alignment: .topLeading) {
+            GaussianJSONDebugBadge(status: context.gaussianSplat.jsonDebugStatus)
+                .padding(.horizontal, 12)
+                .padding(.top, 60)
+                .allowsHitTesting(false)
+        }
         .contentShape(Rectangle())
         .onTapGesture { hideKeyboard() }
         .overlayPreferenceValue(ARStepPulldownAnchorKey.self) { anchor in

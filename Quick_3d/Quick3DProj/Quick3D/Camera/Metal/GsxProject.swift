@@ -4,8 +4,24 @@
 //
 
 import Alamofire
+import Combine
 import Foundation
 import simd
+
+// Temporary on-device diagnostics for QR-installed builds.
+final class GaussianJSONDebugStatus: ObservableObject, @unchecked Sendable {
+    @Published private(set) var text = ""
+
+    func report(_ message: String) {
+        DispatchQueue.main.async { self.text = message }
+    }
+
+    func markApplied() {
+        DispatchQueue.main.async {
+            self.text = self.text.replacingOccurrences(of: "transform ready", with: "transform applied to renderer")
+        }
+    }
+}
 
 struct GaussianGeoMetadata: Decodable {
     struct ReferenceGPS: Decodable {
@@ -53,7 +69,8 @@ enum GsxProject {
 
     /// The project's latest converted splat file (the one the web viewer streams), or nil when
     /// it has none. Also installs the CloudFront cookies the file needs.
-    static func file(projectId: String) async -> GsxProjectFile? {
+    static func file(projectId: String, reportJSON: @Sendable (String) -> Void = { _ in }) async -> GsxProjectFile? {
+        reportJSON("JSON: waiting for GSX lookup")
         let jobURL = URL(string: Constant.baseUrl + "api/v1/convert/gsplat/by-project/\(projectId)")!
         let job = await AF.request(jobURL).validate().serializingDecodable(JobResponse.self).response
         // 2238 serves GSX via a presigned URL; older servers still use outputKey.
@@ -61,6 +78,7 @@ enum GsxProject {
         let key = job.value?.outputKey?.drop(while: { $0 == "/" })
             .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
         guard let fileURL = signedURL ?? key.flatMap({ URL(string: Constant.baseUrl + $0) }) else {
+            reportJSON("JSON: not requested — GSX unavailable")
             // 404: the project has no converted splats.
             if let error = job.error, job.response?.statusCode != 404 {
                 print("[gsplat] by-project failed: \(error)")
@@ -78,17 +96,24 @@ enum GsxProject {
         }
         do {
             // Deployed 2238 stores JSON separately; retain inline metadata for older projects.
-            let data = await metadataData(projectId: projectId)
+            let data = await metadataData(projectId: projectId, reportJSON: reportJSON)
             let metadata = try data.map { try JSONDecoder().decode(GaussianGeoMetadata.self, from: $0) }
                 ?? job.value?.metadata
             var georeference: GaussianSplatGeoreference?
             if let metadata {
+                reportJSON(data == nil
+                    ? "JSON: using API metadata fallback; calculating transform"
+                    : "JSON: file decoded; calculating transform")
                 georeference = try await makeGeoreference(metadata: metadata, projectId: projectId)
                 print("[gsplat] applied offset JSON: \(metadata.csType)")
+                reportJSON(data == nil
+                    ? "JSON: API fallback transform ready (\(metadata.csType))"
+                    : "JSON: file downloaded; transform ready (\(metadata.csType))")
             }
             try Task.checkCancellation()
             return GsxProjectFile(url: fileURL, georeference: georeference)
         } catch {
+            reportJSON("JSON: decode / transform failed — \(error.localizedDescription)")
             print("[gsplat] cannot load project georeference: \(error)")
             return nil
         }
@@ -105,11 +130,19 @@ enum GsxProject {
         return url
     }
 
-    private static func metadataData(projectId: String) async -> Data? {
+    private static func metadataData(projectId: String, reportJSON: @Sendable (String) -> Void) async -> Data? {
         do {
-            guard let url = try await downloadURL(projectId: projectId, type: "JSON") else { return nil }
-            return try await AF.request(url).validate().serializingData().value
+            reportJSON("JSON: requesting file URL")
+            guard let url = try await downloadURL(projectId: projectId, type: "JSON") else {
+                reportJSON("JSON: file URL not found (404); no file transform")
+                return nil
+            }
+            reportJSON("JSON: downloading file")
+            let data = try await AF.request(url).validate().serializingData().value
+            reportJSON("JSON: downloaded \(data.count) bytes; decoding")
+            return data
         } catch {
+            reportJSON("JSON: download failed; no file transform — \(error.localizedDescription)")
             // JSON is optional, as in Web 2238. S3 may return 403/404 for an absent file.
             print("[gsplat] offset JSON unavailable: \(error)")
             return nil
