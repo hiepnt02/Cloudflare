@@ -8,6 +8,23 @@
 import SwiftUI
 import SceneKit
 
+/// TEMPORARY (SC_QUICK-2238 trial): remove together with `GaussianSplatDebugStatus`.
+private struct GaussianSplatDebugBadge: View {
+    @ObservedObject var status: GaussianSplatDebugStatus
+
+    var body: some View {
+        if !status.lines.isEmpty {
+            Text("GS DEBUG\n" + status.lines.joined(separator: "\n"))
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundColor(.white)
+                .padding(8)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(6)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
 struct ViewARScreen: View {
     
     @Environment(\.presentationMode) private var presentationMode
@@ -78,6 +95,12 @@ struct ViewARScreen: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        // TEMPORARY (SC_QUICK-2238 trial): Gaussian georeference status for QR-installed builds.
+        .overlay(alignment: .topLeading) {
+            GaussianSplatDebugBadge(status: context.gaussianSplat.debugStatus)
+                .padding(.horizontal, 12)
+                .padding(.top, 60)
+        }
         .contentShape(Rectangle())
         .onTapGesture { hideKeyboard() }
         .overlayPreferenceValue(ARStepPulldownAnchorKey.self) { anchor in
