@@ -21,6 +21,7 @@ struct ProjectGridCell: View, Equatable {
     let jobSiteName: String
     /// Upload state of this project, see `CellUploadState`.
     let uploadState: CellUploadState
+    let downloadBadge: CellDownloadBadge?
     // Built only when the menu is opened, so scrolling/refreshing the list does not
     // create the menu items of every cell.
     let actionMenuItems: () -> AnyView
@@ -42,6 +43,7 @@ struct ProjectGridCell: View, Equatable {
             && lhs.thumbnailImage === rhs.thumbnailImage
             && lhs.jobSiteName == rhs.jobSiteName
             && lhs.uploadState == rhs.uploadState
+            && lhs.downloadBadge == rhs.downloadBadge
     }
 
     var body: some View {
@@ -147,6 +149,14 @@ struct ProjectGridCell: View, Equatable {
                     .fill(.gray)
                     .frame(height: height)
             }
+        }
+        .overlay(alignment: .topTrailing) { downloadBadgeIcon }
+    }
+
+    @ViewBuilder
+    private var downloadBadgeIcon: some View {
+        if let downloadBadge {
+            CellDownloadBadgeView(badge: downloadBadge, size: isIPhone ? 18 : 24, language: userManager.userLanguage)
         }
     }
 

@@ -48,4 +48,6 @@ struct Project: Decodable {
     let horizontal: String?
     let ar_color: String?
     let design_file: String?
+
+    let gsx_file: String?
 }

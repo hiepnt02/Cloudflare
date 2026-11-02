@@ -1231,6 +1231,10 @@ final class ProductData: ObservableObject {
 
 // MARK: Fetch Projects List from Server
 extension ProductData {
+    func latestGsxFileName(projectId: String) -> String? {
+        lastFetchedOnlineProjects.first { $0.id == projectId }.flatMap { Self.mapToCat(from: $0).gsxFileName }
+    }
+
     /// Asks MainScreen to reload the project list using its current filters.
     @MainActor
     func requestListReload() {
@@ -1302,7 +1306,6 @@ extension ProductData {
                             return
                         }
                         
-                        debugPrint(result)
                         guard let self = self else { return }
                         
                         // API failed -> fall back to the cached data and filter locally
@@ -1436,7 +1439,7 @@ extension ProductData {
         // Re-apply the from/to filter locally as well: the visible list must obey
         // the date range the user selected even when the server returns items
         // outside of it.
-        let onlineProducts = filterByDateRange(projects.map { mapToCat(from: $0) }, fromDate: fromDate, toDate: toDate)
+        let onlineProducts = filterByDateRange(projects.map { Self.mapToCat(from: $0) }, fromDate: fromDate, toDate: toDate)
         
         // Combine them for sorting.
         var combinedProducts = offlineProducts + onlineProducts
@@ -1519,7 +1522,7 @@ extension ProductData {
     }
     
     // 5. Map from API Model to UI Model (Cat)
-    private func mapToCat(from project: Project) -> Cat {
+    static func mapToCat(from project: Project) -> Cat {
         return Cat(
             userId: project.userId,
             id: UUID().uuidString,
@@ -1542,6 +1545,7 @@ extension ProductData {
             vertical: project.vertical ?? nil,
             horizontal: project.horizontal ?? nil,
             ar_color: project.ar_color ?? nil,
+            gsx_file: project.gsx_file
         )
     }
     
@@ -1675,6 +1679,14 @@ extension ProductData {
                 // handle error
             }
         }
+    }
+}
+
+extension ProductData: ProjectDetailFetching {
+    func fetchProjectDetail(projectId: String) async -> GsxDetailResult {
+        guard let url = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)") else { return .failed }
+        let response = await AF.request(url).validate().serializingDecodable(ProjectDetail.self).response
+        return GsxDetailResult.classify(statusCode: response.response?.statusCode, error: response.error, detail: response.value)
     }
 }
 

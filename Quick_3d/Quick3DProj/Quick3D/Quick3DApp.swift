@@ -25,7 +25,7 @@ struct Quick3DApp: App {
     @State private var savedProjectName = ""
     @State private var navigateToProjectDetail = false
     @State private var navigateCat: Cat?
-    @StateObject private var productData = ProductData()
+    @StateObject private var productData: ProductData
     @StateObject private var userManager = UserManager()
     @State var cancellables = Set<AnyCancellable>()
     @StateObject private var themeManager = ThemeManager()
@@ -36,7 +36,12 @@ struct Quick3DApp: App {
     @StateObject var uploadProject = UploadProject()
     @StateObject var cancelUploadProject = CancelUploadProject()
     @StateObject var uploadQueue = UploadQueueManager()
-    
+    @StateObject var downloadQueue: DownloadQueueManager
+    @StateObject var downloadedRegistry: DownloadedGsxRegistry
+    @StateObject var gsxUpdateMonitor: GsxUpdateMonitor
+    @State private var downloadIdleTimer: IdleTimerController?
+    @State private var interruptedDownloads: InterruptedDownloadTracker
+
     @State var isShowRenameAlert: Bool = false
     
     @StateObject var languageObserver = LanguageChangeObserver()
@@ -48,7 +53,30 @@ struct Quick3DApp: App {
     @State private var arUploadCase: UploadCase = .Ifc
 
     @State private var batchResults: [UploadBatchResult] = []
-    
+
+    init() {
+        let productData = ProductData()
+        let downloadQueue = DownloadQueueManager(
+            linkProvider: ARGsxLinkProvider(),
+            transportFactory: AppDownloadTransportFactory(),
+            network: DownloadNetworkMonitor()
+        )
+        DownloadQueueManager.current = downloadQueue
+        _interruptedDownloads = State(initialValue: InterruptedDownloadTracker(queue: downloadQueue))
+        let downloadedRegistry = DownloadedGsxRegistry()
+        _productData = StateObject(wrappedValue: productData)
+        _downloadQueue = StateObject(wrappedValue: downloadQueue)
+        _downloadedRegistry = StateObject(wrappedValue: downloadedRegistry)
+        _gsxUpdateMonitor = StateObject(wrappedValue: GsxUpdateMonitor(
+            registry: downloadedRegistry,
+            queue: downloadQueue,
+            fetcher: productData,
+            projectNames: { [weak productData] projectId in
+                productData?.products.first { $0.projectId == projectId }?.title
+            }
+        ))
+    }
+
     var body: some Scene {
         WindowGroup{
             ZStack {
@@ -68,6 +96,9 @@ struct Quick3DApp: App {
                     .environmentObject(editProject)
                     .environmentObject(cancelUploadProject)
                     .environmentObject(uploadQueue)
+                    .environmentObject(downloadQueue)
+                    .environmentObject(downloadedRegistry)
+                    .environmentObject(gsxUpdateMonitor)
                     .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                         if forceShowVersionAlert {
                             isShowVersionAlert = true
@@ -319,6 +350,16 @@ struct Quick3DApp: App {
 
                 productData.onProjectsRemoved = { ids in
                     ids.forEach { uploadQueue.remove(catId: $0) }
+                    downloadQueue.remove(projectIds: ids)
+                    downloadedRegistry.remove(projectIds: ids)
+                }
+
+                downloadQueue.configure(prompter: AppDownloadPrompter(userManager: userManager))
+                downloadIdleTimer = IdleTimerController(queue: downloadQueue)
+                downloadedRegistry.attach(to: downloadQueue)
+                downloadQueue.resolveFileNames(from: productData)
+                gsxUpdateMonitor.onSessionExpired = {
+                    Task { _ = await userManager.checkTokenValid() }
                 }
 
                 uploadQueue.onBatchFinished = { result in
@@ -366,5 +407,34 @@ struct LeftAligned: ViewModifier {
             content
             Spacer()
         }
+    }
+}
+
+extension DownloadQueueManager {
+    func resolveFileNames(from productData: ProductData) {
+        fileNameResolver = { [weak productData] projectId in
+            productData?.latestGsxFileName(projectId: projectId)
+        }
+    }
+}
+
+extension GsxUpdateMonitor {
+    convenience init(
+        registry: DownloadedGsxRegistry,
+        queue: DownloadQueueManager,
+        fetcher: ProjectDetailFetching,
+        projectNames: @escaping (String) -> String?,
+        notificationCenter: NotificationCenter = .default
+    ) {
+        self.init(
+            registry: registry,
+            fetcher: fetcher,
+            isBusy: { [weak queue] projectId in
+                guard let phase = queue?.states[projectId] else { return false }
+                return phase != .completed
+            },
+            listName: projectNames,
+            notificationCenter: notificationCenter
+        )
     }
 }

@@ -153,6 +153,7 @@ final class UserManager: ObservableObject {
     }
     
     func logout() {
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
         AF.request(URL(string: Constant.baseUrl + "logout")!)
             .validate()
             .responseString { [weak self] response in
@@ -162,4 +163,8 @@ final class UserManager: ObservableObject {
                 AF.session.configuration.httpCookieStorage?.removeCookies(since: Date(timeIntervalSince1970: 0))
             }
     }
+}
+
+extension Notification.Name {
+    static let userDidLogout = Notification.Name("QUICK-1086.userDidLogout")
 }

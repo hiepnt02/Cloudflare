@@ -182,6 +182,7 @@ struct ViewARScreen: View {
                     context.clear()
                 }
             },
+            optionButtons: currentEnvironment == .dev && arItemRendered ? AnyView(calibrationButton) : nil,
             additionalWarning: {
                 ARInstructionToastView(message: arPositionInstruction)
             },
@@ -202,11 +203,7 @@ struct ViewARScreen: View {
                     pointOpacity: $pointCloudOpacity,
                     isARObjectVisisble: $isDesignVisible,
                     arObjectScale: $designOpacity,
-                    onARObjectVisibilityChanged: syncRootLayersVisibility,
-                    onCalibrationTapped: {
-                        calibrationModel = context.makeCalibrationModelNode()
-                        isShowManualCalibration = true
-                    }
+                    onARObjectVisibilityChanged: syncRootLayersVisibility
                 )
             }
         )
@@ -219,30 +216,41 @@ struct ViewARScreen: View {
                 parentContext: context,
                 panelModel: model,
                 onCalibrationComplete: { result in
-                    // QUICK-1049: áp mốc vào context TRƯỚC, rồi mới đưa bảng giá trị về 0.
-                    // Làm ngược lại thì giá trị 0 sẽ bị đẩy vào delta và model nhảy về base.
-                    context.perform(
-                        ViewARApplyCalibrationBaselineEvent(result.position, result.eulerAngles, result.scale)
+                    arPosition.setFrom(
+                        position: result.position,
+                        eulerAngles: result.eulerAngles,
+                        scale: result.scale
                     )
-                    arPosition.setFrom(position: .zero, eulerAngles: .zero, scale: result.scale)
                     UserSession.shared.position = result.position
                     UserSession.shared.eulerAngles = result.eulerAngles
+                    arPosition.updateUserSessionAndEvent { pos, eulerAngles, scale in
+                        context.perform(ViewARUpdatePositionEvent(pos, eulerAngles, scale))
+                    }
                     isShowManualCalibration = false
                 },
-                onDismiss: {
-                    // Panel expanded che kín camera nên khung hình chuyển tiếp lúc đóng
-                    // cover nháy giữa panel và camera — đóng ngay, không animation.
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        isShowManualCalibration = false
-                    }
-                }
+                onDismiss: { isShowManualCalibration = false }
             )
             .environmentObject(userManager)
         }
     }
 
+    private var calibrationButton: some View {
+        Button(action: {
+            calibrationModel = context.makeCalibrationModelNode()
+            isShowManualCalibration = true
+        }) {
+            Image("manual_calibration")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .foregroundColor(.white)
+                .frame(width: 52, height: 52)
+                .background(imperialBlue.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: borderNormal))
+        }
+    }
+    
     private var ifcLayersView: some View {
         ZStack(alignment: .leading) {
             SidebarView(

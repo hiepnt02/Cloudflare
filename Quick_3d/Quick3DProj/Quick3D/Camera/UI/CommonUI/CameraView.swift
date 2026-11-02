@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CameraView<Context, Content, AdditionalWarning>: View where Context: CameraContext, Content: View, AdditionalWarning: View {
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var userManager: UserManager
     @EnvironmentObject private var cameraObject: CameraObject
     
@@ -23,6 +22,9 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
     
     var back: (() -> Void)? = nil
 
+    /// View tùy biến của màn hình gọi, hiển thị ở cột trái bên dưới nút Home, phía trên nút debug
+    var optionButtons: AnyView? = nil
+
     @ViewBuilder let additionalWarning: () -> AdditionalWarning
 
     @ViewBuilder let content: () -> Content
@@ -31,7 +33,6 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
     
     @State private var errorMessage: String = ""
     @State private var isShowErrorMessage: Bool = false
-    @State private var rtkLostMessageKey: String?
     
     @StateObject private var motionObject = MotionObject()
     
@@ -53,11 +54,6 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
     private var isShowOverlap: Bool = false
     
     @StateObject private var popoverManager = PopoverManager()
-    
-    /// Popups are overlays in the same hierarchy, so warnings underneath would still sound while hidden.
-    private var isCoveredByPopup: Bool {
-        isShowVidocSetting || cameraObject.isPopupPresented
-    }
     
     var body: some View {
         ZStack {
@@ -120,12 +116,21 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
         )
         .overlay(popoverOverlay)
         .onLoad {
+            
             if UIDevice.current.userInterfaceIdiom == .phone {
                 AppDelegate.orientationLock = .portrait
             }
             
             LocationManager.shared.start()
-                        
+            
+            rtkDisconnectObserver.showAlert = { msg in
+                errorMessage = msg.localized(userManager.userLanguage)
+                isShowErrorMessage = true
+                if isViewActive {
+                    AudioService.shared.playAlertSound()
+                }
+            }
+            
             autoConnectRTK()
             
             thermalMonitor.start()
@@ -141,7 +146,6 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
         .onChange(of: cameraObject.alertMessage) { value in
             errorMessage = cameraObject.alertMessage ?? ""
             isShowErrorMessage = true
-            rtkLostMessageKey = nil
         }
         .onChange(of: rtkAutoConnection.quality) { value in
             cameraObject.rtkQuality = value
@@ -149,51 +153,15 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
         .onChange(of: rtkAutoConnection.state) { value in
             isConnectingVidoc = value == .connecting
         }
-        .onChange(of: scenePhase) { phase in
-            if phase == .active {
-                hideRTKLostIfReconnected()
-            }
-        }
-        .onChange(of: isCoveredByPopup) { isCovered in
-            if !isCovered {
-                hideRTKLostIfReconnected()
-            }
-        }
         .onAppear {
             isViewActive = true
-            hideRTKLostIfReconnected()
-            rtkDisconnectObserver.showAlert = { msg in
-                if isViewActive && !isCoveredByPopup {
-                    errorMessage = msg.localized(userManager.userLanguage)
-                    isShowErrorMessage = true
-                    rtkLostMessageKey = msg
-                    AudioService.shared.playAlertSound()
-                }
-            }
         }
         .onDisappear {
             isViewActive = false
             if !cameraObject.isModalPresented {
                 thermalMonitor.stop()
             }
-            rtkDisconnectObserver.showAlert = nil
         }
-    }
-    
-    private func hideRTKLostIfReconnected() {
-        guard isShowErrorMessage, let key = rtkLostMessageKey else { return }
-        let isRecovered: Bool
-        switch key {
-        case "RTK_LOST_CONNECTION":
-            isRecovered = RTKManager.shared.currentState == .connected
-        case "RTK_LOST_FIXED_QUALITY":
-            isRecovered = rtkDisconnectObserver.lastQuality == .fixed
-        default:
-            isRecovered = false
-        }
-        guard isRecovered else { return }
-        isShowErrorMessage = false
-        rtkLostMessageKey = nil
     }
     
     private func debugInfosView() -> some View {
@@ -276,8 +244,7 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
                 
                 Spacer()
                 
-                // A failed attempt is retried while recovering, so the brief disconnected state between tries is not shown.
-                if (isConnectingVidoc || rtkObj.isRecovering) && !rtkObj.isWaitingForSignal {
+                if isConnectingVidoc {
                     ConnectingBluetoothView()
                         .padding(.leading, 10)
                         .padding(.top, 5)
@@ -301,6 +268,9 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
             HStack(alignment: .top) {
 
                 VStack(alignment: .leading) {
+                    if let optionButtons {
+                        optionButtons
+                    }
                     if currentEnvironment == .dev {
                         debugInfosView()
                     }
@@ -309,7 +279,7 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    if rtkObj.isReady || rtkObj.isWaitingForSignal {
+                    if rtkObj.isReady {
                         GNSSQualityBar()
                     }
                     
@@ -346,13 +316,11 @@ struct CameraView<Context, Content, AdditionalWarning>: View where Context: Came
         VStack {
             Spacer()
             
-            if !isCoveredByPopup {
-                if cameraObject.checkMoveToFast {
-                    MoveFastWarningView()
-                }
-
-                ARTrackingAlertView()
+            if cameraObject.checkMoveToFast {
+                MoveFastWarningView()
             }
+
+            ARTrackingAlertView()
 
             content()
                 .frame(maxWidth: .infinity)

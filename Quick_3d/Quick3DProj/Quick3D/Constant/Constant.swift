@@ -140,3 +140,9 @@ let mintBreeze = Color.init(hex: 0x68eeac)
 let pineGreen = Color(hex: 0x167E1E)
 
 let orange: Color = Color(hex: 0xFF9800)
+
+extension Constant {
+    static let maxConcurrentDownloads = 2
+    static let downloadOfflineGrace: TimeInterval = 2
+    static let downloadInterruptionGrace: TimeInterval = 5
+}

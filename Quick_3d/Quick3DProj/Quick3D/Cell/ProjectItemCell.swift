@@ -10,6 +10,8 @@ struct ProjectItemCell: View {
     @EnvironmentObject var uploadProject: UploadProject
     @EnvironmentObject var editProject: EditProject
     @EnvironmentObject var uploadQueue: UploadQueueManager
+    @EnvironmentObject var downloadQueue: DownloadQueueManager
+    @EnvironmentObject var downloadedRegistry: DownloadedGsxRegistry
 
     var cat: Cat
     @Binding var isEditing: Bool
@@ -41,6 +43,7 @@ struct ProjectItemCell: View {
     @State private var resq: DataRequest?
     @State private var resqi: DataRequest?
     @State private var isShowNoNetworkAlert = false
+    @State private var isCheckingForUpdate = false
     @State private var cellWidth: CGFloat = 0
     @State private var image: UIImage?
     
@@ -60,6 +63,16 @@ struct ProjectItemCell: View {
         uploadQueue.states[cat.id] ?? .idle
     }
 
+    private var downloadBadge: CellDownloadBadge? {
+        guard let projectId = cat.projectId else { return nil }
+        return CellDownloadBadge(DownloadMenuItem.make(
+            gsxFile: cat.gsxFileName,
+            isARAvailable: userManager.isARAvailable,
+            phase: downloadQueue.states[projectId],
+            record: downloadedRegistry.record(for: projectId)
+        ))
+    }
+
     // MARK: - Body
     var body: some View {
         Group {
@@ -71,6 +84,7 @@ struct ProjectItemCell: View {
                     thumbnailImage: image,
                     jobSiteName: jobSiteName,
                     uploadState: uploadState,
+                    downloadBadge: downloadBadge,
                     actionMenuItems: { AnyView(actionMenuItems) },
                     onTap: handleCellTap,
                     isShowNoNetworkAlert: $isShowNoNetworkAlert,
@@ -87,6 +101,7 @@ struct ProjectItemCell: View {
                     thumbnailImage: image,
                     jobSiteName: jobSiteName,
                     uploadState: uploadState,
+                    downloadBadge: downloadBadge,
                     actionMenuItems: { AnyView(actionMenuItems) },
                     onTap: handleCellTap,
                     isShowNoNetworkAlert: $isShowNoNetworkAlert
@@ -173,12 +188,79 @@ extension ProjectItemCell {
                             userManager: userManager
                         )
                     }
+
+                    downloadMenuButton()
                 }
             } else if userManager.setting.isTester {
                 Button("SHOW_POINT_CLOUD".localized(userManager.userLanguage)) {
                     viewLiDAR()
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func downloadMenuButton() -> some View {
+        if let projectId = cat.projectId,
+           let item = DownloadMenuItem.make(
+               gsxFile: cat.gsxFileName,
+               isARAvailable: userManager.isARAvailable,
+               phase: downloadQueue.states[projectId],
+               record: downloadedRegistry.record(for: projectId)
+           ) {
+            Button(item.title(userManager.userLanguage)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    handleDownloadTap(item, projectId: projectId)
+                }
+            }
+            .disabled(item.isDisabled)
+        }
+    }
+
+    private func handleDownloadTap(_ item: DownloadMenuItem, projectId: String) {
+        switch item {
+        case .download:
+            guard let fileName = cat.gsxFileName else { return }
+            downloadQueue.enqueue(projectId: projectId, displayName: cat.title, fileName: fileName)
+        case .downloaded:
+            guard let record = downloadedRegistry.record(for: projectId) else { return }
+            checkForUpdate(projectId: projectId, record: record)
+        case .updateAvailable:
+            guard let fileName = cat.gsxFileName else { return }
+            respondToUpdate(.updateAvailable(fileName: fileName), projectId: projectId)
+        case .downloading:
+            break
+        }
+    }
+
+    private func checkForUpdate(projectId: String, record: DownloadedGsx) {
+        guard !isCheckingForUpdate else { return }
+        isCheckingForUpdate = true
+        Task { @MainActor in
+            let detail = await productData.fetchProjectDetail(projectId: projectId)
+            isCheckingForUpdate = false
+            let result = GsxUpdateCheck.evaluate(record: record, detail: detail)
+            switch result {
+            case .updateAvailable, .upToDate:
+                downloadedRegistry.setKeptMissingFile(false, for: projectId)
+            default:
+                break
+            }
+            respondToUpdate(result, projectId: projectId)
+        }
+    }
+
+    private func respondToUpdate(_ result: GsxUpdateResult, projectId: String) {
+        guard let prompter = downloadQueue.prompter else { return }
+        GsxUpdateCheck.respond(
+            to: result,
+            displayName: cat.title,
+            prompter: prompter,
+            onDelete: { downloadedRegistry.remove(projectIds: [projectId]) },
+            onKeep: { downloadedRegistry.setKeptMissingFile(true, for: projectId) },
+            onSessionExpired: { Task { _ = await userManager.checkTokenValid() } }
+        ) { fileName in
+            downloadQueue.enqueue(projectId: projectId, displayName: cat.title, fileName: fileName)
         }
     }
 
@@ -377,3 +459,87 @@ extension ProjectItemCell {
     }
 }
 
+enum DownloadMenuItem: Equatable {
+    case download
+    case downloading
+    case downloaded
+    case updateAvailable
+
+    static func make(gsxFile: String?, isARAvailable: Bool, phase: DownloadPhase?, record: DownloadedGsx?) -> DownloadMenuItem? {
+        guard isARAvailable, gsxFile != nil || record != nil else { return nil }
+        switch phase {
+        case .waiting, .downloading, .paused:
+            return .downloading
+        case .completed, .failed, nil:
+            break
+        }
+        guard let record else { return gsxFile == nil ? nil : .download }
+        if let gsxFile, gsxFile != record.fileName { return .updateAvailable }
+        return .downloaded
+    }
+
+    var isDisabled: Bool {
+        if case .downloading = self { return true }
+        return false
+    }
+
+    func title(_ language: String) -> String {
+        switch self {
+        case .download: return "GSX_DOWNLOAD".localized(language)
+        case .downloading: return "GSX_DOWNLOADING".localized(language)
+        case .downloaded: return "GSX_DOWNLOADED_CHECK_UPDATE".localized(language)
+        case .updateAvailable: return "GSX_DOWNLOAD_UPDATE_AVAILABLE".localized(language)
+        }
+    }
+}
+
+enum CellDownloadBadge: Equatable {
+    case downloaded
+    case updateAvailable
+
+    init?(_ item: DownloadMenuItem?) {
+        switch item {
+        case .downloaded: self = .downloaded
+        case .updateAvailable: self = .updateAvailable
+        case .download, .downloading, nil: return nil
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .downloaded: return "checkmark.circle.fill"
+        case .updateAvailable: return "arrow.down.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .downloaded: return Color(hex: 0x2E9E4F)
+        case .updateAvailable: return Color(hex: 0xF5A623)
+        }
+    }
+
+    var accessibilityKey: String {
+        switch self {
+        case .downloaded: return "GSX_DOWNLOADED"
+        case .updateAvailable: return "GSX_UPDATE_SUMMARY_NEW_VERSION"
+        }
+    }
+}
+
+struct CellDownloadBadgeView: View {
+    let badge: CellDownloadBadge
+    let size: CGFloat
+    let language: String
+
+    var body: some View {
+        Image(systemName: badge.systemImageName)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(.white, badge.color)
+            .frame(width: size, height: size)
+            .shadow(color: .black.opacity(0.3), radius: 1)
+            .padding(4)
+            .accessibilityLabel(badge.accessibilityKey.localized(language))
+    }
+}

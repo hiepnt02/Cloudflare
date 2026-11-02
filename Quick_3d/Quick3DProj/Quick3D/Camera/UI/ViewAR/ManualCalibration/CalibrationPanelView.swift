@@ -19,8 +19,7 @@ struct CalibrationPanelView: View {
     /// Hướng dẫn của bước hiện tại, do màn hình cha quyết định nội dung.
     let instructionText: String
 
-    /// Đổi giá trị này để viewport trả camera về góc nhìn ban đầu (không dựng lại SCNView).
-    @State private var cameraResetToken = UUID()
+    @State private var panelResetID = UUID()
 
     var body: some View {
         if selection.step.panelMode == .expanded {
@@ -33,57 +32,33 @@ struct CalibrationPanelView: View {
     // MARK: - Expanded mode (P1/P2 selection screen)
 
     private var expandedBody: some View {
-        ZStack(alignment: .bottom) {
-            modelViewport
+        let lang = userManager.userLanguage
+        return ZStack(alignment: .topTrailing) {
+            modelViewport(isResetEnabled: true)
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    resetButton
-                    Spacer()
-                    expandedButtonColumn
-                }
-                expandedInstructionOverlay
+            VStack(spacing: 12) {
+                actionButton(
+                    title: "CALIBRATION_REFERENCE_POINT".localized(lang),
+                    isEnabled: true,
+                    isActive: selection.step == .selectingModelPoint1,
+                    action: { context.perform(ManualCalibrationSelectStepEvent(.selectingModelPoint1)) }
+                )
+                actionButton(
+                    title: "CALIBRATION_DIRECTION_POINT".localized(lang),
+                    isEnabled: selection.isDirPointEnabled,
+                    isActive: selection.step == .selectingModelPoint2,
+                    action: { context.perform(ManualCalibrationSelectStepEvent(.selectingModelPoint2)) }
+                )
+                actionButton(
+                    title: "NEXT".localized(lang),
+                    isEnabled: selection.isNextEnabled,
+                    action: { context.perform(ManualCalibrationConfirmModelEvent()) }
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, Self.expandedOverlayBottomInset)
-        }
-    }
-
-    private var expandedButtonColumn: some View {
-        let lang = userManager.userLanguage
-        return VStack(spacing: 12) {
-            actionButton(
-                title: "CALIBRATION_REFERENCE_POINT".localized(lang),
-                isEnabled: true,
-                isActive: selection.step == .selectingModelPoint1,
-                action: { context.perform(ManualCalibrationSelectStepEvent(.selectingModelPoint1)) }
-            )
-            actionButton(
-                title: "CALIBRATION_DIRECTION_POINT".localized(lang),
-                isEnabled: selection.isDirPointEnabled,
-                isActive: selection.step == .selectingModelPoint2,
-                action: { context.perform(ManualCalibrationSelectStepEvent(.selectingModelPoint2)) }
-            )
-            actionButton(
-                title: "NEXT".localized(lang),
-                isEnabled: selection.isNextEnabled,
-                action: { context.perform(ManualCalibrationConfirmModelEvent()) }
-            )
-        }
-        .frame(width: Self.expandedButtonColumnWidth)
-    }
-
-    private var resetButton: some View {
-        Button(action: {
-            cameraResetToken = UUID()
-            context.perform(ManualCalibrationResetEvent())
-        }) {
-            Image(systemName: "arrow.counterclockwise")
-                .foregroundColor(.white)
-                .padding(8)
-                .background(imperialBlue.opacity(0.7))
-                .clipShape(Circle())
+            .frame(width: Self.expandedButtonColumnWidth)
+            .padding(.trailing, 12)
+            .padding(.top, 48)
         }
     }
 
@@ -93,7 +68,7 @@ struct CalibrationPanelView: View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         return GeometryReader { geo in
             HStack(spacing: 0) {
-                modelViewport
+                modelViewport(isResetEnabled: false)
                     .frame(width: geo.size.width * 0.8)
 
                 collapsedButtonStack
@@ -117,26 +92,46 @@ struct CalibrationPanelView: View {
 
     // MARK: - Sub-views
 
-    private var modelViewport: some View {
-        SCNCalibrationModelPicker(context: $context, node: model, selection: selection,
-                                  cameraResetToken: cameraResetToken)
+    private func modelViewport(isResetEnabled: Bool) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            SCNCalibrationModelPicker(context: $context, node: model, selection: selection)
+                .id(panelResetID)
+
+            if isResetEnabled {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(action: {
+                        panelResetID = UUID()
+                        context.perform(ManualCalibrationResetEvent())
+                    }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .foregroundColor(.white)
+                            .padding(8)
+                            .background(imperialBlue.opacity(0.7))
+                            .clipShape(Circle())
+                    }
+
+                    expandedInstructionOverlay
+                        .padding(.bottom, 16)
+                }
+                .padding(8)
+            }
+        }
     }
 
     /// Ở bước chọn điểm trên model, viewport đen chiếm trọn màn hình nên hướng dẫn
-    /// phải nằm bên trong nó, ở dải đáy dưới hàng nút.
+    /// phải nằm bên trong nó, ngay dưới nút reset.
     private var expandedInstructionOverlay: some View {
-        calibrationInstructionText(instructionText)
+        Text(instructionText)
             .calibrationInstructionStyle()
     }
 
     private var collapsedButtonStack: some View {
         let lang = userManager.userLanguage
-        // QUICK-1049: thao tác đi từ trên xuống, nên Quay lại đứng đầu và Hoàn tất đứng cuối.
         return VStack(spacing: 12) {
             actionButton(
-                title: "CALIBRATION_BACK".localized(lang),
-                isEnabled: true,
-                action: { context.perform(ManualCalibrationBackEvent()) }
+                title: "CALIBRATION_COMPLETE".localized(lang),
+                isEnabled: selection.isCameraNextEnabled,
+                action: { context.perform(ManualCalibrationConfirmEvent()) }
             )
             actionButton(
                 title: "CALIBRATION_REFERENCE_POINT".localized(lang),
@@ -157,9 +152,9 @@ struct CalibrationPanelView: View {
                 action: { context.perform(ManualCalibrationTogglePreviewEvent()) }
             )
             actionButton(
-                title: "CALIBRATION_COMPLETE".localized(lang),
-                isEnabled: selection.isCameraNextEnabled,
-                action: { context.perform(ManualCalibrationConfirmEvent()) }
+                title: "CALIBRATION_BACK".localized(lang),
+                isEnabled: true,
+                action: { context.perform(ManualCalibrationBackEvent()) }
             )
         }
         .padding(.leading, 8)
@@ -191,8 +186,7 @@ struct CalibrationPanelView: View {
 
     // MARK: - Colors
 
-    // QUICK-1049: thống nhất với màu trạng thái được chọn của RTK/GPS.
-    private static var activeButtonColor: Color { electricBlue }
+    private static var activeButtonColor: Color { Color(UIColor(hex: 0x00FF26)) }
     private static var inactiveButtonColor: Color { Color(UIColor(red: 32/255, green: 51/255, blue: 102/255, alpha: 117/255)) }
     private static var panelBackgroundColor: Color { Color(UIColor(red: 32/255, green: 51/255, blue: 102/255, alpha: 117/255)) }
 
@@ -200,9 +194,6 @@ struct CalibrationPanelView: View {
 
     static var iPadPanelWidth: CGFloat { 500 }
     static var expandedButtonColumnWidth: CGFloat { 140 }
-    /// Viewport ở expanded mode ignoresSafeArea nên lớp overlay phải tự chừa home
-    /// indicator; 16 là lề đáy dùng chung với collapsed mode.
-    static var expandedOverlayBottomInset: CGFloat { 16 + UIScreen.bottomSafeArea }
 
     private var panelHeight: CGFloat {
         UIDevice.current.userInterfaceIdiom == .phone
@@ -244,8 +235,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     let node: SCNNode
 
     let selection: CalibrationSelection
-
-    let cameraResetToken: UUID
 
     private var onTap: (SCNVector3) -> Void {
         { [context] position in
@@ -293,10 +282,8 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         scnView.scene = scene
 
         // Frame after the first layout pass — the view has no bounds (aspect) yet here.
-        let coordinator = context.coordinator
-        coordinator.cameraResetToken = cameraResetToken
         DispatchQueue.main.async {
-            frameCamera(in: scnView, around: displayNode, coordinator: coordinator)
+            frameCamera(in: scnView, around: displayNode)
         }
 
         let tap = UITapGestureRecognizer(target: context.coordinator,
@@ -308,7 +295,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     func updateUIView(_ uiView: SCNView, context: Context) {
         context.coordinator.onTap = onTap
         context.coordinator.onPlainTap = onPlainTap
-        restoreCameraIfNeeded(in: uiView, coordinator: context.coordinator)
         updateDot(in: uiView, named: CalibrationNames.panelDotP1, at: p1Pos, color: p1Color)
         updateDot(in: uiView, named: CalibrationNames.panelDotP2, at: p2Pos, color: p2Color)
         updateVector(in: uiView)
@@ -317,7 +303,7 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     /// Places an explicit camera far enough back that the whole model fits on screen.
     /// `allowsCameraControl` starts orbiting from this pose. Runs async after the first
     /// layout pass so the view's real aspect ratio is known.
-    private func frameCamera(in scnView: SCNView, around displayNode: SCNNode, coordinator: Coordinator) {
+    private func frameCamera(in scnView: SCNView, around displayNode: SCNNode) {
         guard let scene = scnView.scene else { return }
         let (center, radius) = displayNode.boundingSphere
 
@@ -342,17 +328,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         scene.rootNode.addChildNode(cameraNode)
         cameraNode.look(at: center)
         scnView.pointOfView = cameraNode
-        coordinator.initialCameraTransform = cameraNode.transform
-    }
-
-    /// Reset chỉ đưa camera về pose lúc frame xong. Dựng lại cả SCNView (đổi `.id`) làm
-    /// viewport đen và camera chưa được đặt trong vài khung hình đầu — chính là cái nháy.
-    private func restoreCameraIfNeeded(in scnView: SCNView, coordinator: Coordinator) {
-        guard coordinator.cameraResetToken != cameraResetToken else { return }
-        coordinator.cameraResetToken = cameraResetToken
-        guard let initial = coordinator.initialCameraTransform else { return }
-        scnView.defaultCameraController.stopInertia()
-        scnView.pointOfView?.transform = initial
     }
 
     private func updateVector(in scnView: SCNView) {
@@ -378,7 +353,7 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         let dotNode = SCNNode(geometry: sphere)
         dotNode.name = name
         dotNode.position = pos
-        dotNode.renderingOrder = CalibrationVectorArrow.dotRenderingOrder
+        dotNode.renderingOrder = CalibrationVectorArrow.renderingOrder
         dotNode.constraints = [Self.constantScreenSizeConstraint(in: scnView, sceneRadius: Float(sceneRadius))]
         scnView.scene?.rootNode.addChildNode(dotNode)
     }
@@ -410,8 +385,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     final class Coordinator: NSObject {
         var onTap: (SCNVector3) -> Void
         var onPlainTap: (() -> Void)?
-        var cameraResetToken = UUID()
-        var initialCameraTransform: SCNMatrix4?
         init(onTap: @escaping (SCNVector3) -> Void, onPlainTap: (() -> Void)?) {
             self.onTap = onTap
             self.onPlainTap = onPlainTap
@@ -447,36 +420,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
 }
 
 // MARK: - Instruction style
-
-/// Cụm phân biệt ngữ cảnh ở đầu câu hướng dẫn phải in đậm: tiếng Nhật bọc trong
-/// 【】, các ngôn ngữ còn lại là tiền tố trước dấu `:`.
-///
-/// Không dùng markdown: CommonMark không in đậm được `**【モデル上】**で…` vì dấu đóng
-/// nằm giữa punctuation và chữ, nên `**` sẽ lộ nguyên ra màn hình.
-/// Chuỗi chưa cập nhật (không có 【】 lẫn dấu `:` ở đầu) hiển thị nguyên văn, không in đậm.
-func calibrationInstructionText(_ raw: String) -> Text {
-    guard let emphasisEnd = calibrationEmphasisEnd(in: raw) else {
-        return Text(raw)
-    }
-    var emphasized = AttributedString(String(raw[raw.startIndex..<emphasisEnd]))
-    emphasized.inlinePresentationIntent = .stronglyEmphasized
-    return Text(emphasized + AttributedString(String(raw[emphasisEnd...])))
-}
-
-/// Dấu `:` chỉ được coi là hết cụm nhấn khi nằm gần đầu câu — tránh in đậm nửa câu
-/// nếu một bản dịch chưa cập nhật có dấu `:` ở giữa.
-private let calibrationEmphasisMaxOffset = 40
-
-private func calibrationEmphasisEnd(in raw: String) -> String.Index? {
-    if raw.hasPrefix("【"), let close = raw.firstIndex(of: "】") {
-        return raw.index(after: close)
-    }
-    if let colon = raw.firstIndex(of: ":"),
-       raw.distance(from: raw.startIndex, to: colon) < calibrationEmphasisMaxOffset {
-        return raw.index(after: colon)
-    }
-    return nil
-}
 
 extension View {
 

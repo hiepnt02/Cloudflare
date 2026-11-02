@@ -140,24 +140,6 @@ struct UploadPopup: View {
             isFocusHcoord = false
             isPopupHcoordPresented = false
         }
-        .onChange(of: show) { isShown in
-            if !isShown { resetJobsiteAndCoordinate() }
-        }
-    }
-
-    private func resetJobsiteAndCoordinate() {
-        siteSelected = nil
-        jobsiteInputted = ""
-        isPopupPresented = false
-        coordinateJobSite = nil
-        isGettingCoordinateJobsite = false
-        isDisableSmartAlign = false
-        vCoordInputted = ""
-        hCoordInputted = ""
-        vCoordSelectedKey = ""
-        hCoordSelectedKey = ""
-        coordinateSetting = userManager.setting.coordinateSetting
-        coordOptionSelected = coordinateSetting ? .smartAlign : .selectManual
     }
     
     private var contentView: some View {

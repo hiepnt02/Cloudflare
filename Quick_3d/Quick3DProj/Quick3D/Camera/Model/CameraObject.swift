@@ -38,10 +38,6 @@ public class CameraObject: ObservableObject {
     /// Alerts are suppressed when this flag is set.
     var isModalPresented: Bool = false
     
-    /// True while an in-hierarchy popup (popupNavigationView) of the host screen covers the camera.
-    /// Warning banners and their sounds are suppressed when this flag is set.
-    @Published var isPopupPresented = false
-    
     @Published var isReady = false
     
     public private(set) var alertPrimaryAction: (() -> Void)? = nil

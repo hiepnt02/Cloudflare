@@ -133,10 +133,12 @@ struct MainScreen: View {
     /// Incremented for every fetch so a cancelled fetch can tell it is no longer the
     /// current one and must not touch `isLoading`.
     @State private var fetchGeneration = 0
+    @State private var hasCheckedDownloads = false
 
     // MARK: - Environment
     @EnvironmentObject var userManager: UserManager
     @EnvironmentObject var productData: ProductData
+    @EnvironmentObject var gsxUpdateMonitor: GsxUpdateMonitor
 
     // MARK: - Bindings
     @Binding var navigateToProjectDetail: Bool
@@ -234,12 +236,30 @@ struct MainScreen: View {
             }
             do {
                 try await performFetch()
-                if !Task.isCancelled { shouldScrollUp = scrollToTop }
+                if !Task.isCancelled {
+                    shouldScrollUp = scrollToTop
+                    checkDownloadsOnFirstLoad()
+                }
             } catch {
                 if !(error is CancellationError) {
                     print("Fetch error: \(error)")
                 }
             }
+        }
+    }
+
+    private func checkDownloadsOnFirstLoad() {
+        guard !hasCheckedDownloads else { return }
+        hasCheckedDownloads = true
+        gsxUpdateMonitor.checkAll()
+    }
+
+    private func projectDetailShown(_ isShown: Bool) {
+        gsxUpdateMonitor.isListVisible = !isShown
+        if isShown {
+            gsxUpdateMonitor.discardPending()
+        } else {
+            gsxUpdateMonitor.checkAll()
         }
     }
 
@@ -281,6 +301,10 @@ struct MainScreen: View {
                             y: contentHeight - (isIPhone ? Layout.cameraButtonInsetIPhone.height : Layout.cameraButtonInsetIPad.height)
                         )
                         .tag(18)
+                        .zIndex(1.0)
+
+                    DownloadProgressOverlay()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .zIndex(1.0)
 
                     selectionLayer
@@ -365,6 +389,11 @@ struct MainScreen: View {
         .onChange(of: productData.reloadListRequestID) { _ in
             fetchProjects()
         }
+        .onChange(of: isProductDetailActive) { projectDetailShown($0) }
+        .onChange(of: navigateToProjectDetail) { projectDetailShown($0) }
+        .onReceive(NotificationCenter.default.publisher(for: .userDidLogout)) { _ in
+            hasCheckedDownloads = false
+        }
         .onChange(of: isShowARView) { newValue in
             if !newValue { fetchProjects(scrollToTop: false) }
         }
@@ -422,6 +451,15 @@ struct MainScreen: View {
         loginAlertPopup
         disclaimerPopup
         arListPopup
+        gsxUpdateSummaryPopup
+    }
+
+    private var gsxUpdateSummaryPopup: some View {
+        GsxUpdateSummaryPopup(summary: gsxUpdateMonitor.pendingSummary) { delete, keep in
+            gsxUpdateMonitor.delete(projectIds: delete)
+            gsxUpdateMonitor.keep(projectIds: keep)
+            gsxUpdateMonitor.discardPending()
+        }
     }
 
     @ViewBuilder
@@ -876,6 +914,7 @@ struct MainScreen_Previews: PreviewProvider {
         )
         .environmentObject(UserManager())
         .environmentObject(ProductData())
+        .environmentObject(GsxUpdateMonitor(registry: DownloadedGsxRegistry(), fetcher: ProductData()))
         .previewDevice("iPad Pro (11-inch)")
         .previewInterfaceOrientation(.landscapeRight)
     }

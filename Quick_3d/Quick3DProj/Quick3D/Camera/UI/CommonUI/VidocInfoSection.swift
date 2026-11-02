@@ -11,10 +11,11 @@ struct VidocInfoSection: View {
     @EnvironmentObject private var userManager: UserManager
     
     @ObservedObject private var rtkObj: RTKObject = RTKObject.shared
-
+    @StateObject private var rtkState: RTKStateObject = .init()
+    
     var body: some View {
         VStack(alignment: .leading) {
-            if rtkObj.isReady {
+            if rtkState.isReady {
                 Group {
                     if UIDevice.current.isIphone {
                         vidocInfoSectionIphone()
@@ -30,7 +31,7 @@ struct VidocInfoSection: View {
     
     private func vidocInfoSectionIphone() -> some View {
         HStack(alignment: .center) {
-            Text(rtkObj.vidocConnected?.peripheral.name ?? "")
+            Text(rtkState.vidocConnected?.peripheral.name ?? "")
                 .font(.system(size: 20))
                 .foregroundColor(userManager.setting.textColor)
             
@@ -73,7 +74,7 @@ struct VidocInfoSection: View {
                 .clipShape(Circle())
             
             HStack {
-                Text(rtkObj.vidocConnected?.peripheral.name ?? "")
+                Text(rtkState.vidocConnected?.peripheral.name ?? "")
                     .font(.system(size: 16))
                     .foregroundColor(userManager.setting.textColor)
                 

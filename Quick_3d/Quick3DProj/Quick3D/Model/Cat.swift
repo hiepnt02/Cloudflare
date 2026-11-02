@@ -133,4 +133,12 @@ struct Cat: Codable, Identifiable, Equatable {
     var ar_color: String?
     var coordinateSetting: Bool = false
     var linkDashboard: Bool = false
+
+    var gsx_file: String? = nil
+
+    var gsxFileName: String? {
+        guard let name = gsx_file?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty, !name.hasSuffix("/") else { return nil }
+        let last = (name as NSString).lastPathComponent
+        return last.isEmpty || last == "." || last == ".." || last == "/" ? nil : last
+    }
 }
