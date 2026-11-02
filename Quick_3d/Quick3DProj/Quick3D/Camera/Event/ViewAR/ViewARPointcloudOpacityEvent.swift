@@ -20,3 +20,16 @@ class ViewARPointcloudOpacityEvent: EventIdentity, ViewAREvent {
         }
     }
 }
+
+/// Opacity of the Gaussian splat layer, 0...1 (SC_QUICK-2238).
+class ViewARSplatOpacityEvent: EventIdentity, ViewAREvent {
+    let opacity: Double
+
+    init(_ opacity: Double) {
+        self.opacity = opacity
+    }
+
+    func call(_ context: ViewARContext) {
+        context.setSplatOpacity(opacity)
+    }
+}

@@ -8,23 +8,6 @@
 import SwiftUI
 import SceneKit
 
-/// TEMPORARY (SC_QUICK-2238 trial): remove together with `GaussianSplatDebugStatus`.
-private struct GaussianSplatDebugBadge: View {
-    @ObservedObject var status: GaussianSplatDebugStatus
-
-    var body: some View {
-        if !status.lines.isEmpty {
-            Text("GS DEBUG\n" + status.lines.joined(separator: "\n"))
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundColor(.white)
-                .padding(8)
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(6)
-                .allowsHitTesting(false)
-        }
-    }
-}
-
 struct ViewARScreen: View {
     
     @Environment(\.presentationMode) private var presentationMode
@@ -49,6 +32,9 @@ struct ViewARScreen: View {
     @State private var pointCloudOpacity: CGFloat = 1.0
     @State private var isDesignVisible = true
     @State private var designOpacity: CGFloat = 1.0
+    @State private var isSplatRendered = false
+    @State private var isSplatVisible = true
+    @State private var splatOpacity: CGFloat = 1.0
     @State private var isExpandLayers = false
     @State private var isAnyOpacitySliderOpen = false
     @State private var activeOpacityNodeId: String? = nil
@@ -95,12 +81,6 @@ struct ViewARScreen: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        // TEMPORARY (SC_QUICK-2238 trial): Gaussian georeference status for QR-installed builds.
-        .overlay(alignment: .topLeading) {
-            GaussianSplatDebugBadge(status: context.gaussianSplat.debugStatus)
-                .padding(.horizontal, 12)
-                .padding(.top, 60)
-        }
         .contentShape(Rectangle())
         .onTapGesture { hideKeyboard() }
         .overlayPreferenceValue(ARStepPulldownAnchorKey.self) { anchor in
@@ -108,6 +88,13 @@ struct ViewARScreen: View {
         }
         .onLoad {
             context.delegate = self
+            context.onSplatsAvailable = { available in
+                isSplatRendered = available
+                if available {
+                    isSplatVisible = true
+                    splatOpacity = 1.0
+                }
+            }
             updateARPositionMessage()
             context.isAROcclusion = userManager.isAROcclusion
             context.isShowPlaneGrid = userManager.isARPlaneGrid
@@ -226,7 +213,10 @@ struct ViewARScreen: View {
                     pointOpacity: $pointCloudOpacity,
                     isARObjectVisisble: $isDesignVisible,
                     arObjectScale: $designOpacity,
-                    onARObjectVisibilityChanged: syncRootLayersVisibility
+                    onARObjectVisibilityChanged: syncRootLayersVisibility,
+                    isSplatRendered: $isSplatRendered,
+                    isSplatVisible: $isSplatVisible,
+                    splatOpacity: $splatOpacity
                 )
             }
         )
@@ -287,7 +277,10 @@ struct ViewARScreen: View {
                 isPointCloudRendered: $isPointCloudRendered,
                 pointCloudOpacity: pointCloudOpacity,
                 isDesignVisible: $isDesignVisible,
-                designOpacity: $designOpacity
+                designOpacity: $designOpacity,
+                isSplatRendered: $isSplatRendered,
+                isSplatVisible: $isSplatVisible,
+                splatOpacity: $splatOpacity
             )
             
             HStack {

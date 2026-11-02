@@ -592,3 +592,4 @@
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "Dient zur Umrechnung der PLY in das Koordinatensystem des Projekts. Wird keine Datei gewählt, wird die PLY unverändert verwendet.";
 "FILE_SELECT" = "Dateiauswahl";
 "FILE_CHANGE" = "Datei ändern";
+"GAUSSIAN_SPLATTING" = "Gaußsches Splatting";

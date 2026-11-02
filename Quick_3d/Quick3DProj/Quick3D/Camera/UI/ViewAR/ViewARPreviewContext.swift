@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import QuartzCore
 import SceneKit
 
 class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
@@ -40,7 +41,12 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
     private var cameraFOVHeight: Float = 0.0
     
     private var cameraFOVArea: Float = 0.0
-    
+
+    // Gaussian splats have no SCNGeometry: the preview's copy of their node gets its own
+    // renderer delegate, which draws the same splats with the Metal pass from this view's camera.
+    private var splatPreviewRenderer: GaussianSplatPreviewRenderer?
+    private var splatPreviewNode: SCNNode?
+
     func perform(_ event: any Event) {
         handle(event) { [weak self] in
             if let ctx = self, let e = event as? ViewARPreviewEvent {
@@ -75,6 +81,9 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         
         view.scene = scene
         view.preferredFramesPerSecond = 15
+        // The splat draw list is re-sorted on a background queue; the view must redraw to show
+        // it even when nothing in the scene graph changed.
+        view.rendersContinuously = true
     }
     
     func createDeviceNode(length: CGFloat) {
@@ -140,8 +149,11 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         }
         self.arNode = nil
         self.nodeMap.removeAll()
+        self.splatPreviewNode?.rendererDelegate = nil
+        self.splatPreviewNode = nil
+        self.splatPreviewRenderer = nil
     }
-    
+
     private func fetchNode(_ node: SCNNode) -> SCNNode {
         let _node: SCNNode = SCNNode(geometry: node.geometry)
         _node.name = node.name
@@ -149,6 +161,17 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         _node.renderingOrder = node.renderingOrder
         _node.opacity = node.opacity
         _node.isHidden = node.isHidden
+
+        if let renderer = node.rendererDelegate as? GaussianSplatRenderer {
+            let preview = GaussianSplatPreviewRenderer(source: renderer)
+            splatPreviewRenderer = preview
+            splatPreviewNode = _node
+            _node.rendererDelegate = preview
+            // Splats blend over what is already drawn, so they go after the point cloud and the
+            // IFC but before the device marker (renderingOrder 1000, no depth), which must stay
+            // on top of them.
+            _node.renderingOrder = 500
+        }
 
         // Copy cả node đang ẩn để updateNode tìm được khi hiện lại / kéo opacity > 0
         node.childNodes.forEach { child in
@@ -185,7 +208,9 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         _node.simdTransform = n.simdTransform
         _node.opacity = n.opacity
         _node.isHidden = n.isHidden
-        _node.renderingOrder = n.renderingOrder
+        if _node !== splatPreviewNode {
+            _node.renderingOrder = n.renderingOrder
+        }
         // Point cloud đổi depth write bằng cách thay geometry mới
         if _node.geometry !== n.geometry {
             _node.geometry = n.geometry
@@ -193,12 +218,12 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
     }
     
     func updateCamera(_ transform: simd_float4x4, _ eulerAngles: simd_float3) {
-        
+
         deviceTransform = transform
         deviceEulerAngles = eulerAngles
-        
+
         updateDevicePosition()
-        
+
         if !isUserControl.value {
             cameraTransform = transform
             cameraEulerAngles = eulerAngles

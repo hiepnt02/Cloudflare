@@ -593,3 +593,4 @@
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "Používá se k převodu PLY do souřadnicového systému projektu. Pokud není vybrán, použije se PLY beze změny.";
 "FILE_SELECT" = "Vybrat soubor";
 "FILE_CHANGE" = "Změnit soubor";
+"GAUSSIAN_SPLATTING" = "Gaussovo rozstřikování";

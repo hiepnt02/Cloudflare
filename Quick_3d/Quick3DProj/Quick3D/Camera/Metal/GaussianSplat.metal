@@ -30,7 +30,8 @@ struct GsxUniforms {
     float2 viewport;          // render target size in pixels
     float2 focal;             // fx, fy in pixels
     uint srgbTarget;          // 1: target encodes sRGB on write, so output linear colour
-    float4 limits;            // x: near cull distance (m), y: max splat radius as a fraction of vmin
+    float4 limits;            // x: near cull distance (m), y: max splat radius as a fraction of vmin,
+                              // z: layer opacity (0...1, user slider)
 };
 
 // Kept small: a tile-based GPU writes every vertex's varyings to memory and reads them back
@@ -111,7 +112,7 @@ static inline GsxProjected gsxProjectSplat(GsxSplat s, constant GsxUniforms& u)
     // Quad extent: where opacity·(exp(-d²/2) − e⁻⁴)·1.0187 drops below 1/255, so faint
     // splats get smaller quads (2.83σ for opaque ones) and invisible ones none at all.
     float4 rgba = unpack_unorm4x8_to_float(s.color);
-    float opacity = rgba.a * aaFactor;
+    float opacity = rgba.a * aaFactor * u.limits.z;
     float cutoff = 1.0 / (255.0 * 1.0186512 * opacity) + 0.01831564;
     if (cutoff >= 1.0) return gsxCulledProjection();
     float kSigma = sqrt(-2.0 * log(cutoff));

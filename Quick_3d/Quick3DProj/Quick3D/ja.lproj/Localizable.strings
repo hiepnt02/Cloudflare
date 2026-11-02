@@ -593,3 +593,4 @@
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "PLYをプロジェクトの座標系に変換するために使用します。選択しない場合、PLYはそのまま使用されます。";
 "FILE_SELECT" = "ファイル選択";
 "FILE_CHANGE" = "ファイル変更";
+"GAUSSIAN_SPLATTING" = "ガウシアンスプラッティング";

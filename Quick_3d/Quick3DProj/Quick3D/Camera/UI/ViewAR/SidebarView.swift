@@ -23,7 +23,10 @@ struct SidebarView: View {
     var pointCloudOpacity: CGFloat = 1.0
     @Binding var isDesignVisible: Bool
     @Binding var designOpacity: CGFloat
-    
+    @Binding var isSplatRendered: Bool
+    @Binding var isSplatVisible: Bool
+    @Binding var splatOpacity: CGFloat
+
     @State private var searchText: String = ""
     @State private var rootOpacity: Double = LayerNode.defaultOpacity
     
@@ -73,7 +76,10 @@ struct SidebarView: View {
                 
                 // Point Cloud Controls
                 pointCloudSizeView()
-                
+
+                // Gaussian Splatting Controls
+                splatOpacityView()
+
                 // Layers List
                 if !layers.isEmpty {
                     layersScrollView
@@ -173,8 +179,41 @@ struct SidebarView: View {
         }
     }
     
+    @ViewBuilder
+    private func splatOpacityView() -> some View {
+        if isSplatRendered {
+            let isVisibilityLocked = ViewARVisibilityLock.isLocked(isSplatVisible, splatOpacity)
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: {
+                    isSplatVisible.toggle()
+                    context?.perform(ViewARSplatVisibleEvent(isSplatVisible))
+                }) {
+                    HStack {
+                        Image(systemName: isSplatVisible ? "checkmark.square.fill" : "square")
+                            .foregroundColor(isSplatVisible ? .blue : .gray)
+                        Text("GAUSSIAN_SPLATTING".localized(userManager.userLanguage))
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                    }
+                }
+                .disabled(isVisibilityLocked)
+                .opacity(isVisibilityLocked ? 0.5 : 1.0)
+
+                Slider(value: $splatOpacity, in: 0...1.0)
+                    .tint(.blue)
+                    .onChange(of: splatOpacity) { newValue in
+                        guard isSplatVisible else { return }
+                        context?.perform(ViewARSplatOpacityEvent(Double(newValue)))
+                    }
+                    .disabled(!isSplatVisible)
+                    .opacity(isSplatVisible ? 1.0 : 0.5)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
     // MARK: - Helper Functions
-    
+
     private func syncDesignOpacity(rootId: String, scale: Double) {
         layers.first { $0.id == rootId }?.opacity = scale
         designOpacity = CGFloat(scale)

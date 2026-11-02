@@ -103,7 +103,11 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     private var downloadLasTask: Task<Void, Never>?
 
     let gaussianSplat = GaussianSplatRenderer()
-    
+
+    /// Told once per `downloadARProject` whether the project has Gaussian splats, and false on
+    /// `clear()`; the screen shows the splat slider from it. Main thread.
+    var onSplatsAvailable: ((Bool) -> Void)?
+
     @AppStorage("isLightOn")
     private var isLightOn: Bool = true
     
@@ -220,6 +224,7 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
         downloadLasTask?.cancel()
         downloadLasTask = nil
         gaussianSplat.unload()
+        DispatchQueue.main.async { self.onSplatsAvailable?(false) }
         lastMeshUpdateTimes.removeAll()
         meshVertexCounts.removeAll()
 
@@ -275,6 +280,23 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
         DispatchQueue.main.async {
             self.pointCloudNode?.isHidden = opacity == 0
             self.applyPointCloudRenderState()
+        }
+    }
+
+    func setSplatVisible(_ visible: Bool) {
+        DispatchQueue.main.async {
+            self.gaussianSplat.node.isHidden = !visible
+            self.previewContext?.updateNode(self.gaussianSplat.node)
+        }
+    }
+
+    func setSplatOpacity(_ opacity: Double) {
+        let clamped = Float(max(0, min(1, opacity)))
+        DispatchQueue.main.async {
+            self.gaussianSplat.opacity = clamped
+            // The Metal pass reads `opacity`; the node value only drives the preview copy.
+            self.gaussianSplat.node.opacity = CGFloat(clamped)
+            self.previewContext?.updateNode(self.gaussianSplat.node)
         }
     }
 
@@ -648,6 +670,12 @@ extension ViewARContext {
         gaussianSplat.load(projectId: projectId)
         if gaussianSplat.node.parent == nil {
             arNode.addChildNode(gaussianSplat.node)
+        }
+        let splatLookup = gaussianSplat.hasSplats
+        Task { @MainActor [weak self] in
+            let available = await splatLookup.value
+            guard let self, self.gaussianSplat.hasSplats == splatLookup else { return }
+            self.onSplatsAvailable?(available)
         }
 
         downloadLasTask = Task(priority: .background) { [weak self] in

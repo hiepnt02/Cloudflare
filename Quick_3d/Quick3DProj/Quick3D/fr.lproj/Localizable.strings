@@ -593,3 +593,4 @@
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "Sert à convertir le PLY dans le système de coordonnées du projet. S'il n'est pas sélectionné, le PLY est utilisé tel quel.";
 "FILE_SELECT" = "Sélection de fichiers";
 "FILE_CHANGE" = "changement de fichier";
+"GAUSSIAN_SPLATTING" = "Projection Gaussienne";

@@ -16,3 +16,4 @@
 "UPLOAD_GS_COORDINATE_FILE_HINT" = "Käytetään PLY:n muuntamiseen projektin koordinaattijärjestelmään. Jos tiedostoa ei valita, PLY:tä käytetään sellaisenaan.";
 "FILE_SELECT" = "Valitse tiedosto";
 "FILE_CHANGE" = "Vaihda tiedosto";
+"GAUSSIAN_SPLATTING" = "Gaussian Splatting";

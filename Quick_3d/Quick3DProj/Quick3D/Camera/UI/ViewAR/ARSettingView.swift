@@ -33,6 +33,10 @@ struct ARSettingView: View {
     @Binding var isARObjectVisisble: Bool
     @Binding var arObjectScale: CGFloat
     var onARObjectVisibilityChanged: (Bool) -> Void = { _ in }
+
+    @Binding var isSplatRendered: Bool
+    @Binding var isSplatVisible: Bool
+    @Binding var splatOpacity: CGFloat
     
     @State var isUpdateAROn: Bool = true
     @State private var animatedProgress: Double = 0.0
@@ -126,7 +130,7 @@ struct ARSettingView: View {
             }
             
             // MARK: Sliders
-            if isPointCloudRendered || arItemRendered {
+            if isPointCloudRendered || arItemRendered || isSplatRendered {
                 settingSlidersView
             }
             
@@ -217,6 +221,23 @@ struct ARSettingView: View {
                         context.perform(ViewARIFCOpacityEvent(nil, scale))
                     },
                     isVisibilityLocked: ViewARVisibilityLock.isLocked(isARObjectVisisble, arObjectScale)
+                )
+            }
+
+            if isSplatRendered {
+                ARVisibleScaleView(
+                    title: "GAUSSIAN_SPLATTING".localized(userManager.userLanguage),
+                    isVisible: isSplatVisible,
+                    scale: $splatOpacity,
+                    onVisibilityChanged: { visible in
+                        isSplatVisible = visible
+                        context.perform(ViewARSplatVisibleEvent(visible))
+                    },
+                    onScaleChanged: { scale in
+                        splatOpacity = scale
+                        context.perform(ViewARSplatOpacityEvent(Double(scale)))
+                    },
+                    isVisibilityLocked: ViewARVisibilityLock.isLocked(isSplatVisible, splatOpacity)
                 )
             }
         }

@@ -7,13 +7,6 @@ import Alamofire
 import Foundation
 import simd
 
-/// The project's splat file and, when a geo JSON was uploaded with the PLY, how its PLY-local
-/// coordinates map to the project CRS.
-struct GsxProjectFile {
-    let url: URL
-    let georeference: GaussianSplatGeoreference?
-}
-
 /// Mirrors Web SC_QUICK-2238 (geoMetadata.ts): PLY-local -> project CRS, Z-up, metres.
 struct GaussianSplatGeoreference {
     let projectFromPly: simd_double4x4
@@ -63,18 +56,11 @@ enum GsxProject {
         return 1_000_000
     }
 
-    /// The project's latest converted splat file (the one the web viewer streams) and its
-    /// georeference, or nil when the project has no splats.
-    static func file(projectId: String, report: @escaping @Sendable (String) -> Void = { _ in }) async -> GsxProjectFile? {
-        guard let url = await fileURL(projectId: projectId) else { return nil }
-        report("GSX: \(url.lastPathComponent)")
-        let georeference = await georeference(projectId: projectId, report: report)
-        guard !Task.isCancelled else { return nil }
-        return GsxProjectFile(url: url, georeference: georeference)
-    }
-
+    /// The project's latest converted splat file (the one the web viewer streams), or nil when
+    /// the project has none. Cheap: two requests at most, so streaming can start at once; the
+    /// georeference is fetched separately (`georeference(projectId:)`).
     /// 2238 servers sign a URL for the GSX; older ones only expose outputKey behind CloudFront.
-    private static func fileURL(projectId: String) async -> URL? {
+    static func fileURL(projectId: String) async -> URL? {
         if let signed = try? await downloadURL(projectId: projectId, type: "GSX") {
             return signed
         }
@@ -115,26 +101,15 @@ enum GsxProject {
 
     /// nil when the project has no geo JSON or it cannot be used; the splats then draw as they
     /// are, like the web viewer.
-    private static func georeference(
-        projectId: String,
-        report: @escaping @Sendable (String) -> Void
-    ) async -> GaussianSplatGeoreference? {
+    static func georeference(projectId: String) async -> GaussianSplatGeoreference? {
         do {
-            guard let url = try await downloadURL(projectId: projectId, type: "JSON") else {
-                report("JSON: none (404) - splats drawn as is")
-                return nil
-            }
-            report("JSON: \(url.lastPathComponent)")
+            // 404: no geo JSON was uploaded with the PLY.
+            guard let url = try await downloadURL(projectId: projectId, type: "JSON") else { return nil }
             let data = try await AF.request(url).validate().serializingData().value
             let metadata = try JSONDecoder().decode(GaussianGeoMetadata.self, from: data)
-            report("cs_type: \(metadata.csType), scale \(metadata.scale)")
-            let georeference = try await makeGeoreference(metadata: metadata, projectId: projectId)
-            let o = georeference.referenceOrigin
-            report(String(format: "Georef OK, origin %.1f %.1f %.1f", o.x, o.y, o.z))
-            return georeference
+            return try await makeGeoreference(metadata: metadata, projectId: projectId)
         } catch {
             print("[gsplat] georeference unavailable: \(error)")
-            report("Georef FAILED: \(error.localizedDescription)")
             return nil
         }
     }
@@ -190,15 +165,23 @@ enum GsxProject {
                 throw GeoreferenceError.invalidMetadata
             }
             // Project the ENU origin and three 10 m axis points instead of every splat; the
-            // server handles the project's horizontal and vertical CRS.
-            var projected: [SIMD3<Double>] = []
-            for point in enuBasis(gps) {
-                let item = try await projectPoint(point, projectId: projectId)
-                guard let converted = projectedPoint(item) else {
-                    throw GeoreferenceError.coordinateTransformFailed
+            // server handles the project's horizontal and vertical CRS. The four requests go
+            // out together: each is a pyproj run on the server, in series they add up.
+            let basis = enuBasis(gps)
+            var byIndex: [Int: SIMD3<Double>] = [:]
+            try await withThrowingTaskGroup(of: (Int, TransformItem?).self) { group in
+                for (index, point) in basis.enumerated() {
+                    group.addTask { (index, try await projectPoint(point, projectId: projectId)) }
                 }
-                projected.append(converted)
+                for try await (index, item) in group {
+                    guard let converted = projectedPoint(item) else {
+                        throw GeoreferenceError.coordinateTransformFailed
+                    }
+                    byIndex[index] = converted
+                }
             }
+            let projected = basis.indices.compactMap { byIndex[$0] }
+            guard projected.count == 4 else { throw GeoreferenceError.coordinateTransformFailed }
             let origin = projected[0]
             let projectFromENU = simd_double4x4(columns: (
                 SIMD4<Double>((projected[1] - origin) / enuBasisStep, 0),

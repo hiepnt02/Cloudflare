@@ -19,3 +19,16 @@ class ViewARPointcloudVisibleEvent: EventIdentity, ViewAREvent {
         context.previewContext?.updateNode(context.pointCloudNode)
     }
 }
+
+/// Shows or hides the Gaussian splat layer (SC_QUICK-2238).
+class ViewARSplatVisibleEvent: EventIdentity, ViewAREvent {
+    let visible: Bool
+
+    init(_ visible: Bool) {
+        self.visible = visible
+    }
+
+    func call(_ context: ViewARContext) {
+        context.setSplatVisible(visible)
+    }
+}

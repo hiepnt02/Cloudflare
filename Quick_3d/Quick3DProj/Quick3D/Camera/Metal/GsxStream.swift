@@ -587,20 +587,57 @@ final class GsxStream: @unchecked Sendable {
 
     // MARK: - Depth sort (port of engine/sorter.ts)
 
-    private func sortLoop() {
-        var lastVersion = -1
-        var lastView: simd_float4x4?
-        var capacity = 0
-        var indices: UnsafeMutablePointer<UInt32>?
-        var keys: UnsafeMutablePointer<UInt32>?
-        var depths: UnsafeMutablePointer<Float>?
-        let counts = UnsafeMutablePointer<UInt32>.allocate(capacity: 1 << 20)
-        defer {
+    /// Work buffers of `sortBackToFront`, kept between sorts.
+    final class SortScratch {
+        fileprivate var capacity = 0
+        fileprivate var indices: UnsafeMutablePointer<UInt32>?
+        fileprivate var keys: UnsafeMutablePointer<UInt32>?
+        fileprivate var depths: UnsafeMutablePointer<Float>?
+        fileprivate let counts = UnsafeMutablePointer<UInt32>.allocate(capacity: 1 << 20)
+
+        init() {}
+
+        deinit {
             indices?.deallocate()
             keys?.deallocate()
             depths?.deallocate()
             counts.deallocate()
         }
+
+        fileprivate func ensure(_ total: Int) {
+            guard total > capacity else { return }
+            indices?.deallocate(); keys?.deallocate(); depths?.deallocate()
+            capacity = total
+            indices = .allocate(capacity: total)
+            keys = .allocate(capacity: total)
+            depths = .allocate(capacity: total)
+        }
+    }
+
+    /// The loaded blocks and the buffers they live in, for a second sorter (the preview view)
+    /// that draws the same splats from its own camera.
+    struct ResidentSnapshot {
+        let blocks: [(pages: [Int], count: Int)]
+        let positions: UnsafeMutablePointer<Float>
+        let splats: MTLBuffer
+        let version: Int
+    }
+
+    func residentSnapshot() -> ResidentSnapshot? {
+        lock.withLock {
+            guard let splatBuffer, let positions, !stopped else { return nil }
+            return ResidentSnapshot(blocks: resident.values.map { ($0.pages, $0.count) },
+                                    positions: positions, splats: splatBuffer, version: residentVersion)
+        }
+    }
+
+    /// Entries an order buffer needs to hold every resident splat.
+    var orderCapacity: Int { lock.withLock { pageCount * Self.pageSize } }
+
+    private func sortLoop() {
+        var lastVersion = -1
+        var lastView: simd_float4x4?
+        let scratch = SortScratch()
 
         var lastSort: CFTimeInterval = 0
         var lastDuration: CFTimeInterval = 0
@@ -627,7 +664,7 @@ final class GsxStream: @unchecked Sendable {
                 continue
             }
             let version = residentVersion
-            let blocks = Array(resident.values)
+            let blocks = resident.values.map { (pages: $0.pages, count: $0.count) }
             let viewProj = projection.map { $0 * viewModel }
             let target = ((published?.buffer ?? -1) + 1) % Self.orderBufferCount
             let output = orderBuffers[target].contents().bindMemory(to: UInt32.self, capacity: orderBuffers[target].length / 4)
@@ -635,16 +672,37 @@ final class GsxStream: @unchecked Sendable {
 
             let t0 = CACurrentMediaTime()
             lastSort = t0
-            let total = blocks.reduce(0) { $0 + $1.count }
-            if total > capacity {
-                indices?.deallocate(); keys?.deallocate(); depths?.deallocate()
-                capacity = total
-                indices = .allocate(capacity: total)
-                keys = .allocate(capacity: total)
-                depths = .allocate(capacity: total)
-            }
-            guard let idx = indices, let keyBuf = keys, let depthBuf = depths else { continue }
+            let n = Self.sortBackToFront(blocks: blocks, positions: positions, viewModel: viewModel,
+                                         viewProj: viewProj, output: output, scratch: scratch)
 
+            lastDuration = CACurrentMediaTime() - t0
+            let ms = lastDuration * 1000
+            lock.withLock {
+                published = (target, n)
+                currentStats.sortMs = ms
+                currentStats.drawn = n
+            }
+            lastVersion = version
+            lastView = viewModel
+        }
+    }
+
+    /// Writes the indices of the splats of `blocks` into `output`, farthest first as seen by
+    /// `viewModel`; splats outside the view (per `viewProj`, with a margin) or behind the camera
+    /// are left out. Returns how many were written. `output` must hold every splat of `blocks`.
+    static func sortBackToFront(
+        blocks: [(pages: [Int], count: Int)],
+        positions: UnsafeMutablePointer<Float>,
+        viewModel: simd_float4x4,
+        viewProj: simd_float4x4?,
+        output: UnsafeMutablePointer<UInt32>,
+        scratch: SortScratch
+    ) -> Int {
+        let total = blocks.reduce(0) { $0 + $1.count }
+        scratch.ensure(total)
+        guard total > 0, let idx = scratch.indices, let keyBuf = scratch.keys, let depthBuf = scratch.depths else { return 0 }
+        let counts = scratch.counts
+        do {
             // View-space z (GL convention: negative in front, more negative = farther).
             let row2 = SIMD4<Float>(viewModel.columns.0.z, viewModel.columns.1.z, viewModel.columns.2.z, viewModel.columns.3.z)
             // Clip rows for culling splats off screen (with a margin, since the list is only
@@ -715,16 +773,7 @@ final class GsxStream: @unchecked Sendable {
                 output[Int(counts[key])] = idx[i]
                 counts[key] += 1
             }
-
-            lastDuration = CACurrentMediaTime() - t0
-            let ms = lastDuration * 1000
-            lock.withLock {
-                published = (target, n)
-                currentStats.sortMs = ms
-                currentStats.drawn = n
-            }
-            lastVersion = version
-            lastView = viewModel
+            return n
         }
     }
 
