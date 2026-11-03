@@ -22,7 +22,8 @@ struct ARSettingDetailView: View {
     
     @State private var selectedTab = 0
     @State private var lasLevel: CGFloat = 1.0
-    
+    @State private var splatSurroundShare: CGFloat = 30
+
     @State private var inputTextX: String = ""
     @State private var inputTextY: String = ""
     @State private var inputTextZ: String = ""
@@ -284,9 +285,50 @@ struct ARSettingDetailView: View {
             if currentEnvironment == .dev && isPointCloudRendered {
                 lasLevelSettingView()
             }
+            if currentEnvironment == .dev {
+                splatSurroundShareSettingView()
+            }
         }
     }
-    
+
+    /// TEST (dev only): percent of the Gaussian-splat budget kept for the surroundings of the
+    /// main camera while the 2D preview is open; the main view gets the rest.
+    private func splatSurroundShareSettingView() -> some View {
+        HStack(alignment: .top) {
+            Text("GS view / around")
+                .font(.system(size: 16))
+                .foregroundColor(.white)
+                .padding(.bottom, 8)
+
+            VStack {
+                CameraSlider(
+                    value: $splatSurroundShare,
+                    range: 0...50,
+                    trackHeight: 8,
+                    bgTrackColor: lightGray,
+                    activeTrackColor: lavender,
+                    strokeDotColor: lavender,
+                    dotSize: 24
+                )
+                .onChange(of: splatSurroundShare) { newValue in
+                    UserSession.shared.splatSurroundShare = Int(newValue.rounded())
+                }
+
+                HStack {
+                    Text("\(100 - Int(splatSurroundShare.rounded())) / \(Int(splatSurroundShare.rounded()))")
+                    Spacer()
+                    Text("0"); Spacer(); Text("25"); Spacer(); Text("50")
+                }
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+            }
+            .padding(.horizontal, 12)
+        }
+        .onAppear {
+            splatSurroundShare = CGFloat(UserSession.shared.splatSurroundShare)
+        }
+    }
+
     private func lasLevelSettingView() -> some View {
         HStack(alignment: .top) {
             Text("LAS_LEVEL".localized(userManager.userLanguage))

@@ -218,12 +218,12 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
     }
     
     func updateCamera(_ transform: simd_float4x4, _ eulerAngles: simd_float3) {
-
+        
         deviceTransform = transform
         deviceEulerAngles = eulerAngles
-
+        
         updateDevicePosition()
-
+        
         if !isUserControl.value {
             cameraTransform = transform
             cameraEulerAngles = eulerAngles

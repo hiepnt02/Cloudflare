@@ -400,6 +400,9 @@ final class GaussianSplatPreviewRenderer: NSObject, SCNNodeRendererDelegate, @un
         let proj = simd_float4x4(projection.scnMatrix4Value)
         let viewModel = simd_float4x4(modelView.scnMatrix4Value) * current.model
 
+        // While this view is open the stream also loads around the main camera, in every
+        // direction, sparser with distance.
+        current.stream.requestSurroundings()
         scheduleSort(stream: current.stream, viewModel: viewModel, viewProj: proj * viewModel, device: renderer.device)
 
         guard let current = lock.withLock({ () -> ((buffer: Int, count: Int, splats: MTLBuffer), MTLBuffer)? in

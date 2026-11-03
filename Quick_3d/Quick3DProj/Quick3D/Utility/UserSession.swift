@@ -145,6 +145,16 @@ class UserSession {
         }
         set { UserDefaults.standard.set(newValue, forKey: "lasLevel") }
     }
+
+    /// Share of the Gaussian-splat budget (percent) reserved for the surroundings of the main
+    /// camera while the 2D preview is open; the main view keeps the rest. Default 30.
+    var splatSurroundShare: Int {
+        get {
+            guard UserDefaults.standard.object(forKey: "splatSurroundShare") != nil else { return 30 }
+            return min(max(UserDefaults.standard.integer(forKey: "splatSurroundShare"), 0), 50)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "splatSurroundShare") }
+    }
     
     var gnsss: Set<GNSSEnum> {
         get {

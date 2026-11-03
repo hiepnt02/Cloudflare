@@ -57,6 +57,14 @@ final class GsxStream: @unchecked Sendable {
     /// Blocks are loaded out to |ndc| ≤ this, so those just off screen are ready when the camera
     /// turns (2 ≈ another half view on each side).
     private static let loadMargin: Float = 2
+    /// Surroundings for the top-down preview: while it is open, blocks outside the main
+    /// camera's view are loaded too, in every direction, by distance to the main camera (dense
+    /// near it, sparse far out). A share of the budget (`UserSession.splatSurroundShare`, 30% by
+    /// default, dev setting) is reserved for them; the main view keeps the rest, and whatever
+    /// one side leaves unused the other takes.
+    private static let surroundWeight = 0.3
+    /// Preview not refreshed within this long (hidden) stops loading the surroundings.
+    private static let surroundTimeout: CFTimeInterval = 1
     private static let minSortInterval: CFTimeInterval = 0.033
     /// Splats with |ndc| beyond this are left out of the sorted draw list.
     private static let sortCullMargin: Float = 1.3
@@ -107,6 +115,7 @@ final class GsxStream: @unchecked Sendable {
     private var residentVersion = 0
     private var viewModel: simd_float4x4?
     private var projection: simd_float4x4?
+    private var surroundRequestedAt: CFTimeInterval?
     private var orderBuffers: [MTLBuffer] = []
     private var published: (buffer: Int, count: Int)?
     private var robustBounds: (center: SIMD3<Float>, extent: SIMD3<Float>)?
@@ -212,6 +221,12 @@ final class GsxStream: @unchecked Sendable {
         lock.withLock { self.projection = projection }
     }
 
+    /// Another view drawing the same blocks (the top-down preview) is open: keep the
+    /// surroundings of the main camera loaded too. Call every frame; stops when no longer called.
+    func requestSurroundings() {
+        lock.withLock { surroundRequestedAt = CACurrentMediaTime() }
+    }
+
     /// Render thread: the latest sorted draw list.
     func drawState() -> DrawState? {
         lock.withLock {
@@ -297,6 +312,7 @@ final class GsxStream: @unchecked Sendable {
         let loaded = Set(resident.keys)
         let splatsByNode = self.splatsByNode
         let pageCount = self.pageCount, splatsPerByte = self.splatsPerByte
+        let surround = surroundRequestedAt.map { now - $0 <= Self.surroundTimeout } ?? false
         lock.unlock()
 
         let viewProj = projection * viewModel
@@ -305,18 +321,23 @@ final class GsxStream: @unchecked Sendable {
         let loadAll = meta.header.splatCount <= budget
         let eye4 = viewModel.inverse.columns.3
         let eye = SIMD3<Float>(eye4.x, eye4.y, eye4.z)
-        var candidates: [(node: Int, priority: Double)] = []
+        var candidates: [(node: Int, priority: Double, surroundOnly: Bool)] = []
         for (i, node) in meta.nodes.enumerated() where node.blockId != GsxNode.noBlock {
             let isBase = node.level <= Self.baseLevelMax
-            if !isBase, !loadAll, !Self.aabbVisible(node.aabbMin, node.aabbMax, planes) { continue }
+            let inMain = isBase || loadAll || Self.aabbVisible(node.aabbMin, node.aabbMax, planes)
+            // Outside the main view: wanted only while the preview is open, by distance alone.
+            if !inMain, !surround { continue }
+            let surroundOnly = !inMain
             let center = (node.aabbMin + node.aabbMax) * 0.5
             let distSq = Double(simd_length_squared(center - eye))
             // 1 at the centre of the screen, 0 at the corners and off screen.
             var centrality = 0.0
-            let clip = viewProj * SIMD4<Float>(center, 1)
-            if clip.w > 1e-6 {
-                let r = min(1, simd_length(SIMD2<Float>(clip.x, clip.y) / clip.w) / Float(2).squareRoot())
-                centrality = Double(1 - r)
+            if !surroundOnly {
+                let clip = viewProj * SIMD4<Float>(center, 1)
+                if clip.w > 1e-6 {
+                    let r = min(1, simd_length(SIMD2<Float>(clip.x, clip.y) / clip.w) / Float(2).squareRoot())
+                    centrality = Double(1 - r)
+                }
             }
             // Unlike the web client (level by level across the whole view, which spreads a phone-
             // sized budget evenly and keeps everything coarse), blocks go by how big they look:
@@ -326,8 +347,9 @@ final class GsxStream: @unchecked Sendable {
             // Loaded blocks get a head start, so small camera moves do not swap the blocks at the
             // edge of the budget in and out (decoding and re-sorting all the time).
             let keep = loaded.contains(i) ? Self.residentBonus : 1
-            let priority = (isBase ? 1e12 : 0) + size / max(distSq.squareRoot(), 0.05) * (1 + 0.5 * centrality) * keep
-            candidates.append((i, priority))
+            let weight = surroundOnly ? Self.surroundWeight : 1
+            let priority = (isBase ? 1e12 : 0) + size / max(distSq.squareRoot(), 0.05) * (1 + 0.5 * centrality) * keep * weight
+            candidates.append((i, priority, surroundOnly))
         }
         candidates.sort { $0.priority > $1.priority }
 
@@ -335,14 +357,37 @@ final class GsxStream: @unchecked Sendable {
         var wantSplats = 0, wantPages = 0
         // Keep some pages free for those still cooling down after an eviction.
         let pageRoom = pageCount * 9 / 10
-        for c in candidates.prefix(Self.maxResident) {
-            let node = meta.nodes[c.node]
-            let estimate = splatsByNode[c.node]
+        func estimate(_ c: Int) -> (splats: Int, pages: Int) {
+            let node = meta.nodes[c]
+            let splats = splatsByNode[c]
                 ?? Int((Double(meta.blocks[Int(node.blockId)].sizeUncompressed) * splatsPerByte * 1.2).rounded(.up))
-            let pages = (estimate + Self.pageSize - 1) / Self.pageSize
-            if !want.isEmpty, wantSplats + estimate > budget || wantPages + pages > pageRoom { break }
+            return (splats, (splats + Self.pageSize - 1) / Self.pageSize)
+        }
+        // First round: the main view and the surroundings each fill their own share (the main
+        // view has it all while the preview is closed). The main view's blocks outrank the
+        // surroundings', so without a reservation they would take the whole budget first.
+        let surroundBudget = surround ? budget * UserSession.shared.splatSurroundShare / 100 : 0
+        var share = [budget - surroundBudget, surroundBudget]
+        var deferred: [(node: Int, priority: Double, surroundOnly: Bool)] = []
+        for c in candidates.prefix(Self.maxResident) {
+            let (splats, pages) = estimate(c.node)
+            let cls = c.surroundOnly ? 1 : 0
+            if !want.isEmpty, wantPages + pages > pageRoom { break }
+            if !want.isEmpty, share[cls] < splats {
+                deferred.append(c)
+                continue
+            }
             want.insert(c.node)
-            wantSplats += estimate
+            wantSplats += splats
+            wantPages += pages
+            share[cls] -= splats
+        }
+        // Second round: what one side left unused goes to the other, by priority.
+        for c in deferred {
+            let (splats, pages) = estimate(c.node)
+            if wantSplats + splats > budget || wantPages + pages > pageRoom { break }
+            want.insert(c.node)
+            wantSplats += splats
             wantPages += pages
         }
         let wanted = candidates.compactMap { want.contains($0.node) ? $0.node : nil }
