@@ -36,8 +36,7 @@ struct StatusView: View {
                     .resizable()
                     .renderingMode(.template)
                     .foregroundColor(.white)
-                    .rotationEffect(.degrees(180))
-                    .frame(width: size, height: size)
+                    .frame(width: size * 2.0 / 3.0, height: size * 2.0 / 3.0)
             }
         case .completed:
             Image("check")

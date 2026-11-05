@@ -113,6 +113,17 @@ struct StatusList: Codable, Equatable {
     var isHelmertFail: Bool {
         helmert_transformation == -1 || coordinate_transformation == -1
     }
+
+    /// 座標変換が完了済み(2)でも、点群分割/テキスト変換が実行中(1)の間は 3 番目のアイコンを処理中表示にする。
+    /// 座標変換が未実施(0)の場合は対象外。
+    var isPointConvertProcessing: Bool {
+        let processing = ProjectStatus.processing.rawValue
+        let completed = ProjectStatus.completed.rawValue
+        return (helmert_transformation == completed &&
+                (point_splitting_helmert == processing || point_txt_helmert == processing)) ||
+               (coordinate_transformation == completed &&
+                (point_splitting_sfm == processing || point_txt_sfm == processing))
+    }
     
     var isVerificationCompleted: Bool {
         verification_sfm == 2 || verification_helmert == 2
@@ -176,7 +187,7 @@ struct StatusList: Codable, Equatable {
         else if isARFail {
             return "AR_DATA_CONVERT_ERROR".localized(lang)
         }
-        else if isHelmertProcessing {
+        else if isHelmertProcessing || isPointConvertProcessing{
             return "COORDINATE_CHANGE_PROCESSING".localized(lang)
         }
         else if isSfmProcessing {
