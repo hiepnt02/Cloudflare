@@ -147,6 +147,10 @@ struct ProjectGridCell: View, Equatable {
                     .fill(.gray)
                     .frame(height: height)
             }
+
+            // SC_QUICK-2219: processing label on top of the thumbnail
+            ThumbnailProcessingOverlay(status: cat.statusList)
+                .frame(height: height)
         }
     }
 

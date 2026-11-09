@@ -290,6 +290,10 @@ struct ProjectListCell: View, Equatable {
                     .frame(width: isIPhone ? 18 : 24, height: isIPhone ? 18 : 24)
                     .foregroundColor(.white.opacity(0.7))
             }
+
+            // SC_QUICK-2219: processing label on top of the thumbnail
+            ThumbnailProcessingOverlay(status: cat.statusList, cornerRadius: 4)
+                .frame(width: cellWidth, height: heightThumb)
         }
         .frame(width: cellWidth, height: heightThumb)
     }

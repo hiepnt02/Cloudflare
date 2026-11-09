@@ -143,6 +143,21 @@ struct StatusList: Codable, Equatable {
         isSfmProcessed || isSfmFail
     }
 
+    /// Localization key of the step currently being processed, or nil when the
+    /// project is not processing (SC_QUICK-2219). Same rule as the web
+    /// `getProcessingLabelKey`: AR projects never show it, and the order follows
+    /// the pipeline 1. upload -> 2. SfM -> 3. coordinate conversion.
+    var processingLabelKey: String? {
+        if is_ar { return nil }
+        let processing = ProjectStatus.processing.rawValue
+        if lidar_upload == processing { return "UPLOADING" }
+        if sfm_processing == processing { return "CMSG00004" }
+        if helmert_transformation == processing || coordinate_transformation == processing {
+            return "CONVERT_COORD_SYSTEM"
+        }
+        return nil
+    }
+
     var isARProcessing: Bool {
         is_ar && ar_processing == ProjectStatus.processing.rawValue
     }
@@ -191,5 +206,33 @@ struct StatusList: Codable, Equatable {
         }
         return ""
     }
-    
+
+}
+
+/// SC_QUICK-2219: semi-transparent gray layer with white text shown at the center
+/// of the project thumbnail while the project is being processed. Renders nothing
+/// when `status.processingLabelKey` is nil. Taps go through to the thumbnail below.
+struct ThumbnailProcessingOverlay: View {
+    @EnvironmentObject var userManager: UserManager
+
+    let status: StatusList?
+    var cornerRadius: CGFloat = 0
+
+    private var isIPhone: Bool { UIDevice.current.isIphone }
+
+    var body: some View {
+        if let key = status?.processingLabelKey {
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color(red: 97/255, green: 97/255, blue: 97/255).opacity(0.7))
+
+                Text(key.localized(userManager.userLanguage))
+                    .font(.system(size: isIPhone ? 11 : 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(8)
+            }
+            .allowsHitTesting(false)
+        }
+    }
 }
