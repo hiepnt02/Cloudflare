@@ -30,6 +30,11 @@
 "COORDINATE_CHANGE_ERROR" = "Fehler im Koordinatensystem oder\nbei der Koordinatenkonvertierung";
 "SFM_PROCESSING_ERROR" = "Fehler bei der SfM-Verarbeitung";
 "PROCESSING_DONE" = "SfM-Verarbeitung abgeschlossen";
+"CMSG00004" = "SfM-Verarbeitung";
+"CONVERT_COORD_SYSTEM" = "Koordinatensystem wird umgewandelt";
+"REMOVING_POINT_CLOUD" = "Punktwolke entfernen";
+"CONVERTING_TO_TEXT" = "in Text umwandeln";
+"POINT_CLOUD_DIVISION" = "Während der Teilung der Punktwolke";
 "ACCURACY_VERIFY_COMP" = "Genauigkeitsvalidierung abgeschlossen";
 "DASHBOARD_UPLOAD_COMPLETE" = "Punktwolke Hochladen abgeschlossen";
 "Details" = "Einzelheiten";

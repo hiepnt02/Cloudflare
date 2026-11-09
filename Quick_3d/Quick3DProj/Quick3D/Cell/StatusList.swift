@@ -143,6 +143,54 @@ struct StatusList: Codable, Equatable {
         isSfmProcessed || isSfmFail
     }
 
+    /// Localization key shown on the thumbnail while the project is being processed,
+    /// or nil when nothing is shown (SC_QUICK-2219). Same rule as the web
+    /// `getProcessingLabelKey`.
+    var processingLabelKey: String? {
+        if is_ar { return nil }
+        let processing = ProjectStatus.processing.rawValue
+        if lidar_upload == processing { return "UPLOADING" }
+
+        // Web reads these two from the status text, where an error has priority,
+        // so an error hides the coordinate / SfM label.
+        let hasError = (isHelmertFail && !isHelmertCompleted) || isSfmFail || isUploadFail
+        if !hasError {
+            if isCoordinateProcessing { return "CONVERT_COORD_SYSTEM" }
+            if Self.isProcessingOrWaiting(sfm_processing) { return "CMSG00004" }
+        }
+
+        if [remove_lidar, remove_sfm, remove_helmert].contains(processing) {
+            return "REMOVING_POINT_CLOUD"
+        }
+        if [point_txt_lidar, point_txt_sfm, point_txt_helmert].contains(processing) {
+            return "CONVERTING_TO_TEXT"
+        }
+        if [point_splitting_lidar, point_splitting_sfm, point_splitting_helmert].contains(processing) {
+            return "POINT_CLOUD_DIVISION"
+        }
+        return nil
+    }
+
+    /// PROCESSING and WAITING are both shown as "processing" (web `isProcessing`).
+    private static func isProcessingOrWaiting(_ value: Int) -> Bool {
+        value == ProjectStatus.processing.rawValue || value == ProjectStatus.waiting.rawValue
+    }
+
+    /// Coordinate conversion running, or point splitting / text conversion still running
+    /// after it completed (web `isCoordinateProcessing` + `isPointConvertProcessing`).
+    private var isCoordinateProcessing: Bool {
+        let processing = ProjectStatus.processing.rawValue
+        let completed = ProjectStatus.completed.rawValue
+        let isPointConvertProcessing =
+            (helmert_transformation == completed
+                && (point_splitting_helmert == processing || point_txt_helmert == processing))
+            || (coordinate_transformation == completed
+                && (point_splitting_sfm == processing || point_txt_sfm == processing))
+        return Self.isProcessingOrWaiting(helmert_transformation)
+            || Self.isProcessingOrWaiting(coordinate_transformation)
+            || isPointConvertProcessing
+    }
+
     var isARProcessing: Bool {
         is_ar && ar_processing == ProjectStatus.processing.rawValue
     }
@@ -191,5 +239,33 @@ struct StatusList: Codable, Equatable {
         }
         return ""
     }
-    
+
+}
+
+/// semi-transparent gray layer with white text shown at the center
+/// of the project thumbnail while the project is being processed. Renders nothing
+/// when `status.processingLabelKey` is nil. Taps go through to the thumbnail below.
+struct ThumbnailProcessingOverlay: View {
+    @EnvironmentObject var userManager: UserManager
+
+    let status: StatusList?
+    var cornerRadius: CGFloat = 0
+
+    private var isIPhone: Bool { UIDevice.current.isIphone }
+
+    var body: some View {
+        if let key = status?.processingLabelKey {
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color(red: 97/255, green: 97/255, blue: 97/255).opacity(0.7))
+
+                Text(key.localized(userManager.userLanguage))
+                    .font(.system(size: isIPhone ? 11 : 13, weight: .regular))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(8)
+            }
+            .allowsHitTesting(false)
+        }
+    }
 }

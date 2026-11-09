@@ -30,6 +30,11 @@
 "COORDINATE_CHANGE_ERROR" = "Erreur de système de coordonnées ou\nde conversion de coordonnées";
 "SFM_PROCESSING_ERROR" = "Erreur de traitement SfM";
 "PROCESSING_DONE" = "Traitement SfM terminé";
+"CMSG00004" = "Traitement SfM en cours";
+"CONVERT_COORD_SYSTEM" = "Conversion du système de coordonnées";
+"REMOVING_POINT_CLOUD" = "Suppression du nuage de points";
+"CONVERTING_TO_TEXT" = "conversion en texte";
+"POINT_CLOUD_DIVISION" = "Division du nuage de points";
 "ACCURACY_VERIFY_COMP" = "Validation de la précision terminée";
 "DASHBOARD_UPLOAD_COMPLETE" = "Nuage de points Téléchargement terminé";
 "Details" = "Détails";

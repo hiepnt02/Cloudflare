@@ -31,6 +31,11 @@
 "COORDINATE_CHANGE_ERROR" = "Coordinate system or\nCoordinate Conversion error";
 "SFM_PROCESSING_ERROR" = "SfM Processing Error";
 "PROCESSING_DONE" = "SfM Processing complete";
+"CMSG00004" = "SFM Processing";
+"CONVERT_COORD_SYSTEM" = "Converting coordinate system";
+"REMOVING_POINT_CLOUD" = "Removing point cloud";
+"CONVERTING_TO_TEXT" = "converting to text";
+"POINT_CLOUD_DIVISION" = "During point cloud division";
 "ACCURACY_VERIFY_COMP" = "Accuracy Validation Complete";
 "DASHBOARD_UPLOAD_COMPLETE" = "Point Cloud Upload Complete";
 "Details" = "Details";
