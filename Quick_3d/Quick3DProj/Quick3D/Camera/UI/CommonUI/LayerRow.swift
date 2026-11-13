@@ -20,7 +20,6 @@ struct LayerRow: View {
     @Binding var sharedOpacity: Double
     
     var showExpandIcon: Bool = true
-    var isVisibilityLocked: Bool = false
         
     private var isThisSliderActive: Bool {
         activeOpacityNodeId == node.id
@@ -43,15 +42,9 @@ struct LayerRow: View {
                         HStack {
                             Image(systemName: node.isVisible ? "checkmark.square.fill" : "square")
                                 .foregroundColor(node.isVisible ? .blue : .gray)
-                                .opacity(isVisibilityLocked ? 0.5 : 1.0)
                                 .onTapGesture {
-                                    guard !isVisibilityLocked else { return }
                                     let newValue = !node.isVisible
                                     node.isVisible = newValue
-                                    if !newValue && isThisSliderActive {
-                                        isAnyOpacitySliderOpen = false
-                                        activeOpacityNodeId = nil
-                                    }
                                     onVisibilityChanged(node, newValue)
                                 }
                             Text(node.title)
@@ -70,7 +63,7 @@ struct LayerRow: View {
                     // Opacity control icon (only when selected)
                     if node.isSelected {
                         Button(action: {
-                            if isDisabled || !node.isVisible {
+                            if isDisabled {
                                 return
                             }
                             if isThisSliderActive {
@@ -79,7 +72,6 @@ struct LayerRow: View {
                                 activeOpacityNodeId = nil
                             } else {
                                 // Open this slider and close any other open sliders
-                                sharedOpacity = node.opacity
                                 isAnyOpacitySliderOpen = true
                                 activeOpacityNodeId = node.id
                             }
@@ -104,8 +96,9 @@ struct LayerRow: View {
                 }
                 .overlay(
                     Group {
-                        if isThisSliderActive && isAnyOpacitySliderOpen && !isDisabled && node.isVisible {
+                        if isThisSliderActive && isAnyOpacitySliderOpen {
                             TapSlider(value: $sharedOpacity) {
+                                node.applyOpacity(sharedOpacity)
                                 onLayerOpacityChanged(node, sharedOpacity)
                             }
                             .frame(width: 150, height: 30)

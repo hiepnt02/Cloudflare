@@ -16,11 +16,9 @@ struct GNSSSignalBar: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Quality Row (RTK only; with GPS the icon is always red and misleading)
-            if isConnectingToVidoc() {
-                qualityRow()
-                    .padding(.bottom, 8)
-            }
+            // Quality Row
+            qualityRow()
+                .padding(.bottom, 8)
             
             // Data Rows
             let hRTK = rtk.accuracy.horizontal
@@ -66,7 +64,7 @@ struct GNSSSignalBar: View {
             return "-"
         } else {
             let roundedAge = (rawAge * 2).rounded() / 2.0
-            return String(format: "%.1fs", roundedAge)
+            return String(format: "%.3f", roundedAge)
         }
     }
     

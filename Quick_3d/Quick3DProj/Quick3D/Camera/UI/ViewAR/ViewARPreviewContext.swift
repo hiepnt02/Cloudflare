@@ -148,11 +148,12 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         _node.simdTransform = node.simdTransform
         _node.renderingOrder = node.renderingOrder
         _node.opacity = node.opacity
-        _node.isHidden = node.isHidden
-
-        // Copy cả node đang ẩn để updateNode tìm được khi hiện lại / kéo opacity > 0
+        
         node.childNodes.forEach { child in
-            _node.addChildNode(fetchNode(child))
+            if !child.isHidden {
+                let _child = fetchNode(child)
+                _node.addChildNode(_child)
+            }
         }
         
         nodeMap[ObjectIdentifier(node)] = _node
@@ -170,25 +171,13 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         }
     }
     
-    func updateNode(_ node: SCNNode?, recursively: Bool = false) {
+    func updateNode(_ node: SCNNode?) {
         DispatchQueue.main.async {
-            guard let n = node else { return }
-            self.syncNode(n)
-            if recursively {
-                n.enumerateChildNodes { child, _ in self.syncNode(child) }
+            if let n = node, let _node = self.nodeMap[ObjectIdentifier(n)] {
+                _node.simdTransform = n.simdTransform
+                _node.opacity = n.opacity
+                _node.isHidden = n.isHidden
             }
-        }
-    }
-
-    private func syncNode(_ n: SCNNode) {
-        guard let _node = nodeMap[ObjectIdentifier(n)] else { return }
-        _node.simdTransform = n.simdTransform
-        _node.opacity = n.opacity
-        _node.isHidden = n.isHidden
-        _node.renderingOrder = n.renderingOrder
-        // Point cloud đổi depth write bằng cách thay geometry mới
-        if _node.geometry !== n.geometry {
-            _node.geometry = n.geometry
         }
     }
     

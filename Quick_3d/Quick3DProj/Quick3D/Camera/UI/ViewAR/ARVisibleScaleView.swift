@@ -15,7 +15,6 @@ struct ARVisibleScaleView: View {
     
     var onVisibilityChanged: (Bool) -> Void
     var onScaleChanged: (CGFloat) -> Void
-    var isVisibilityLocked: Bool = false
     
     var body: some View {
         HStack(spacing: 0) {
@@ -28,8 +27,6 @@ struct ARVisibleScaleView: View {
                     .foregroundColor(isVisible ? .white : .white.opacity(0.5))
                     .frame(width: 16, height: 16)
             }
-            .disabled(isVisibilityLocked)
-            .opacity(isVisibilityLocked ? 0.5 : 1.0)
 
             Text(title)
                 .font(.system(size: 16))
@@ -53,20 +50,10 @@ struct ARVisibleScaleView: View {
             .padding(.leading, 12)
             .padding(.trailing, 40)
             .frame(width: UIScreen.main.bounds.width * (UIDevice.current.isIphone ? 0.6 : 0.33))
-            .disabled(!isVisible)
-            .opacity(isVisible ? 1.0 : 0.5)
             .onChange(of: scale) { newValue in
-                guard isVisible else { return }
                 onScaleChanged(newValue)
             }
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-enum ViewARVisibilityLock {
-    // Chỉ khóa khi đang hiện, tránh kẹt ở trạng thái vừa ẩn vừa opacity 0
-    static func isLocked(_ isVisible: Bool, _ opacity: CGFloat) -> Bool {
-        isVisible && opacity <= 0
     }
 }

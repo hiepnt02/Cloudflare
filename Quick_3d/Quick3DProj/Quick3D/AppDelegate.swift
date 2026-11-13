@@ -46,13 +46,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         setInitialUserProperties()
 
         resetDisclaimerOnFirstRun()
-
-        // Dựng profile RTK đầu tiên từ cấu hình đơn lẻ của bản cũ. Phải chạy ở đây chứ
-        // không phải trong popup: RTKAutoConnectionHelper nối lại ngay khi mở camera, có
-        // thể trước khi người dùng mở màn cài đặt RTK lần nào.
-        RTKProfileStore.shared.migrateIfNeeded()
-
-
+        
         if let sessionId = UserSession.shared.sessionId {
             let cookieProps = [
                 HTTPCookiePropertyKey.domain: Constant.domainUrl,
@@ -69,14 +63,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         var localProjects = UserSession.products
         if let enumerator = FileManager.default.enumerator(atPath: documentsDirectory.path) {
             while let element = enumerator.nextObject() as? String {
-                if UserSession.shared.isEnableLog {
-                    let relativeURL = URL(fileURLWithPath: element)
-                    let isCameraPath = element == "Camera" || element.hasPrefix("Camera/")
-                    if element == "Camera" ||
-                        (isCameraPath && relativeURL.pathExtension.lowercased() == "zip") {
-                        continue
-                    }
-                }
                 if element.contains("Inbox/") {
                     try? FileManager.default.removeItem(at: documentsDirectory.appendingPathComponent(element))
                 }

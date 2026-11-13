@@ -18,7 +18,6 @@ struct ARSettingDetailView: View {
     @Binding var isPointCloudVisible: Bool
     @Binding var isPointCloudRendered: Bool
     @Binding var pointCloudScale: Double
-    var pointCloudOpacity: CGFloat = 1.0
     
     @State private var selectedTab = 0
     @State private var lasLevel: CGFloat = 1.0
@@ -277,8 +276,7 @@ struct ARSettingDetailView: View {
                 onScaleChanged: { scale in
                     pointCloudScale = Double(scale)
                     context?.perform(ViewARChangePointCloudSizeEvent(Double(scale)))
-                },
-                isVisibilityLocked: ViewARVisibilityLock.isLocked(isPointCloudVisible, pointCloudOpacity)
+                }
             )
             
             if currentEnvironment == .dev && isPointCloudRendered {

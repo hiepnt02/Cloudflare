@@ -10,7 +10,7 @@ import SwiftUI
 struct RTKCoordinatesView: View {
     @EnvironmentObject private var userManager: UserManager
     
-    @EnvironmentObject private var rtk: RTKProfileDraft
+    @EnvironmentObject private var rtk: RTKStateObject
     
     @State private var ntripCoordinateSystemsData: [CoordinateSystemNtripModel] = []
 

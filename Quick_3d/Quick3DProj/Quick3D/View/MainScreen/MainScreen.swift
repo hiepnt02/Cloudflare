@@ -59,6 +59,7 @@ struct MainScreen: View {
     // MARK: - Filter State
     @State private var filter = ProjectFilter()
     @State private var inputStr = ""
+    @State private var selectedSort: SortOption = UserSession.sortOption
 
     // MARK: - UI State
     @State private var isLoading: Bool = false
@@ -110,19 +111,7 @@ struct MainScreen: View {
     @State private var contentWidth: CGFloat = 0
     @State private var contentHeight: CGFloat = 0
     @State private var shouldScrollUp = false
-
-    // MARK: - Project List Preferences
-    /// Backed by the account-level setting, not local storage, so the choice follows the user across devices.
-    private var isListView: Bool { userManager.setting.projectViewType.isListView }
-
-    private var selectedSort: SortOption { userManager.setting.projectSortBy }
-
-    private var selectedSortBinding: Binding<SortOption> {
-        Binding(
-            get: { userManager.setting.projectSortBy },
-            set: { userManager.setting.projectListSortBy = $0 }
-        )
-    }
+    @AppStorage("isListView") private var isListView: Bool = false
 
     // MARK: - Focus
     @FocusState private var focusStateSearch: Bool
@@ -244,10 +233,8 @@ struct MainScreen: View {
     }
 
     private func applySort() {
-        // productData.sortOption is not @Published, so it must be set before fetchProjects()
-        // reads it to build the sortBy request parameter.
+        UserSession.sortOption = selectedSort
         productData.sortOption = selectedSort
-        userManager.updateSetting()
         fetchProjects()
     }
 
@@ -328,9 +315,6 @@ struct MainScreen: View {
             }
             .alert("NoLicense".localized(userManager.userLanguage), isPresented: $isShowNoLicenseAlert) {
                 Button("OK") { performLogout() }
-            }
-            .onChange(of: userManager.setting.projectSortBy) { newValue in
-                productData.sortOption = newValue
             }
             .onLoad {
                 userManager.getSetting()
@@ -687,10 +671,11 @@ struct MainScreen: View {
                 if isListView {
                     ProjectColumnHeader(
                         isIPhone: isIPhone,
-                        contentWidth: contentWidth,
-                        isEditing: $isEditing
+                        isEditing: $isEditing,
+                        thumbWidth: ProjectListLayout.thumbWidth(contentWidth: contentWidth, isIPhone: isIPhone),
+                        sortOption: selectedSort
                     )
-                    .padding(.horizontal, ProjectListColumnLayout.Metrics.listOuterPadding(isIPhone: isIPhone))
+                    .padding(.horizontal, isIPhone ? 20 : 30)
                 }
 
                 ProjectListView(
@@ -712,13 +697,13 @@ struct MainScreen: View {
                     contentWidth: $contentWidth,
                     contentHeight: $contentHeight,
                     scrollToTopTrigger: $shouldScrollUp,
-                    isListView: isListView,
+                    isListView: $isListView,
                     onRefresh: {
                         try? await performFetch()
                         userManager.getSetting()
                     }
                 )
-                .padding(.horizontal, ProjectListColumnLayout.Metrics.listOuterPadding(isIPhone: isIPhone))
+                .padding(.horizontal, isIPhone ? 20 : 30)
             }
 
             // Shown while fetching (isLoading) and also while the fetched list is being
@@ -820,7 +805,7 @@ struct MainScreen: View {
             Spacer(minLength: 0)
 
             SelectSortView(
-                selectedSort: selectedSortBinding,
+                selectedSort: $selectedSort,
                 isIPhone: isIPhone,
                 onSelect: applySort
             )
@@ -847,11 +832,7 @@ struct MainScreen: View {
                 shouldScrollUp = true
             }
 
-            Button(action: {
-                // Apply locally first so the list flips in the same frame; the sync runs in the background.
-                userManager.setting.projectListViewType = isListView ? .grid : .list
-                userManager.updateSetting()
-            }) {
+            Button(action: { isListView.toggle() }) {
                 Image(systemName: isListView ? "square.grid.2x2" : "list.bullet")
                     .font(.system(size: isIPhone ? 16 : 20))
                     .foregroundColor(userManager.setting.textColor)

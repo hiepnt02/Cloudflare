@@ -374,13 +374,11 @@ class CaptureSession {
         sessionLogger.write()
         StorageManager.waitUntilCompleted()
 
-        if UserSession.shared.isEnableLog {
-            do {
-                let debugZipURL = try buildDebugLogZip()
-                sessionLogger.logProcessing("export", "debugLogZipCreated", ["path": debugZipURL.lastPathComponent])
-            } catch {
-                sessionLogger.logProcessing("export", "debugLogZipFailed", level: .error, ["error": "\(error)"])
-            }
+        do {
+            let debugZipURL = try buildDebugLogZip()
+            sessionLogger.logProcessing("export", "debugLogZipCreated", ["path": debugZipURL.lastPathComponent])
+        } catch {
+            sessionLogger.logProcessing("export", "debugLogZipFailed", level: .error, ["error": "\(error)"])
         }
         sessionLogger.write()
 

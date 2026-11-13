@@ -29,9 +29,6 @@ struct ViewARScreen: View {
     
     // MARK: Ifc sidebar view states
     @State private var isPointClouldVisible = true
-    @State private var pointCloudOpacity: CGFloat = 1.0
-    @State private var isDesignVisible = true
-    @State private var designOpacity: CGFloat = 1.0
     @State private var isExpandLayers = false
     @State private var isAnyOpacitySliderOpen = false
     @State private var activeOpacityNodeId: String? = nil
@@ -97,9 +94,6 @@ struct ViewARScreen: View {
             cameraObject.isShowAxis = value
             context.perform(ViewARAxisVisibleEvent(value))
             if !value { collapseARStepOptions() }
-        }
-        .onChange(of: designOpacity) { value in
-            layers.forEach { $0.opacity = Double(value) }
         }
         .onChange(of: isLightOn) { value in
             context.perform(ViewARShowHideLightEvent(value))
@@ -182,6 +176,7 @@ struct ViewARScreen: View {
                     context.clear()
                 }
             },
+            optionButtons: currentEnvironment == .dev && arItemRendered ? AnyView(calibrationButton) : nil,
             additionalWarning: {
                 ARInstructionToastView(message: arPositionInstruction)
             },
@@ -197,16 +192,7 @@ struct ViewARScreen: View {
                     arPosition: arPosition,
                     pointCloudScale: $pointCloudScale,
                     pointCloudProgress: $pointCloudProgress,
-                    arPositionInstruction: $arPositionInstruction,
-                    isPointCloudVisible: $isPointClouldVisible,
-                    pointOpacity: $pointCloudOpacity,
-                    isARObjectVisisble: $isDesignVisible,
-                    arObjectScale: $designOpacity,
-                    onARObjectVisibilityChanged: syncRootLayersVisibility,
-                    onCalibrationTapped: {
-                        calibrationModel = context.makeCalibrationModelNode()
-                        isShowManualCalibration = true
-                    }
+                    arPositionInstruction: $arPositionInstruction
                 )
             }
         )
@@ -219,30 +205,41 @@ struct ViewARScreen: View {
                 parentContext: context,
                 panelModel: model,
                 onCalibrationComplete: { result in
-                    // QUICK-1049: áp mốc vào context TRƯỚC, rồi mới đưa bảng giá trị về 0.
-                    // Làm ngược lại thì giá trị 0 sẽ bị đẩy vào delta và model nhảy về base.
-                    context.perform(
-                        ViewARApplyCalibrationBaselineEvent(result.position, result.eulerAngles, result.scale)
+                    arPosition.setFrom(
+                        position: result.position,
+                        eulerAngles: result.eulerAngles,
+                        scale: result.scale
                     )
-                    arPosition.setFrom(position: .zero, eulerAngles: .zero, scale: result.scale)
                     UserSession.shared.position = result.position
                     UserSession.shared.eulerAngles = result.eulerAngles
+                    arPosition.updateUserSessionAndEvent { pos, eulerAngles, scale in
+                        context.perform(ViewARUpdatePositionEvent(pos, eulerAngles, scale))
+                    }
                     isShowManualCalibration = false
                 },
-                onDismiss: {
-                    // Panel expanded che kín camera nên khung hình chuyển tiếp lúc đóng
-                    // cover nháy giữa panel và camera — đóng ngay, không animation.
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        isShowManualCalibration = false
-                    }
-                }
+                onDismiss: { isShowManualCalibration = false }
             )
             .environmentObject(userManager)
         }
     }
 
+    private var calibrationButton: some View {
+        Button(action: {
+            calibrationModel = context.makeCalibrationModelNode()
+            isShowManualCalibration = true
+        }) {
+            Image("manual_calibration")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .foregroundColor(.white)
+                .frame(width: 52, height: 52)
+                .background(imperialBlue.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: borderNormal))
+        }
+    }
+    
     private var ifcLayersView: some View {
         ZStack(alignment: .leading) {
             SidebarView(
@@ -253,10 +250,7 @@ struct ViewARScreen: View {
                 activeOpacityNodeId: $activeOpacityNodeId,
                 pointCloudScale: $pointCloudScale,
                 isExpandLayers: $isExpandLayers,
-                isPointCloudRendered: $isPointCloudRendered,
-                pointCloudOpacity: pointCloudOpacity,
-                isDesignVisible: $isDesignVisible,
-                designOpacity: $designOpacity
+                isPointCloudRendered: $isPointCloudRendered
             )
             
             HStack {
@@ -281,13 +275,6 @@ struct ViewARScreen: View {
                 
                 Spacer()
             }
-        }
-    }
-    
-    private func syncRootLayersVisibility(_ visible: Bool) {
-        for root in layers where root.isVisible != visible {
-            root.isVisible = visible
-            context.perform(ViewARIFCVisibleEvent(root, visible))
         }
     }
     
@@ -429,7 +416,6 @@ extension ViewARScreen : ViewARDelegate {
             cameraObject.stopLoading()
             self.arItemRendered = !isArError
             self.isARAccuracyTips = true
-            layers.forEach { $0.opacity = Double(self.designOpacity) }
             self.layers = layers
         }
     }

@@ -94,13 +94,45 @@ final class RTKGPSService: RTKTemplate {
         
     }
     
-    /// Offset của config đang active. Bảng tra nằm ở `AntennaOffsetResolver` để màn sửa
-    /// profile dùng lại được mà không phải ghi `UserSession` trước.
     func mapToAntennaOffset() -> SIMD3<Double> {
-        AntennaOffsetResolver.offset(
-            rtkType: UserSession.shared.rtkTypeSelected,
-            offsetSegment: UserSession.shared.cameraOffsetSegment,
-            custom: UserSession.shared.customOffsetVidoc
-        )
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        
+        var offset = SIMD3<Double>(0, 0, 0)
+        
+        let caseType = UserSession.shared.cameraOffsetSegment
+        switch caseType {
+        case .SPC:
+            offset = offsetSPC[identifier] ?? SIMD3<Double>(0.0, 0.0, 0.0)
+        case .SPCPlus:
+            offset = getOffsetSPCPlus(identifier)
+        case .CasetifySPCPlus:
+            offset = offsetCasetifySPCPlus[identifier] ?? SIMD3<Double>(0.0, 0.0, 0.0)
+        case .Custom:
+            offset = UserSession.shared.customOffsetVidoc
+        }
+        
+        return offset
+    }
+    
+    private func getOffsetSPCPlus(_ identifier: String) -> SIMD3<Double> {
+        var offset = SIMD3<Double>(0, 0, 0)
+        
+        let rtkType = UserSession.shared.rtkTypeSelected
+        switch rtkType {
+        case .viDoc:
+            offset = offsetSPCPlus[identifier] ?? SIMD3<Double>(0.0, 0.0, 0.0)
+        case .viDoc24:
+            offset = offsetVidoc24[identifier] ?? SIMD3<Double>(0.0, 0.0, 0.0)
+        case .viDocLight:
+            offset = offsetVidocLight[identifier] ?? SIMD3<Double>(0.0, 0.0, 0.0)
+        }
+        
+        return offset
     }
 }

@@ -135,4 +135,3 @@ let borderNormal: CGFloat = 4
 let borderSoft: CGFloat = 8
 let contentPadding: CGFloat = 16
 let popupHPadding: CGFloat = UIDevice.current.isIphone ? 16 : 300
-let rtkNotAvailableText = "N/A"

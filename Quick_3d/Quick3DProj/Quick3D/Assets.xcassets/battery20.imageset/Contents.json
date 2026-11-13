@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "battery20.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

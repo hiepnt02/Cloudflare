@@ -44,10 +44,8 @@ struct ButtonSelectFile: View {
             .background(.blue)
             .fullScreenCover(isPresented: $isShowDocumentPicker) {
                 DocumentPicker(selectTypes: fileTypes) { fileUrl, fileName in
-                    // Format name, exp: %E8%A8%AD%E8%A8%88%20(4).xml > 設計 (4).xml
-                    let fileNameFormatted = fileName?.removingPercentEncoding ?? fileName
-                    callback(fileUrl, fileNameFormatted)
-                    selectedFileName = fileNameFormatted ?? ""
+                    callback(fileUrl, fileName)
+                    selectedFileName = fileName ?? ""
                     selectedFileSize = (fileUrl?.fileSize ?? 0).bytesToHumanReadable()
                 }
             }

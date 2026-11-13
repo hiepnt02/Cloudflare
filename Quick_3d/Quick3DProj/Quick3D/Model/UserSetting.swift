@@ -11,14 +11,10 @@ struct UserSetting: Codable {
     var linkDashboard: Bool
     var notifyByEmail: Bool
     var isTester: Bool
-    var displayListColumnSetting: DisplayListColumnSetting
-    var projectListSortBy: SortOption?
-    var projectListViewType: ProjectListViewType?
     
     enum CodingKeys: String, CodingKey {
         case userId, colorTheme, coordinateSetting, pointCloudBgcolor,
-             pointCloudBgalpha, linkDashboard, notifyByEmail, isTester,
-             displayListColumnSetting, projectListSortBy, projectListViewType
+             pointCloudBgalpha, linkDashboard, notifyByEmail, isTester
     }
     
     func getColorThemeLabel(for userLanguage: String) -> String {
@@ -31,17 +27,6 @@ struct UserSetting: Codable {
         let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments)
         return json as? [String: Any]
     }
-}
-
-// MARK: - Display List Column Setting
-struct DisplayListColumnSetting: Codable {
-    var showJobsite: Bool = true
-    var showPhotographer: Bool = true
-    var showType: Bool = true
-    var showCaptureDate: Bool = true
-    var showUploadDate: Bool = true
-    var showImages: Bool = true
-    var showStatus: Bool = true
 }
 
 // MARK: - UI Theme Extension
@@ -74,9 +59,6 @@ extension UserSetting {
     var buttonColor: Color          { isLight ? electricBlue : .blue }
     var deleteButtonColor: Color    { materialRed }
     var buttonCameraColor: Color    { amber }
-    
-    var projectSortBy: SortOption   { projectListSortBy ?? .capturedDate }
-    var projectViewType: ProjectListViewType { projectListViewType ?? .grid }
     
     /// Returns the appropriate color for GPS/RTK buttons based on the mode
     /// - Parameter mode: 0 for GPS, 1 for RTK

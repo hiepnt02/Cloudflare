@@ -9,7 +9,6 @@ struct ProjectItemCell: View {
     @EnvironmentObject var productData: ProductData
     @EnvironmentObject var uploadProject: UploadProject
     @EnvironmentObject var editProject: EditProject
-    @EnvironmentObject var uploadQueue: UploadQueueManager
 
     var cat: Cat
     @Binding var isEditing: Bool
@@ -54,10 +53,13 @@ struct ProjectItemCell: View {
     }
     
     /// Upload state of this project only. Handing it to the cells as a plain value keeps
-    /// them out of the queue's observers, so a progress change only re-renders the cell of
-    /// the project being uploaded.
+    /// them out of `UploadProject`'s observers, so a progress change only re-renders the
+    /// cell of the project being uploaded.
     private var uploadState: CellUploadState {
-        uploadQueue.states[cat.id] ?? .idle
+        CellUploadState(
+            isUploading: uploadProject.isUploading && uploadProject.projectId == cat.id,
+            percentage: uploadProject.uploadPercentage
+        )
     }
 
     // MARK: - Body
@@ -74,9 +76,7 @@ struct ProjectItemCell: View {
                     actionMenuItems: { AnyView(actionMenuItems) },
                     onTap: handleCellTap,
                     isShowNoNetworkAlert: $isShowNoNetworkAlert,
-                    cellWidth: $cellWidth,
-                    visibleColumns: userManager.setting.visibleProjectColumns,
-                    contentWidth: contentWidth
+                    cellWidth: $cellWidth
                 )
                 .equatable()
             } else {
@@ -98,10 +98,7 @@ struct ProjectItemCell: View {
         .onAppear { setupCell() }
         .onDisappear { cancelRequests() }
         .onChange(of: contentWidth) { newWidth in
-            cellWidth = ProjectListColumnLayout.Metrics.thumbnailWidth(
-                contentWidth: newWidth,
-                isIPhone: UIDevice.current.isIphone
-            )
+            cellWidth = ProjectListLayout.thumbWidth(contentWidth: newWidth, isIPhone: UIDevice.current.isIphone)
         }
         .onChange(of: cat.projectId) { projectID in handleProjectIdChange(projectID) }
     }
@@ -209,10 +206,7 @@ extension ProjectItemCell {
     }
 
     private func setupCell() {
-        cellWidth = ProjectListColumnLayout.Metrics.thumbnailWidth(
-            contentWidth: contentWidth,
-            isIPhone: UIDevice.current.isIphone
-        )
+        cellWidth = ProjectListLayout.thumbWidth(contentWidth: contentWidth, isIPhone: UIDevice.current.isIphone)
         loadThumbnail()
     }
 
@@ -278,7 +272,7 @@ extension ProjectItemCell {
     }
 
     private func handleLocalProjectTap() {
-        if uploadState.phase.isActive { return }
+        if uploadProject.isUploading && uploadProject.projectId == cat.id { return }
 
         if isEditing {
             onTapPress(cat.id)
@@ -319,8 +313,8 @@ extension ProjectItemCell {
 
     private func prepareDataForEdit(isShowUploadPopup: Bool) {
         editProject.resetData()
-        editProject.isInQueue = uploadQueue.isBusy(catId: cat.id)
-        uploadQueue.remove(catId: cat.id)
+        editProject.isInQueue = productData.uploadProjectQueue.isInQueue(catId: cat.id)
+        productData.uploadProjectQueue.dequeue(catId: cat.id)
 
         editProject.currentCat = cat
         editProject.projectName = cat.title

@@ -57,7 +57,12 @@ class SfmProject {
     
     private let lasReader: BVHReader
     
-    private let ifcReader: UsdzReader
+    private var ifcReader: UsdzReader?
+    private var scmReader: SCMReader?
+    /// Design source actually in use. Starts as USDZ (IFC) unless forced; flips
+    /// to SCM when the project has no USDZ (fetch fails), so SCM-only projects
+    /// still show their design without any USDZ file.
+    private var useSCM: Bool
     
     private var projectDownloader: Task<Void, Error>?
     
@@ -65,11 +70,15 @@ class SfmProject {
     
     private var ifcDownloader: Task<Void, Error>?
     
-    init(projectId: String, concurrentLimit: Int = 2, isAR: Bool) {
+    init(projectId: String, concurrentLimit: Int = 2, isAR: Bool, useSCM: Bool = false) {
         self.projectId = projectId
         self.isAR = isAR
         self.lasReader = BVHReader(projectId: self.projectId, concurrentLimit: concurrentLimit,  isAR: isAR)
-        self.ifcReader = UsdzReader(projectId: self.projectId)
+        self.useSCM = useSCM
+        self.scmReader = SCMReader(projectId: self.projectId)
+        if !useSCM {
+            self.ifcReader = UsdzReader(projectId: self.projectId)
+        }
     }
     
     private func updateOffset() {
@@ -102,7 +111,8 @@ class SfmProject {
         ifcDownloader?.cancel()
         ifcDownloader = nil
         lasReader.cancel()
-        ifcReader.cancel()
+        ifcReader?.cancel()
+        scmReader?.cancel()
     }
     
     func render(
@@ -162,7 +172,7 @@ class SfmProject {
                 onIfcError?(error)
             } onComplete: {
                 Task { @MainActor in
-                    self.ifcLayers = self.ifcReader.layers
+                    self.ifcLayers = self.useSCM ? (self.scmReader?.layers ?? []) : (self.ifcReader?.layers ?? [])
                     onIfcComplete?(self.ifcLayers)
                     self.isIfcCompleted = true
                     self.complete(onError: onError, onComplete: onComplete)
@@ -177,8 +187,33 @@ class SfmProject {
             }
             
             ifcDownloader = Task {
-                ifcReader.delegate = ifcDelegate
-                await ifcReader.fetch()
+                // 1) USDZ (IFC) first. Its errors are held back: a missing USDZ
+                //    is expected for SCM-only projects and must not raise
+                //    "File not found" before SCM is tried.
+                if !useSCM, let ifcReader = ifcReader {
+                    let usdzDelegate = ARProjectDelegateHelper { node in
+                        ifcDelegate.onCreateNode(node)
+                    } onUpdateOffset: { offset in
+                        ifcDelegate.onUpdateOffset(offset)
+                    } onError: { _ in
+                    } onComplete: {
+                    }
+                    ifcReader.delegate = usdzDelegate
+                    await ifcReader.fetch()
+                    if !ifcReader.isError {
+                        ifcDelegate.onComplete()
+                        return
+                    }
+                    if Task.isCancelled { return }
+                    print("[SfmProject] USDZ unavailable (\(ifcReader.error?.localizedDescription ?? "-")), falling back to SCM")
+                    self.useSCM = true
+                }
+                // 2) SCM — reports errors normally, so a project with neither
+                //    file still shows the original error.
+                if let scmReader = scmReader {
+                    scmReader.delegate = ifcDelegate
+                    await scmReader.fetch()
+                }
             }
         }
         

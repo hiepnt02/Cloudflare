@@ -20,9 +20,6 @@ struct SidebarView: View {
     @Binding var pointCloudScale: Double
     @Binding var isExpandLayers: Bool
     @Binding var isPointCloudRendered: Bool
-    var pointCloudOpacity: CGFloat = 1.0
-    @Binding var isDesignVisible: Bool
-    @Binding var designOpacity: CGFloat
     
     @State private var searchText: String = ""
     @State private var rootOpacity: Double = LayerNode.defaultOpacity
@@ -51,10 +48,6 @@ struct SidebarView: View {
         .onAppear {
             isAnyOpacitySliderOpen = false
             activeOpacityNodeId = nil
-        }
-        .onChange(of: designOpacity) { value in
-            guard let id = activeOpacityNodeId, layers.contains(where: { $0.id == id }) else { return }
-            rootOpacity = Double(value)
         }
     }
     
@@ -113,17 +106,9 @@ struct SidebarView: View {
                         node: node,
                         onVisibilityChanged: { node, visible in
                             context?.perform(ViewARIFCVisibleEvent(node, visible))
-                            if node.parent == nil {
-                                syncDesignVisibility(rootId: node.id, visible: visible)
-                            }
                         },
                         onLayerOpacityChanged: { node, scale in
-                            if node.parent == nil {
-                                syncDesignOpacity(rootId: node.id, scale: scale)
-                            } else {
-                                node.applyOpacity(scale)
-                                context?.perform(ViewARIFCOpacityEvent(node, calculateOpacity(scale)))
-                            }
+                            context?.perform(ViewARIFCOpacityEvent(node, calculateOpacity(scale)))
                         },
                         isParentDisabled: false,
                         onToggleExpand: { node in
@@ -131,8 +116,7 @@ struct SidebarView: View {
                         },
                         isAnyOpacitySliderOpen: $isAnyOpacitySliderOpen,
                         activeOpacityNodeId: $activeOpacityNodeId,
-                        sharedOpacity: $rootOpacity,
-                        isVisibilityLocked: ViewARVisibilityLock.isLocked(isDesignVisible, designOpacity)
+                        sharedOpacity: $rootOpacity
                     )
                     .environmentObject(userManager)
                 }
@@ -144,7 +128,6 @@ struct SidebarView: View {
     @ViewBuilder
     private func pointCloudSizeView() -> some View {
         if isPointCloudRendered {
-            let isVisibilityLocked = ViewARVisibilityLock.isLocked(isPointCloudVisible, pointCloudOpacity)
             VStack(alignment: .leading, spacing: 8) {
                 Button(action: {
                     isPointCloudVisible.toggle()
@@ -158,8 +141,6 @@ struct SidebarView: View {
                             .foregroundColor(.white)
                     }
                 }
-                .disabled(isVisibilityLocked)
-                .opacity(isVisibilityLocked ? 0.5 : 1.0)
                 
                 Slider(value: $pointCloudScale, in: 0...1.0)
                     .tint(.blue)
@@ -174,21 +155,6 @@ struct SidebarView: View {
     }
     
     // MARK: - Helper Functions
-    
-    private func syncDesignOpacity(rootId: String, scale: Double) {
-        layers.first { $0.id == rootId }?.opacity = scale
-        designOpacity = CGFloat(scale)
-        context?.perform(ViewARIFCOpacityEvent(nil, scale))
-    }
-    
-    private func syncDesignVisibility(rootId: String, visible: Bool) {
-        // filteredLayers là bản copy khi đang search
-        layers.first { $0.id == rootId }?.isVisible = visible
-        let anyRootVisible = layers.contains { $0.isVisible }
-        guard anyRootVisible != isDesignVisible else { return }
-        isDesignVisible = anyRootVisible
-        context?.perform(ViewARIFCVisibleEvent(nil, anyRootVisible))
-    }
     
     private func closeActiveSliders() {
         if isAnyOpacitySliderOpen {

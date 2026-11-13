@@ -97,14 +97,7 @@ extension String {
             return false
         }
     }
-
-    /// QUICK-1060: NTRIP fields (hostname/port/username/password) reject the same characters
-    /// as project names — backslash, slash, trailing space/dot — minus the leading-dash rule,
-    /// which doesn't apply to connection credentials.
-    var containsInvalidNtripCharacter: Bool {
-        rangeOfCharacter(from: CharacterSet(charactersIn: "\\/")) != nil || hasSuffix(" ") || hasSuffix(".")
-    }
-
+    
     /// Returns the file extension of the string path, or nil if none exists.
     var fileExtension: String? {
         let url = URL(fileURLWithPath: self)

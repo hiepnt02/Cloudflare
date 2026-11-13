@@ -45,12 +45,9 @@ final class RTKConnectionObserver: ObservableObject {
             }
             .store(in: &subscription)
 
-        // The recovery flag is raised on the RTK queue in the same pass that reports the drop, so it is read there.
         RTKManager.shared.bluetoothState
-            .receive(on: RTKManager.shared.queue)
-            .map { ($0, RTKManager.shared.isRecovering.value) }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] state, isRecovering in
+            .sink { [weak self] state in
                 guard let _self = self else { return }
 
                 let nowNotConnected: Bool = {
@@ -59,22 +56,13 @@ final class RTKConnectionObserver: ObservableObject {
                 }()
 
                 if nowNotConnected {
-                    if _self.lastDeviceReady && !isRecovering {
+                    if _self.lastDeviceReady {
                         let msg = "RTK_LOST_CONNECTION"
                         _self.showAlert?(msg)
                         _self.lastDeviceReady = false
                     }
                     _self.lastQuality = nil
                 }
-            }
-            .store(in: &subscription)
-        
-        RTKManager.shared.recoveryFailed
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in
-                guard let _self = self, _self.lastDeviceReady else { return }
-                _self.showAlert?("RTK_LOST_CONNECTION")
-                _self.lastDeviceReady = false
             }
             .store(in: &subscription)
     }

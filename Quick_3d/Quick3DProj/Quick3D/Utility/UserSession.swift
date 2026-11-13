@@ -62,6 +62,15 @@ class UserSession {
         cacheThumbnail[projectId] = image
     }
 
+    static var sortOption: SortOption {
+        set {
+            UserDefaults.standard.set(newValue == .uploadDate ? "uploadDate" : "capturedDate", forKey: "sortOptionKey")
+        }
+        get {
+            UserDefaults.standard.string(forKey: "sortOptionKey") == "uploadDate" ? .uploadDate : .capturedDate
+        }
+    }
+
     static var userLanguage: String {
         set {
             UserDefaults.standard.set(newValue, forKey: "languageKey")
@@ -100,16 +109,7 @@ class UserSession {
     
     @KeychainCodable(key: "userInfo") var userInfo: UserInfo?
     @KeychainCodable(key: "ntripInfo") var ntripInfo: NtripInfoModel?
-
-    /// Danh sách profile kết nối RTK đã lưu. Ở Keychain vì có password NTRIP.
-    @KeychainCodable(key: "rtkConnectionProfiles") var rtkConnectionProfiles: [RTKConnectionProfile]?
-    @UserDefaultOptional(key: "selectedRTKProfileId") var selectedRTKProfileId: String?
-
-    /// Cờ riêng thay vì suy ra từ `rtkConnectionProfiles == nil`: `@KeychainCodable` trả
-    /// `nil` cả khi decode hỏng, nên dùng nil làm điều kiện migrate thì một lần đọc lỗi sẽ
-    /// chạy lại migration và ghi đè mất sạch profile đã lưu.
-    @UserDefault(key: "didMigrateRTKProfiles", defaultValue: false) var didMigrateRTKProfiles: Bool
-
+    
     @UserDefaultCodable(key: "products", defaultValue: []) static var products: [Cat]
     @UserDefaultOptional(key: "mountPointNtrip") var mountPointNtrip: String?
     @UserDefault(key: "recentMountPointNtrips", defaultValue: []) var recentMountPointNtrips: [String]

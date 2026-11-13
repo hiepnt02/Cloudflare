@@ -24,7 +24,7 @@ struct ProjectListView: View {
     @Binding var contentWidth: CGFloat
     @Binding var contentHeight: CGFloat
     @Binding var scrollToTopTrigger: Bool
-    let isListView: Bool
+    @Binding var isListView: Bool
     
     let onRefresh: () async -> Void
     

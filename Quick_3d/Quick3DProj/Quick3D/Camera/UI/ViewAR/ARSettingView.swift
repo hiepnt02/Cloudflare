@@ -27,13 +27,11 @@ struct ARSettingView: View {
     
     @State var isPreview: Bool = false
     
-    @Binding var isPointCloudVisible: Bool
-    @Binding var pointOpacity: CGFloat
+    @State var isPointCloudVisible: Bool = true
+    @State var pointOpacity: CGFloat = 1.0
     
-    @Binding var isARObjectVisisble: Bool
-    @Binding var arObjectScale: CGFloat
-    var onARObjectVisibilityChanged: (Bool) -> Void = { _ in }
-    var onCalibrationTapped: () -> Void = {}
+    @State var isARObjectVisisble: Bool = true
+    @State var arObjectScale: CGFloat = 1
     
     @State var isUpdateAROn: Bool = true
     @State private var animatedProgress: Double = 0.0
@@ -82,10 +80,6 @@ struct ARSettingView: View {
                             ) {
                                 isPreview = true
                             }
-
-                            if ARCalibrationButtonVisibility.isVisible(arRendered: arRendered, arItemRendered: arItemRendered) {
-                                calibrationButton
-                            }
                         }
                         
                         Spacer()
@@ -100,7 +94,6 @@ struct ARSettingView: View {
                         isPointCloudVisible: $isPointCloudVisible,
                         isPointCloudRendered: $isPointCloudRendered,
                         pointCloudScale: $pointCloudScale,
-                        pointCloudOpacity: pointOpacity,
                         isLightOn: $isLightOn,
                         isARPositionExpanded: $isARPositionExpanded,
                         isARStepExpanded: $isARStepExpanded,
@@ -153,22 +146,6 @@ struct ARSettingView: View {
         }
     }
     
-    private var calibrationButton: some View {
-        Button(action: onCalibrationTapped) {
-            Image("manual_calibration")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 20, height: 20)
-                .foregroundColor(.white)
-                .frame(width: 48, height: 48)
-                .background(Circle().fill(imperialBlue.opacity(0.5)))
-                .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 2))
-                .contentShape(Circle())
-        }
-        .accessibilityIdentifier("calibrationButton")
-    }
-
     @ViewBuilder
     private var updateARView: some View {
 //        if arItemRendered || arRendered {
@@ -218,8 +195,7 @@ struct ARSettingView: View {
                     onScaleChanged: { scale in
                         pointOpacity = scale
                         context.perform(ViewARPointcloudOpacityEvent(scale))
-                    },
-                    isVisibilityLocked: ViewARVisibilityLock.isLocked(isPointCloudVisible, pointOpacity)
+                    }
                 )
             }
 
@@ -231,13 +207,11 @@ struct ARSettingView: View {
                     onVisibilityChanged: { visible in
                         isARObjectVisisble = visible
                         context.perform(ViewARIFCVisibleEvent(nil, visible))
-                        onARObjectVisibilityChanged(visible)
                     },
                     onScaleChanged: { scale in
                         arObjectScale = scale
                         context.perform(ViewARIFCOpacityEvent(nil, scale))
-                    },
-                    isVisibilityLocked: ViewARVisibilityLock.isLocked(isARObjectVisisble, arObjectScale)
+                    }
                 )
             }
         }
@@ -301,8 +275,3 @@ struct ARSettingView: View {
     }
 }
 
-enum ARCalibrationButtonVisibility {
-    static func isVisible(arRendered: Bool, arItemRendered: Bool) -> Bool {
-        arRendered && arItemRendered
-    }
-}

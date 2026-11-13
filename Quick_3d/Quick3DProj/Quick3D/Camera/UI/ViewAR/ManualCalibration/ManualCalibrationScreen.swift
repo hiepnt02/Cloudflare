@@ -74,7 +74,7 @@ struct ManualCalibrationScreen: View {
 
     /// Bước chỉ định vị trí trong AR: panel thu nhỏ nằm đáy, hướng dẫn nằm ngay dưới nó.
     private var instructionBanner: some View {
-        calibrationInstructionText(instructionKey.localized(userManager.userLanguage))
+        Text(instructionKey.localized(userManager.userLanguage))
             .calibrationInstructionStyle()
     }
 
@@ -104,8 +104,7 @@ struct ManualCalibrationScreen: View {
                     .padding(.leading, 12)
                     .padding(.top, 48)
                 Spacer()
-                // QUICK-1049 đã dời nút P1/P2 xuống góc dưới phải, nhưng việc hiện
-                // GNSS ở expanded mode không thuộc phạm vi ticket — giữ nguyên collapsed.
+                // Expanded mode dedicates the top-right corner to the P1/P2 buttons.
                 if selection.step.panelMode == .collapsed {
                     GNSSStatusBar(
                         isShowVidocSetting: $isShowVidocSetting,

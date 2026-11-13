@@ -14,5 +14,4 @@ enum UploadCase: Int {
     case Las
     case Tif
     case Json
-    case Ply
 }
