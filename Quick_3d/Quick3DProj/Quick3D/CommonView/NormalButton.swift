@@ -17,6 +17,9 @@ struct NormalButton: View {
     var isStroke = false
     var backgroundColor: Color = sapphireBlue
     var isDisabled: Bool = false
+    /// Mặc định `nil`/`1` = giữ nguyên hành vi cũ ở mọi chỗ đang dùng.
+    var labelLineLimit: Int? = nil
+    var labelMinimumScaleFactor: CGFloat = 1
     
     var onClick: () -> Void
     
@@ -27,6 +30,9 @@ struct NormalButton: View {
             Text(label)
                 .font(.system(size: labelSize, weight: .medium))
                 .foregroundColor(isStroke ? userManager.setting.textColor : .white)
+                .lineLimit(labelLineLimit)
+                .minimumScaleFactor(labelMinimumScaleFactor)
+                .multilineTextAlignment(.center)
                 .padding(8)
                 .frame(
                     minWidth: UIDevice.current.isIphone ? nil : 230,

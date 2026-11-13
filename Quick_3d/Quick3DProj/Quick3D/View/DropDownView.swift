@@ -20,6 +20,7 @@ struct DropdownOptionElement: View {
     var item: DropdownOption
     var showSeparator: Bool
     var onSelect: ((_ item: DropdownOption) -> Void)?
+    var width: CGFloat = DropdownButton.defaultWidth
     @EnvironmentObject var userManager: UserManager
 
     var body: some View {
@@ -46,20 +47,21 @@ struct DropdownOptionElement: View {
             }
             .contentShape(Rectangle())
         }
-        .frame(width: 240, height: 50)
+        .frame(width: width, height: 50)
     }
 }
 
 struct Dropdown: View {
     var options: [DropdownOption]
     var onSelect: ((_ item: DropdownOption) -> Void)?
+    var width: CGFloat = DropdownButton.defaultWidth
     let dropdownCornerRadius: CGFloat = 15
     @EnvironmentObject var userManager: UserManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(options.enumerated()), id: \.offset) { index, item in
-                DropdownOptionElement(item: item, showSeparator: index < options.count - 1, onSelect: self.onSelect)
+                DropdownOptionElement(item: item, showSeparator: index < options.count - 1, onSelect: self.onSelect, width: width)
             }
         }
         .background(userManager.setting.dropdownColor)
@@ -80,7 +82,15 @@ struct DropdownButton: View {
     var onTap: (() -> Void)?
     var onSelect: ((_ item: DropdownOption) -> Void)?
     var textColor: Color
-    
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
+
+    static let defaultWidth: CGFloat = 240
+    static let portraitWidth: CGFloat = 150
+
+    private var width: CGFloat {
+        isPortraitLayout ? Self.portraitWidth : Self.defaultWidth
+    }
+
     var body: some View {
         Button(action: {
             onTap?()
@@ -103,17 +113,17 @@ struct DropdownButton: View {
             .foregroundColor(.white)
             .contentShape(Rectangle())
         }
-        .frame(width: 240, height: 42)
+        .frame(width: width, height: 42)
         .border(.gray, width: 1)
         .overlay(alignment: .topLeading) {
             VStack {
                 if self.shouldShowDropdown {
-                    Dropdown(options: self.options, onSelect: self.onSelect)
+                    Dropdown(options: self.options, onSelect: self.onSelect, width: width)
 //                        .border(.gray, width: 1)
                 }
 
             }
-            .position(x: 130, y: 95)
+            .position(x: width / 2 + 10, y: 95)
         }
 
     }

@@ -32,7 +32,7 @@ struct ProjectListView: View {
     private var isIPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
     
     private var columnCount: Int {
-        return isIPhone ? 4 : 5
+        ProjectGridLayout.columnCount(availableWidth: contentWidth, isIPhone: isIPhone)
     }
     
     internal let inspection = Inspection<Self>()
@@ -53,7 +53,7 @@ struct ProjectListView: View {
                         if isListView {
                             listView(for: section.visibleItems)
                         } else {
-                            gridView(for: section.gridRows)
+                            gridView(for: section.visibleItems)
                         }
                     }
                     .id(isFirstSection(section) ? AnyHashable("top_of_list") : AnyHashable(section.id))
@@ -112,10 +112,13 @@ private extension ProjectListView {
     }
     
     /// Displays the products as a column-based grid (Grid Mode).
-    /// The rows are already prepared by `ProductData` when the list data changes.
     @ViewBuilder
-    func gridView(for chunkedRows: [[Cat]]) -> some View {
-        ForEach(chunkedRows.indices, id: \.self) { rowIndex in
+    func gridView(for products: [Cat]) -> some View {
+        let columns = max(1, columnCount)
+        let chunkedRows: [[Cat]] = stride(from: 0, to: products.count, by: columns).map {
+            Array(products[$0..<min($0 + columns, products.count)])
+        }
+        return ForEach(chunkedRows.indices, id: \.self) { rowIndex in
             let rowItems = chunkedRows[rowIndex]
 
             HStack(spacing: 10) {

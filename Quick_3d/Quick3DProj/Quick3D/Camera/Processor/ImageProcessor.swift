@@ -44,8 +44,7 @@ final class ImageProcessor: FrameProcessor {
         let averageFocalLegnth = ImageCalculator.averageFocalLegnth(frames)
 
         let highAccuracyFrame: FrameMetadata? = session.getHighAccuracyFrame()
-        let deferPhotoUpdated = session.isEligibleForGlobalCorrection
-
+        
         for index in 0..<metas.count {
             let frame = frames[index]
             var meta = metas[index]
@@ -100,19 +99,14 @@ final class ImageProcessor: FrameProcessor {
                 eulerAngles: imageCalculated.eulerAngles
             )
 
-            // Phiên có RTK fix: photoUpdated được dời sang CaptureSession.export() để ghi
-            // với pose đã hiệu chỉnh sau khi biết kết quả regeneration (QUICK-915).
-            if !deferPhotoUpdated {
-                session.catchLogger.appendPhotoUpdated(
-                    imageName: frame.imageNameWithoutExtension,
-                    transform: frame.transform,
-                    gps: imageCalculated.location,
-                    eulerAngles: imageCalculated.eulerAngles
-                )
-            }
+            session.catchLogger.appendPhotoUpdated(
+                imageName: frame.imageNameWithoutExtension,
+                transform: frame.transform,
+                gps: imageCalculated.location,
+                eulerAngles: imageCalculated.eulerAngles
+            )
         }
 
-        session.setCorrectedLocations(root: locations.root, locations: locations.images)
         session.flushLocation(locations.root)
     }
     

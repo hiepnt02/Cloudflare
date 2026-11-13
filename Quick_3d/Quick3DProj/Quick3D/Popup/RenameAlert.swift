@@ -21,6 +21,9 @@ struct RenameAlert: View {
     @State private var isPjNameValid = false
     
     var handler: (String) -> Void
+
+    /// Padding nằm ngoài khung, nên phải trừ vào phần chỗ trống khi thu popup lại.
+    private var horizontalPadding: CGFloat { isIPhone ? 20 : 30 }
     
     var body: some View {
         ZStack {
@@ -175,8 +178,8 @@ struct RenameAlert: View {
                     }.padding(.bottom, 30)
                 }
             }
-            .frame(width: isIPhone ? 500 : 700)
-            .padding(.horizontal, isIPhone ? 20 : 30)
+            .adaptivePopupWidth(isIPhone ? 500 : 700, margin: 32 + horizontalPadding * 2)
+            .padding(.horizontal, horizontalPadding)
             .background(userManager.setting.themeColor)
             .border(.gray, width: 1)
         }

@@ -14,23 +14,52 @@ import FirebaseAnalytics
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     
-    static var orientationLock = UIInterfaceOrientationMask.landscapeRight {
+    static var orientationLock = OrientationGate.rotatableMask {
         didSet {
             
             if #available(iOS 16.0, *) {
                 UIApplication.shared.connectedScenes.forEach { scene in
                     if let windowScene = scene as? UIWindowScene {
                         windowScene.windows.first?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-                        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientationLock))
+                        
+                        if orientationLock.rawValue.nonzeroBitCount == 1 {
+                            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientationLock))
+                        } else if let target = deviceOrientation(allowedBy: orientationLock),
+                                  target != windowScene.interfaceOrientation {
+                            
+                            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask(for: target)))
+                        }
                     }
                 }
-            } else {
+            } else if orientationLock.rawValue.nonzeroBitCount == 1 {
                 if orientationLock == .landscape {
                     UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
                 } else {
                     UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
                 }
             }
+        }
+    }
+
+    private static func deviceOrientation(allowedBy allowed: UIInterfaceOrientationMask) -> UIInterfaceOrientation? {
+        let interface: UIInterfaceOrientation
+        switch UIDevice.current.orientation {
+        case .portrait: interface = .portrait
+        case .portraitUpsideDown: interface = .portraitUpsideDown
+        case .landscapeLeft: interface = .landscapeRight
+        case .landscapeRight: interface = .landscapeLeft
+        default: return nil
+        }
+        return allowed.contains(mask(for: interface)) ? interface : nil
+    }
+
+    private static func mask(for orientation: UIInterfaceOrientation) -> UIInterfaceOrientationMask {
+        switch orientation {
+        case .portrait: return .portrait
+        case .portraitUpsideDown: return .portraitUpsideDown
+        case .landscapeLeft: return .landscapeLeft
+        case .landscapeRight: return .landscapeRight
+        default: return []
         }
     }
 

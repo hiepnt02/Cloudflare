@@ -57,7 +57,8 @@ struct DeletePopup: View{
 
                     Text(String(format: "DELETE_CONFIRM".localized(userManager.userLanguage), cat?.title ?? ""))
                         .foregroundColor(userManager.setting.textColor)
-                        .frame(height: 30)
+                        .multilineTextAlignment(.center)
+                        .frame(minHeight: 30)
                         .font(.title2)
                         .padding(EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 0))
 
@@ -94,7 +95,7 @@ struct DeletePopup: View{
                 .padding(.horizontal, isIPhone ? 20 : 30)
                 .padding(.bottom,  isIPhone ? 20 : 30)
                 .background(userManager.setting.themeColor)
-                .frame(width: isIPhone ? 500 : 700)
+                .adaptivePopupWidth(isIPhone ? 500 : 700)
                 .border(.gray, width: 1)
                 .ignoresSafeArea()
             }

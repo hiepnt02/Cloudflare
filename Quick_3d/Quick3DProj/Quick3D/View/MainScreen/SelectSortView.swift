@@ -38,10 +38,14 @@ private struct SortMenuButton: UIViewRepresentable {
 
 struct SelectSortView: View {
     @EnvironmentObject var userManager: UserManager
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
 
     @Binding var selectedSort: SortOption
     let isIPhone: Bool
     let onSelect: () -> Void
+
+    private var fieldWidth: CGFloat { isIPhone ? 120 : 190 }
+    private var fieldHeight: CGFloat { isIPhone ? 32 : 42 }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -58,7 +62,7 @@ struct SelectSortView: View {
                     .foregroundColor(userManager.setting.textColor)
                     .padding(.trailing, isIPhone ? 0 : 10.0)
             }
-            .frame(width: isIPhone ? 120 : 190, height: isIPhone ? 32 : 42, alignment: .leading)
+            .adaptiveWidth(fixed: fieldWidth, isPortrait: isPortraitLayout, height: fieldHeight, alignment: .leading)
             .border(.gray, width: 1)
 
             SortMenuButton(
@@ -66,7 +70,7 @@ struct SelectSortView: View {
                 language: userManager.userLanguage,
                 onSelect: onSelect
             )
-            .frame(width: isIPhone ? 120 : 190, height: isIPhone ? 32 : 42)
+            .adaptiveWidth(fixed: fieldWidth, isPortrait: isPortraitLayout, height: fieldHeight)
 
             Text("SORT_BY".localized(userManager.userLanguage))
                 .font(.system(size: isIPhone ? 12 : 15))
@@ -74,6 +78,6 @@ struct SelectSortView: View {
                 .background(userManager.setting.bodyColor)
                 .offset(x: 10, y: -8)
         }
-        .frame(width: isIPhone ? 120 : 190, height: isIPhone ? 32 : 42)
+        .adaptiveWidth(fixed: fieldWidth, isPortrait: isPortraitLayout, height: fieldHeight)
     }
 }

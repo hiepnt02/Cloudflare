@@ -4,6 +4,8 @@ import DeviceKit
 
 // MARK: - 1. MAIN CONTROLLER CELL (ProjectItemCell)
 struct ProjectItemCell: View {
+    
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
     // MARK: Environment & Props
     @EnvironmentObject var userManager: UserManager
     @EnvironmentObject var productData: ProductData
@@ -76,7 +78,8 @@ struct ProjectItemCell: View {
                     isShowNoNetworkAlert: $isShowNoNetworkAlert,
                     cellWidth: $cellWidth,
                     visibleColumns: userManager.setting.visibleProjectColumns,
-                    contentWidth: contentWidth
+                    contentWidth: contentWidth,
+                    isPortraitLayout: isPortraitLayout
                 )
                 .equatable()
             } else {

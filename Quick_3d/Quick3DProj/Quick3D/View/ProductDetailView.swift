@@ -46,6 +46,9 @@ struct ProductDetailView: View {
     @Binding var isActiveContent: Bool;
     
     private let isIPhone = UIDevice.current.isIphone
+    @State private var webViewSize: CGSize = .zero
+    @State private var webReloadToken = 0
+    private var isPortraitLayout: Bool { CompactLayout.isPortrait(webViewSize) }
     @State private var isShowLoginSheet = false
     private var isLogin: Bool {
         return userManager.userInfo != nil
@@ -56,27 +59,64 @@ struct ProductDetailView: View {
         return isShowUploadingView || isShowUploadedResult
     }
     
+    private func onBack() {
+        if !isUploading {
+            self.presentationMode.wrappedValue.dismiss()
+            userManager.getSetting()
+        }
+    }
+
+    private var backIcon: some View {
+        Image("Back2")
+            .resizable()
+            .renderingMode(.template)
+            .foregroundColor(
+                cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!) == nil ?
+                    .white
+                : userManager.setting.textColor
+            )
+    }
+
     var btnBack : some View {
         HStack() {
-            Button(action: {
-                if !isUploading {
-                    self.presentationMode.wrappedValue.dismiss()
-                    userManager.getSetting()
-                }
-            }) {
-                Image("Back2")
-                    .resizable()
-                    .renderingMode(.template)
-                    .foregroundColor(
-                        cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!) == nil ?
-                            .white
-                        : userManager.setting.textColor
-                    )
+            Button(action: onBack) {
+                backIcon
                     .frame(width: isIPhone ? 30 : 60, height: isIPhone ? 20 : 40)
                     .padding(EdgeInsets(top: isIPhone ? 20 : 30, leading: isIPhone ? 0 : 25, bottom: 0, trailing: 0))
                     .scaledToFit()
             }
         }
+    }
+
+    /// The pages set no viewport `width`, so WebKit lays them out 980px wide and scales them
+    /// down. Values are CSS px of the gap left of the project name in `MenuBar.tsx`.
+    private enum WebMenuBar {
+        static let layoutWidth: CGFloat = 980
+        static let gapMinX: CGFloat = 16
+        static let gapMaxX: CGFloat = 56
+        static let centerY: CGFloat = 24
+    }
+
+    private var portraitBtnBack: some View {
+        let scale = webViewSize.width / WebMenuBar.layoutWidth
+        let iconWidth = (WebMenuBar.gapMaxX - WebMenuBar.gapMinX) * scale * 0.8
+        return Button(action: onBack) {
+            backIcon
+                .frame(width: iconWidth, height: iconWidth * 2 / 3)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+        }
+        .position(x: (WebMenuBar.gapMinX + WebMenuBar.gapMaxX) / 2 * scale,
+                  y: WebMenuBar.centerY * scale)
+    }
+
+    /// The viewers only listen to `resize` on desktop, so a rotated page keeps its old layout.
+    private func handleWebViewSizeChange(_ size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        if webViewSize != .zero, CompactLayout.isPortrait(size) != isPortraitLayout {
+            webReloadToken += 1
+        }
+        webViewSize = size
     }
     
     var headerBarButtons : some View {
@@ -116,9 +156,17 @@ struct ProductDetailView: View {
                     updateProjectId: productData.updateProjectId(_:jobsiteId:for:),
                     backToHome: self.backToHome,
                     openSfM: self.openSfM,
-                    isActiveContent: $isActiveContent
+                    isActiveContent: $isActiveContent,
+                    reloadToken: webReloadToken
                 )
                 .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .background(GeometryReader { geo in
+                    Color.clear
+                        .onAppear { handleWebViewSizeChange(geo.size) }
+                        .onChange(of: geo.size) { handleWebViewSizeChange($0) }
+                }
+                // The keyboard must not count as a rotation.
+                .ignoresSafeArea(.keyboard))
                 .background(
                     cat.projectWebUrl(for: LanguageMode(rawValue: userManager.userLanguage)!) == nil ?
                         .black
@@ -133,7 +181,11 @@ struct ProductDetailView: View {
                 }
             }
             HStack(alignment: .top) {
-                btnBack.position(x: 30, y: 10)
+                if isPortraitLayout {
+                    portraitBtnBack
+                } else {
+                    btnBack.position(x: 30, y: 10)
+                }
                 if cat.projectId == nil || cat.jobsiteId == "" {
                     headerBarButtons.frame(maxWidth:.infinity, alignment: .topTrailing)
                         .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -157,6 +209,7 @@ struct ProductDetailView: View {
         }
         .navigationBarHidden(true)
         .edgesIgnoringSafeArea(.bottom)
+        .allowsFreeRotation()
         .onLoad(perform: {
             productData.fetchJobSiteData()
 //            productData.fetchARSelectionData()

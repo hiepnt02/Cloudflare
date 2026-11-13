@@ -44,7 +44,9 @@ struct SelectedManagerView: View {
                     .contentShape(Rectangle())
             })
         }
-        .frame(width: isIPhone ? 500 : 700 , height: isIPhone ? 30 : 50)
+        .frame(maxWidth: isIPhone ? 500 : 700)
+        .frame(height: isIPhone ? 30 : 50)
+        .padding(.horizontal, 20)
         .offset(x: 0, y: UIScreen.maxHeight/2 - (isIPhone ? 20 : 40))
     }
 }

@@ -75,6 +75,9 @@ struct CameraButton: View {
                     Text("OPEN_TRIAL_CAPTURE".localized(userManager.userLanguage))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                        .multilineTextAlignment(.center)
                         .frame(
                             maxWidth: .infinity,
                             minHeight: 42

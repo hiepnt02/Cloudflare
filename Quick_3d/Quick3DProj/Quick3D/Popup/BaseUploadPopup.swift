@@ -85,7 +85,8 @@ struct BaseUploadPopup: View {
     private var actionButtonFont: Font { isIPhone ? .headline.bold() : .title3.bold() }
 
     private let pickerSize = CGSize(width: 380, height: 42)
-    private let pickerArrowPosition = CGPoint(x: 360, y: 20)
+
+    private var contentWidth: CGFloat { isIPhone ? 680 : 700 }
 
     // MARK: - Derived values
 
@@ -134,10 +135,9 @@ struct BaseUploadPopup: View {
                             isKeyboardShow = false
                         }
                 }
-                .frame(
-                    width: UIScreen.main.bounds.width * 0.70,
-                    height: UIScreen.main.bounds.height * (isKeyboardShow ? 0.55 : 0.80)
-                )
+                .adaptivePopupWidth(contentWidth)
+                .frame(height: UIScreen.main.bounds.height * (isKeyboardShow ? 0.55 : 0.80))
+                .disabled(isUploading)
             }
         }
         .onTapGesture {
@@ -166,7 +166,7 @@ struct BaseUploadPopup: View {
         }
         .padding(.all, sectionSpacing)
         .background(userManager.setting.themeColor)
-        .frame(width: isIPhone ? 680 : 700)
+        .adaptivePopupWidth(contentWidth)
         .border(.gray, width: 1)
         .onAppear {
             dataTypeSelected = .Ifc
@@ -216,17 +216,21 @@ struct BaseUploadPopup: View {
         } label: {
             Text(dataTypes.first(where: { $0.type == dataTypeSelected })?.label ?? "")
                 .foregroundColor(userManager.setting.textColor)
-                .padding(.horizontal, 10.0)
-                .frame(width: pickerSize.width, height: pickerSize.height, alignment: .leading)
+                .lineLimit(1)
+                .padding(.leading, 10.0)
+                .padding(.trailing, 36.0)
+                .frame(maxWidth: pickerSize.width, alignment: .leading)
+                .frame(height: pickerSize.height)
                 .contentShape(Rectangle())
         }
+        // Menu làm mờ label khi mở, nên viền và mũi tên phải nằm ngoài label.
         .border(.gray, width: 1)
-        .overlay {
+        .overlay(alignment: .trailing) {
             Image("arrowDown")
                 .renderingMode(.template)
                 .foregroundColor(userManager.setting.textColor)
+                .padding(.trailing, 10)
                 .allowsHitTesting(false)
-                .position(x: pickerArrowPosition.x, y: pickerArrowPosition.y)
         }
     }
 }

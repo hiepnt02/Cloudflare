@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct SearchFieldView: View {
+
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
     @EnvironmentObject var userManager: UserManager
     
     @Binding var inputStr: String
@@ -58,7 +60,7 @@ struct SearchFieldView: View {
                 .frame(width: 30, height: 30, alignment: .trailing)
             }
         }
-        .frame(width: isIPhone ? 135 : 250, height: isIPhone ? 32 : 42)
+        .adaptiveWidth(fixed: isIPhone ? 135 : 250, isPortrait: isPortraitLayout, height: isIPhone ? 32 : 42)
         .border(.gray, width: 1)
         .overlay(alignment: .bottom) {
             if focusStateSearch {

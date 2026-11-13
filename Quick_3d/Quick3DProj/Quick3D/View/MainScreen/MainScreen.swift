@@ -12,7 +12,7 @@ import SwiftUI
 /// Every criterion the project list can be narrowed by. These values always travel
 /// together into `ProductData.fetchProjectList`, so they are kept as one value
 /// instead of seven separate `@State` properties.
-struct ProjectFilter {
+struct ProjectFilter: Equatable {
     /// GPS:0 RTK:1 RTK/GPS:2 — matches the value `RTKFilterButtonView` cycles through.
     static let rtkModeAll = 2
 
@@ -44,10 +44,18 @@ struct MainScreen: View {
         case from, to
     }
 
+    private struct FilterSnapshot {
+        let filter: ProjectFilter
+        let sort: SortOption
+        let jobSiteInputText: String
+        let jobSiteSearchText: String
+    }
+
     /// Sizes and insets that used to be inline magic numbers.
     private enum Layout {
-        static let cameraButtonInsetIPhone = CGSize(width: 10, height: 20)
-        static let cameraButtonInsetIPad = CGSize(width: 80, height: 50)
+        static let filterDialogSize = CGSize(width: 460, height: 560)
+        static let cameraButtonInsetIPhone = CGSize(width: 10, height: 10)
+        static let cameraButtonInsetIPad = CGSize(width: 40, height: 10)
         static let loginAlertSize = CGSize(width: 550, height: 400)
         static let loginAlertOffsetIPad: CGFloat = -200
         static let disclaimerSizeIPhone = CGSize(width: 630, height: 290)
@@ -86,6 +94,9 @@ struct MainScreen: View {
 
     // MARK: - Filter Popup State
     @State private var isShowFilterAlert: Bool = false
+    @State private var isShowFilterDialog: Bool = false
+
+    @State private var filterSnapshot: FilterSnapshot?
     @State private var activeDatePicker: ActiveDatePicker?
 
     // MARK: - JobSite Autocomplete State
@@ -256,6 +267,14 @@ struct MainScreen: View {
         activeDatePicker = (activeDatePicker == picker) ? nil : picker
     }
 
+    private var isPortraitLayout: Bool {
+        CompactLayout.isPortrait(CGSize(width: contentWidth, height: contentHeight))
+    }
+
+    private func popupSize(_ preferred: CGSize) -> CGSize {
+        PopupSizing.capped(preferred, toAvailable: CGSize(width: contentWidth, height: contentHeight))
+    }
+
     private func updateContentSize(_ size: CGSize) {
         contentWidth = size.width
         contentHeight = size.height
@@ -276,10 +295,10 @@ struct MainScreen: View {
                     navigationLinks
 
                     ButtonOpenCamera(onClick: { isShowShootWarning = true })
-                        .position(
-                            x: contentWidth - (isIPhone ? Layout.cameraButtonInsetIPhone.width : Layout.cameraButtonInsetIPad.width),
-                            y: contentHeight - (isIPhone ? Layout.cameraButtonInsetIPhone.height : Layout.cameraButtonInsetIPad.height)
-                        )
+                        // `.position` đặt TÂM view, nên số cũ không phải khoảng cách tới mép.
+                        .padding(.trailing, isIPhone ? Layout.cameraButtonInsetIPhone.width : Layout.cameraButtonInsetIPad.width)
+                        .padding(.bottom, isIPhone ? Layout.cameraButtonInsetIPhone.height : Layout.cameraButtonInsetIPad.height)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                         .tag(18)
                         .zIndex(1.0)
 
@@ -289,6 +308,7 @@ struct MainScreen: View {
                     statusSearchPopup
                     userSearchPopup
                 }
+                .frame(width: contentGeo.size.width, height: contentGeo.size.height)
                 .onChange(of: isPopupStatusPresented) { isOpen in
                     if isOpen {
                         isPopupJobSitesPresented = false
@@ -309,9 +329,20 @@ struct MainScreen: View {
                         isPopupUserPresented = false
                     }
                 }
-                // Tracks rotation / Split View resizes, not just the first layout pass.
                 .onAppear { updateContentSize(contentGeo.size) }
+                .environment(\.isPortraitLayout, isPortraitLayout)
+                .environment(\.popupAvailableSize, CGSize(width: contentWidth, height: contentHeight))
+
                 .onChange(of: contentGeo.size) { updateContentSize($0) }
+                .onChange(of: isPortraitLayout) { isPortrait in
+                    if !isPortrait && isShowFilterDialog {
+                        isPopupStatusPresented = false
+                        isPopupUserPresented = false
+                        isPopupJobSitesPresented = false
+                        focusStateJobSite = false
+                        cancelFilterDialog()
+                    }
+                }
             }
             .ignoresSafeArea(.keyboard, edges: .all)
             .background(userManager.setting.bodyColor)
@@ -346,6 +377,7 @@ struct MainScreen: View {
                 }
             }
             .overlay { datePickerOverlay }
+            .allowsFreeRotation()
         }
         .navigationBarHidden(true)
         .navigationBarBackButtonHidden(true)
@@ -419,6 +451,7 @@ struct MainScreen: View {
         singleDeletePopup
         exportCompletePopup
         settingPopup
+        filterDialogPopup
         loginAlertPopup
         disclaimerPopup
         arListPopup
@@ -500,14 +533,85 @@ struct MainScreen: View {
     }
 
     @ViewBuilder
+    private var filterDialogPopup: some View {
+        if isShowFilterDialog {
+            let size = popupSize(Layout.filterDialogSize)
+
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {}
+
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("FILTER_TITLE".localized(userManager.userLanguage))
+                        .font(.system(size: isIPhone ? 18 : 22).bold())
+                        .foregroundColor(userManager.setting.textColor)
+                    Spacer()
+                    Button(action: cancelFilterDialog) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(userManager.setting.textColor)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    statusField
+                    userField
+                    jobSiteField(onChange: {})
+
+                    HStack(spacing: 10) {
+                        rtkField(onChange: {})
+                        pointRemoveField(onChange: {})
+                        Spacer(minLength: 0)
+                    }
+
+                    SelectSortView(
+                        selectedSort: selectedSortBinding,
+                        isIPhone: isIPhone,
+                        onSelect: {}
+                    )
+
+                    DateRangeView(
+                        fromDate: $filter.fromDate,
+                        toDate: $filter.toDate,
+                        onFromTap: { toggleDatePicker(.from) },
+                        onToTap: { toggleDatePicker(.to) },
+                        onClear: {}
+                    )
+
+                    HStack {
+                        Spacer()
+                        Button(action: confirmFilterDialog) {
+                            Text("OK")
+                                .font(.system(size: isIPhone ? 15 : 18).bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 30)
+                                .padding(.vertical, 10)
+                                .background(userManager.setting.buttonColor)
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .padding(20)
+            .frame(width: size.width)
+            .background(userManager.setting.themeColor)
+            .cornerRadius(20)
+            .shadow(radius: 8)
+        }
+    }
+
+    @ViewBuilder
     private var loginAlertPopup: some View {
         if isShowLoginAlert {
+            let size = popupSize(Layout.loginAlertSize)
             LoginAlert(isShow: $isShowLoginAlert, loginHandler: {
                 isShowLoginWebview = true
             }, logoutHandler: {
                 performLogout()
             })
-            .frame(width: Layout.loginAlertSize.width, height: Layout.loginAlertSize.height)
+            .frame(width: size.width, height: size.height)
             .cornerRadius(20)
             .offset(x: 0, y: isIPhone ? 0 : Layout.loginAlertOffsetIPad)
         }
@@ -516,10 +620,13 @@ struct MainScreen: View {
     @ViewBuilder
     private var disclaimerPopup: some View {
         if isShowDisclaimerAlert {
-            let size = isIPhone ? Layout.disclaimerSizeIPhone : Layout.disclaimerSizeIPad
+            let preferred = isPortraitLayout
+                ? CGSize(width: contentWidth, height: contentHeight * 0.7)
+                : (isIPhone ? Layout.disclaimerSizeIPhone : Layout.disclaimerSizeIPad)
+            let size = popupSize(preferred)
             DisclaimerAlert(isShow: $isShowDisclaimerAlert)
                 .frame(width: size.width, height: size.height)
-                .offset(x: 0, y: isIPhone ? 0 : Layout.disclaimerOffsetIPad)
+                .offset(x: 0, y: (isIPhone || isPortraitLayout) ? 0 : Layout.disclaimerOffsetIPad)
         }
     }
 
@@ -541,7 +648,7 @@ struct MainScreen: View {
             searchKey: .constant("")
         ) { itemSelected in
             filter.status = itemSelected
-            fetchProjects()
+            if !isShowFilterDialog { fetchProjects() }
         }
         .environmentObject(userManager)
     }
@@ -556,7 +663,7 @@ struct MainScreen: View {
             searchKey: .constant("")
         ) { itemSelected in
             productData.selectedUser = itemSelected
-            fetchProjects()
+            if !isShowFilterDialog { fetchProjects() }
         }
         .environmentObject(userManager)
     }
@@ -573,7 +680,7 @@ struct MainScreen: View {
             filter.jobsite = itemSelected
             jobSiteSearchText = ""
             jobSiteInputText = itemSelected.name
-            fetchProjects()
+            if !isShowFilterDialog { fetchProjects() }
         }
         .environmentObject(userManager)
     }
@@ -592,7 +699,8 @@ struct MainScreen: View {
                             filter.toDate = newDate
                         }
                         activeDatePicker = nil
-                        fetchProjects()
+                        // Overlay này mở từ popup lọc, nên cũng phải chờ OK.
+                        if !isShowFilterDialog { fetchProjects() }
                     }
                 ),
                 otherDate: picker == .from ? filter.toDate : filter.fromDate,
@@ -607,65 +715,145 @@ struct MainScreen: View {
     //---------------------------
     // MARK: - Structural UI Components
     //---------------------------
+
+    private var statusField: some View {
+        StatusFilterField(
+            selectedStatus: $filter.status,
+            isPopupStatusPresented: $isPopupStatusPresented,
+            tfStatusPosition: $tfStatusPosition,
+            tfStatusWidth: $tfStatusWidth,
+            tfStatusHeight: $tfStatusHeight,
+            isIPhone: isIPhone
+        )
+    }
+
+    private var userField: some View {
+        UserFilterField(
+            isPopupUserPresented: $isPopupUserPresented,
+            tfUserPosition: $tfUserPosition,
+            tfUserWidth: $tfUserWidth,
+            tfUserHeight: $tfUserHeight,
+            isIPhone: isIPhone
+        )
+    }
+
+    private func jobSiteField(onChange: @escaping () -> Void) -> some View {
+        JobSiteFilterField(
+            jobSiteInputText: $jobSiteInputText,
+            jobSiteSearchText: $jobSiteSearchText,
+            isPopupJobSitesPresented: $isPopupJobSitesPresented,
+            tfJobSitePosition: $tfJobSitePosition,
+            tfJobSiteWidth: $tfJobSiteWidth,
+            tfJobSiteHeight: $tfJobSiteHeight,
+            jobsite: $filter.jobsite,
+            focusStateJobSite: _focusStateJobSite,
+            isIPhone: isIPhone,
+            onClearOrSubmit: onChange
+        )
+    }
+
+    private var searchField: some View {
+        SearchFieldView(
+            inputStr: $inputStr,
+            searchStr: $filter.searchStr,
+            focusStateSearch: _focusStateSearch,
+            isIPhone: isIPhone,
+            onSearchTriggered: fetchProjects
+        )
+    }
+
+    private func rtkField(onChange: @escaping () -> Void) -> some View {
+        RTKFilterButtonView(
+            rtkFilterMode: $filter.rtkMode,
+            isIPhone: isIPhone,
+            labelProvider: ProjectFilter.rtkLabel(for:),
+            onTap: onChange
+        )
+    }
+
+    private func pointRemoveField(onChange: @escaping () -> Void) -> some View {
+        PointRemoveFilterButtonView(
+            isPointRemoveSelected: $filter.isPointRemoved,
+            isIPhone: isIPhone,
+            onTap: onChange
+        )
+    }
+
+    @ViewBuilder
+    private var avatarButton: some View {
+        if isLogin { accountButton() } else { loginButton() }
+    }
+
+    private func filterButton() -> some View {
+        Button(action: openFilterDialog) {
+            // Cùng size + cùng frame với `helpButton` để hai icon thẳng hàng.
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .foregroundColor(userManager.setting.textColor)
+                .font(.system(size: 20))
+                .frame(height: 40)
+        }
+    }
+
+    private func openFilterDialog() {
+        filterSnapshot = FilterSnapshot(
+            filter: filter,
+            sort: selectedSort,
+            jobSiteInputText: jobSiteInputText,
+            jobSiteSearchText: jobSiteSearchText
+        )
+        isShowFilterDialog = true
+    }
+
+    private func cancelFilterDialog() {
+        if let snapshot = filterSnapshot {
+            filter = snapshot.filter
+            selectedSortBinding.wrappedValue = snapshot.sort
+            jobSiteInputText = snapshot.jobSiteInputText
+            jobSiteSearchText = snapshot.jobSiteSearchText
+        }
+        filterSnapshot = nil
+        activeDatePicker = nil
+        isShowFilterDialog = false
+    }
+
+    private func confirmFilterDialog() {
+        let queryChanged = filterSnapshot.map {
+            $0.filter != filter || $0.sort != selectedSort
+        } ?? true
+
+        filterSnapshot = nil
+        activeDatePicker = nil
+        isShowFilterDialog = false
+
+        guard queryChanged else { return }
+        applySort()
+    }
+
     private func headerToolbar() -> some View {
         HStack {
-            HStack(alignment: .bottom, spacing: isIPhone ? 5 : 15) {
-                StatusFilterField(
-                    selectedStatus: $filter.status,
-                    isPopupStatusPresented: $isPopupStatusPresented,
-                    tfStatusPosition: $tfStatusPosition,
-                    tfStatusWidth: $tfStatusWidth,
-                    tfStatusHeight: $tfStatusHeight,
-                    isIPhone: isIPhone
-                )
-
-                UserFilterField(
-                    isPopupUserPresented: $isPopupUserPresented,
-                    tfUserPosition: $tfUserPosition,
-                    tfUserWidth: $tfUserWidth,
-                    tfUserHeight: $tfUserHeight,
-                    isIPhone: isIPhone
-                )
-
-                JobSiteFilterField(
-                    jobSiteInputText: $jobSiteInputText,
-                    jobSiteSearchText: $jobSiteSearchText,
-                    isPopupJobSitesPresented: $isPopupJobSitesPresented,
-                    tfJobSitePosition: $tfJobSitePosition,
-                    tfJobSiteWidth: $tfJobSiteWidth,
-                    tfJobSiteHeight: $tfJobSiteHeight,
-                    jobsite: $filter.jobsite,
-                    focusStateJobSite: _focusStateJobSite,
-                    isIPhone: isIPhone,
-                    onClearOrSubmit: fetchProjects
-                )
-
-                SearchFieldView(
-                    inputStr: $inputStr,
-                    searchStr: $filter.searchStr,
-                    focusStateSearch: _focusStateSearch,
-                    isIPhone: isIPhone,
-                    onSearchTriggered: fetchProjects
-                )
-
-                RTKFilterButtonView(
-                    rtkFilterMode: $filter.rtkMode,
-                    isIPhone: isIPhone,
-                    labelProvider: ProjectFilter.rtkLabel(for:),
-                    onTap: fetchProjects
-                )
-
-                PointRemoveFilterButtonView(
-                    isPointRemoveSelected: $filter.isPointRemoved,
-                    isIPhone: isIPhone,
-                    onTap: fetchProjects
-                )
-
-                Spacer()
-                menuButton()
-                helpButton()
-                if isLogin { accountButton() }
-                else { loginButton() }
+            Group {
+                if isPortraitLayout {
+                    HStack(alignment: .bottom, spacing: 8) {
+                        searchField
+                        filterButton()
+                        menuButton()
+                        helpButton()
+                        avatarButton
+                    }
+                } else {
+                    HStack(alignment: .bottom, spacing: isIPhone ? 5 : 15) {
+                        statusField
+                        userField
+                        jobSiteField(onChange: fetchProjects)
+                        searchField
+                        rtkField(onChange: fetchProjects)
+                        pointRemoveField(onChange: fetchProjects)
+                        Spacer()
+                        menuButton()
+                        helpButton()
+                        avatarButton
+                    }
+                }
             }
             .padding([.bottom, .leading, .trailing], 12)
             .frame(maxWidth: .infinity)
@@ -684,7 +872,7 @@ struct MainScreen: View {
             VStack {
                 dateFilterView()
 
-                if isListView {
+                if isListView && !isPortraitLayout {
                     ProjectColumnHeader(
                         isIPhone: isIPhone,
                         contentWidth: contentWidth,
@@ -818,20 +1006,22 @@ struct MainScreen: View {
                 .font(.system(size: isIPhone ? 15 : 22))
 
             Spacer(minLength: 0)
+            
+            if !isPortraitLayout {
+                SelectSortView(
+                    selectedSort: selectedSortBinding,
+                    isIPhone: isIPhone,
+                    onSelect: applySort
+                )
 
-            SelectSortView(
-                selectedSort: selectedSortBinding,
-                isIPhone: isIPhone,
-                onSelect: applySort
-            )
-
-            DateRangeView(
-                fromDate: $filter.fromDate,
-                toDate: $filter.toDate,
-                onFromTap: { toggleDatePicker(.from) },
-                onToTap: { toggleDatePicker(.to) },
-                onClear: fetchProjects
-            )
+                DateRangeView(
+                    fromDate: $filter.fromDate,
+                    toDate: $filter.toDate,
+                    onFromTap: { toggleDatePicker(.from) },
+                    onToTap: { toggleDatePicker(.to) },
+                    onClear: fetchProjects
+                )
+            }
 
             Picker(selection: $productData.groupIndex, label: Text("")) {
                 ForEach(GroupMode.allCases, id: \.self) { mode in

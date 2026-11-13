@@ -26,8 +26,14 @@ struct SettingPopup: View {
     @EnvironmentObject var themeManager: ThemeManager
     @State var pointCloudBgcolor: Color
     
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
+
     private var isIPhone: Bool {
         UIDevice.current.isIphone
+    }
+
+    private var horizontalPadding: CGFloat {
+        isPortraitLayout ? 12 : 30
     }
     
     func hideDetails() {
@@ -92,7 +98,8 @@ struct SettingPopup: View {
                 ScrollView(showsIndicators: false) {
                     contentView
                 }
-                .frame(width: 581, height: 340)
+                .frame(maxWidth: 581)
+                .frame(height: 340)
                 
             } else {
                 contentView
@@ -181,7 +188,7 @@ struct SettingPopup: View {
                     }
                 }
                 .zIndex(2)
-                .padding(.horizontal, 30)
+                .padding(.horizontal, horizontalPadding)
                 .padding(.bottom, isIPhone ? 10 : 20)
             }
             .onTapGesture {
@@ -208,7 +215,7 @@ struct SettingPopup: View {
                 }
             }
             .zIndex(1)
-            .padding(.horizontal, 30)
+            .padding(.horizontal, horizontalPadding)
             .padding(.bottom, isIPhone ? 10 : 20)
             
             // Email Notification setting
@@ -310,9 +317,9 @@ struct SettingPopup: View {
                 }
             }
         }
-        .padding(.horizontal, 30)
+        .padding(.horizontal, horizontalPadding)
         .padding(.vertical, isIPhone ? 15: 30)
-        .frame(width: isIPhone ? 680 : 700)
+        .frame(maxWidth: isIPhone ? 680 : 700)
         .background(userManager.setting.themeColor)
         .border(.gray, width: 1)
     }

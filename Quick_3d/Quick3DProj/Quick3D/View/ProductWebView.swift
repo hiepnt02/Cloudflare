@@ -32,6 +32,8 @@ struct ProductWebView: UIViewRepresentable {
     static var initialZoomScale: CGFloat?
     private let observable = WebViewURLObservable()
     @Binding var isActiveContent: Bool;
+    /// Bumping it loads the page again from scratch, see `ProductDetailView`.
+    var reloadToken: Int = 0
 
     var observer: NSKeyValueObservation? {
         observable.instance
@@ -63,6 +65,12 @@ struct ProductWebView: UIViewRepresentable {
         uiView.navigationDelegate = context.coordinator
         context.coordinator.useIndexUrl = useIndexUrl
         context.coordinator.pointCloudUrl = pointCloudUrl
+        if context.coordinator.reloadToken != reloadToken {
+            context.coordinator.reloadToken = reloadToken
+            context.coordinator.isInit = true
+            context.coordinator.isInitPly = true
+            context.coordinator.isInitLocal = true
+        }
         
         observable.instance = uiView.observe(\WKWebView.url, options: .new) { view, change in
             if let observedURL = view.url {
@@ -128,6 +136,7 @@ struct ProductWebView: UIViewRepresentable {
         var isInit: Bool = true
         var isInitLocal: Bool = true
         var isInitPly: Bool = true
+        var reloadToken = 0
         var userManager: UserManager
         
         init(_ useIndexUrl: Bool, pointCloudUrl: URL?, lang: String, cat: Cat, userManager: UserManager, updateProjectId: @escaping updateFunc, backToHome: @escaping backFunc, openSfM: @escaping openSfMFunc) {

@@ -154,6 +154,7 @@ struct StartView: View {
                     }
                 }
             }
+            .allowsFreeRotation()
         }
         .onLoad {
             print("startView, onLoad")

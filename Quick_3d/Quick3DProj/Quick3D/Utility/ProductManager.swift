@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UIKit
 import ZIPFoundation
 import Combine
 import Alamofire
@@ -44,23 +43,13 @@ class ProductUtil {
 
 /// One date group of the project list.
 ///
-/// Everything the list needs is prepared here when the data changes (which items are
-/// visible, how they are split into grid rows) instead of being recomputed while
-/// rendering. `id` is the truncated group date, so it stays stable across updates and
-/// SwiftUI can diff the sections properly.
+/// Everything the list needs is prepared here when the data changes (which items are visible, the section header, etc.) so the list can render it without doing any work.
 struct ProjectSection: Identifiable, Equatable {
     let id: Date
     /// Every product of the group. The section header is derived from this list.
     let items: [Cat]
     /// The products listed as rows.
     let visibleItems: [Cat]
-    /// `visibleItems` split into rows of the grid layout.
-    let gridRows: [[Cat]]
-
-    /// Number of grid columns, has to match the layout in `ProjectListView`.
-    static var gridColumnCount: Int {
-        UIDevice.current.userInterfaceIdiom == .phone ? 4 : 5
-    }
 }
 
 final class ProductData: ObservableObject {
@@ -147,8 +136,6 @@ final class ProductData: ObservableObject {
         let mode = mode ?? groupIndex
         let snapshot = products
         let sortOption = self.sortOption
-        // UIKit has to be read on the main thread, the grouping itself can run anywhere.
-        let gridColumnCount = ProjectSection.gridColumnCount
 
         hitsTotal = snapshot.count
         groupingGeneration += 1
@@ -156,14 +143,14 @@ final class ProductData: ObservableObject {
 
         // Small list: group inline to keep the update in the same UI transaction.
         guard snapshot.count > Self.asyncGroupingThreshold else {
-            displayProduct = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption, gridColumnCount: gridColumnCount)
+            displayProduct = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption)
             isUpdatingList = false
             return
         }
 
         isUpdatingList = true
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let grouped = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption, gridColumnCount: gridColumnCount)
+            let grouped = Self.groupProducts(snapshot, mode: mode, sortOption: sortOption)
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 // A newer grouping job started meanwhile, its result is the one to show.
@@ -180,8 +167,7 @@ final class ProductData: ObservableObject {
     private static func groupProducts(
         _ products: [Cat],
         mode: GroupMode,
-        sortOption: SortOption,
-        gridColumnCount: Int
+        sortOption: SortOption
     ) -> [ProjectSection] {
         guard !products.isEmpty else { return [] }
 
@@ -202,21 +188,13 @@ final class ProductData: ObservableObject {
             groups[groupDate, default: []].append(product)
         }
 
-        let columns = max(1, gridColumnCount)
-
         // `products` is already sorted, so sorting the group keys keeps the item order.
         return groups.keys.sorted(by: >).compactMap { groupDate in
             guard let items = groups[groupDate] else { return nil }
-            let visibleItems = items.filter { $0.isShownInProjectList }
-            let gridRows = stride(from: 0, to: visibleItems.count, by: columns).map {
-                Array(visibleItems[$0..<min($0 + columns, visibleItems.count)])
-            }
-
             return ProjectSection(
                 id: groupDate,
                 items: items,
-                visibleItems: visibleItems,
-                gridRows: gridRows
+                visibleItems: items.filter { $0.isShownInProjectList }
             )
         }
     }

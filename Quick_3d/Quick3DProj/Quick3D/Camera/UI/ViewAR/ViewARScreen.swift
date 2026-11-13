@@ -121,8 +121,6 @@ struct ViewARScreen: View {
             cameraObject.isModalPresented = isShowing
         }
         .fullScreenCover(isPresented: $isShowManualCalibration, onDismiss: {
-            // Session/occlusion restore chạy trong ManualCalibrationContext.end()
-            // (onDisappear của màn calibration).
             calibrationModel = nil
         }) {
             manualCalibrationSheet

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct JobSiteFilterField: View {
+
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
     @EnvironmentObject var userManager: UserManager
     
     @Binding var jobSiteInputText: String
@@ -72,7 +74,7 @@ struct JobSiteFilterField: View {
                     .padding(.trailing, isIPhone ? 0 : 8)
             }
         }
-        .frame(width: isIPhone ? 115 : 190, height: isIPhone ? 32 : 42)
+        .adaptiveWidth(fixed: isIPhone ? 115 : 190, isPortrait: isPortraitLayout, height: isIPhone ? 32 : 42)
         .border(Color.gray, width: 1)
         .overlay(alignment: .topLeading) {
             Text("JOBSITE_NAME".localized(userManager.userLanguage))

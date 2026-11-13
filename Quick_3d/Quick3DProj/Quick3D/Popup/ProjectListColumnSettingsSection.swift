@@ -63,7 +63,8 @@ struct ProjectListColumnSettingsSection: View {
             alignment: .leading,
             spacing: isIPhone ? 10 : 14
         ) {
-            ForEach(ProjectListColumnToggle.allCases, id: \.self) { column in
+            // Type and Images are shown as badges on the thumbnail, so they have no switch here.
+            ForEach(ProjectListColumnToggle.allCases.filter { $0 != .type && $0 != .photo }, id: \.self) { column in
                 columnRow(column)
             }
         }

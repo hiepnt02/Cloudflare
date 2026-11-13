@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct UserFilterField: View {
+
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
     @EnvironmentObject var userManager: UserManager
     @EnvironmentObject var productData: ProductData
 
@@ -29,17 +31,17 @@ struct UserFilterField: View {
                     .font(.system(size: isIPhone ? 12 : 15))
                     .foregroundColor(userManager.setting.textColor)
                     .padding(.leading, 10.0)
-                    .frame(height: isIPhone ? 32 : 42, alignment: .leading)
-                Spacer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Image("arrowDown")
                     .renderingMode(.template)
                     .foregroundColor(userManager.setting.textColor)
                     .rotationEffect(.degrees(isPopupUserPresented ? 180 : 0))
-                    .padding(.trailing, isIPhone ? 0 : 10.0)
+                    .padding(.leading, 4)
             }
-            .frame(width: isIPhone ? 115 : 190, height: isIPhone ? 32 : 42, alignment: .leading)
+            .adaptiveWidth(fixed: isIPhone ? 115 : 190, isPortrait: isPortraitLayout, height: isIPhone ? 32 : 42, alignment: .leading)
             .contentShape(Rectangle())
         }
+        .adaptiveWidth(fixed: isIPhone ? 115 : 190, isPortrait: isPortraitLayout, height: isIPhone ? 32 : 42, alignment: .leading)
         .border(.gray, width: 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("PHOTOGRAPHER".localized(userManager.userLanguage)))

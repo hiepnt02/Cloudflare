@@ -54,6 +54,7 @@ struct DateRangeView: View {
 
 private struct DatePickerButton: View {
     @EnvironmentObject var userManager: UserManager
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
 
     @Binding var date: Date?
     let placeholder: String
@@ -83,7 +84,7 @@ private struct DatePickerButton: View {
             }
             .padding(.horizontal, horizontalPadding)
             .contentShape(Rectangle())
-            .frame(width: width, height: isIPhone ? 32 : 42)
+            .adaptiveWidth(fixed: width, isPortrait: isPortraitLayout, height: isIPhone ? 32 : 42)
             .border(.gray, width: 1)
         }
         .overlay(alignment: .trailing) {

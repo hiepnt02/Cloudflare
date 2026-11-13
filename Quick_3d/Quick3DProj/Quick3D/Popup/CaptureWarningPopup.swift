@@ -47,13 +47,55 @@ struct CaptureWarningPopup: View {
         self.linkPointsD1IsShown = false;
     }
     
+    @ViewBuilder
+    private func roverPointsTooltip() -> some View {
+        let content = VStack(alignment: .leading, spacing: 0) {
+            Image("RTK")
+                .resizable()
+                .scaledToFit()
+
+            Text("ROVER_POINTS_D1_1".localized(userManager.userLanguage)
+                 + "\n"
+                 + "ROVER_POINTS_D1_2".localized(userManager.userLanguage))
+        }
+
+        if isPortraitLayout {
+            content
+                .frame(width: 240)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.all, 5)
+                .background(userManager.setting.themeColor, in: Rectangle(), fillStyle: FillStyle(eoFill: true))
+                .foregroundColor(userManager.setting.textColor)
+                .border(Color.gray, width: 1)
+                .font(.caption.bold())
+                .dynamicTypeSize(DynamicTypeSize.medium)
+                .offset(x: -85, y: -150)
+                .onTapGesture {}
+        } else {
+            content
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 550, height: 180)
+                .padding(.all, 5)
+                .background(userManager.setting.themeColor, in: Rectangle(), fillStyle: FillStyle(eoFill: true))
+                .foregroundColor(userManager.setting.textColor)
+                .border(Color.gray, width: 1)
+                .font(.caption.bold())
+                .fixedSize(horizontal: false, vertical: true)
+                .dynamicTypeSize(DynamicTypeSize.medium)
+                .offset(x: 40, y: -110)
+                .onTapGesture {}
+        }
+    }
+
     func customPopover(
         isShown: Binding<Bool>,
         content: String,
         frameValue: (width: CGFloat, height: CGFloat),
-        offsetValue: (x: CGFloat, y: CGFloat)
+        offsetValue: (x: CGFloat, y: CGFloat),
+        portraitOffsetValue: (x: CGFloat, y: CGFloat)
     ) -> some View{
-        Button(
+        let offset = isPortraitLayout ? portraitOffsetValue : offsetValue
+        return Button(
             action: {
                 if isShown.wrappedValue {
                     hideDetails();
@@ -79,20 +121,22 @@ struct CaptureWarningPopup: View {
             isShown.wrappedValue ?
             Text(content)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(width: frameValue.width, height: frameValue.height)
+                .frame(width: frameValue.width, height: isPortraitLayout ? nil : frameValue.height)
                 .padding(.all, 5)
                 .background(userManager.setting.themeColor, in: Rectangle(), fillStyle: FillStyle(eoFill: true))
                 .foregroundColor(userManager.setting.textColor)
                 .border(Color.gray, width: 1)
                 .font(.caption.bold())
                 .dynamicTypeSize(DynamicTypeSize.medium)
-                .offset(x: offsetValue.x, y: offsetValue.y)
+                .offset(x: offset.x, y: offset.y)
                 .onTapGesture {}
             :
                 nil
         )
     }
     
+    @Environment(\.isPortraitLayout) private var isPortraitLayout
+
     var body: some View {
         ZStack {
             Color(userManager.setting.colorTheme == .light ? .black : .white)
@@ -113,15 +157,19 @@ struct CaptureWarningPopup: View {
             .sheet(isPresented: $verificationReportPageIsShown) {
                 WebView(url: URL(string: "https://support-quick3d.smartconstruction.com/hc/ja/articles/18443673090457--Smart-Construction-Quick3D-%E7%82%B9%E7%BE%A4%E7%B2%BE%E5%BA%A6%E6%A4%9C%E8%A8%BC%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88")!)
             }
-            .frame(width: 680, height: 360)
-            .padding(.horizontal, 10)
+            .frame(width: isPortraitLayout ? nil : 680, height: isPortraitLayout ? 480 : 360)
+            .padding(.horizontal, isPortraitLayout ? 0 : 10)
             .background(userManager.setting.themeColor, in: Rectangle(), fillStyle: FillStyle(eoFill: true))
             .border(.gray, width: 1)
+            .padding(.horizontal, isPortraitLayout ? 16 : 0)
         }
         .onTapGesture {
             if self.anyDetailIsShown{
                 hideDetails();
             }
+        }
+        .onChange(of: isPortraitLayout) { _ in
+            hideDetails()
         }
     }
     
@@ -174,11 +222,12 @@ struct CaptureWarningPopup: View {
                             "SHOOTING_NUMBEROFSHOTS_D1_1".localized(userManager.userLanguage) + "\n"
                         + "SHOOTING_NUMBEROFSHOTS_D1_2".localized(userManager.userLanguage) + "\n"
                         + "* " + "SHOOTING_NUMBEROFSHOTS_D1_3".localized(userManager.userLanguage),
-                        frameValue: (width: 400, height: 110),
-                        offsetValue: (x: 220, y: -40)
+                        frameValue: (width: isPortraitLayout ? 280 : 400, height: 110),
+                        offsetValue: (x: 220, y: -40),
+                        portraitOffsetValue: (x: 60, y: -40)
                     )
                 }
-                .frame(width: 160)
+                .frame(width: isPortraitLayout ? 120 : 160)
                 .zIndex(1.0)
                 
                 VStack(alignment: .leading, spacing: 1){
@@ -226,12 +275,13 @@ struct CaptureWarningPopup: View {
                             content:
                                 "ONLY_DISTRIBUTORS".localized(userManager.userLanguage) + "\n"
                             + "LIKE_TO_OBTAIN_REPORT".localized(userManager.userLanguage),
-                            frameValue: (width: 400, height: 110),
-                            offsetValue: (x: 220, y: -40)
+                            frameValue: (width: isPortraitLayout ? 280 : 400, height: 110),
+                            offsetValue: (x: 220, y: -40),
+                        portraitOffsetValue: (x: 60, y: -40)
                         )
                     }
                 }
-                .frame(width: 160)
+                .frame(width: isPortraitLayout ? 120 : 160)
                 .zIndex(linkPointsD1IsShown ? 1.0 : 0.0)
                 
                 VStack(alignment: .leading, spacing: 1){
@@ -253,8 +303,9 @@ struct CaptureWarningPopup: View {
                             content:
                                 "SHOOTING_TIPS_D1_1".localized(userManager.userLanguage) + "\n"
                             + "* " + "SHOOTING_TIPS_D1_2".localized(userManager.userLanguage),
-                            frameValue: (width: 400, height: 110),
-                            offsetValue: (x: -180, y: -70)
+                            frameValue: (width: isPortraitLayout ? 280 : 400, height: 110),
+                            offsetValue: (x: -180, y: -70),
+                            portraitOffsetValue: (x: -130, y: -70)
                         )
                     }
                     
@@ -269,8 +320,9 @@ struct CaptureWarningPopup: View {
                             isShown: $shootingTipsD2IsShown,
                             content:
                                 "SHOOTING_TIPS_D2".localized(userManager.userLanguage),
-                            frameValue: (width: 400, height: 110),
-                            offsetValue: (x: -180, y: -70)
+                            frameValue: (width: isPortraitLayout ? 280 : 400, height: 110),
+                            offsetValue: (x: -180, y: -70),
+                            portraitOffsetValue: (x: -130, y: -70)
                         )
                     }
                     
@@ -285,8 +337,9 @@ struct CaptureWarningPopup: View {
                             isShown: $shootingTipsD3IsShown,
                             content:
                                 "SHOOTING_TIPS_D3".localized(userManager.userLanguage),
-                            frameValue: (width: 400, height: 70),
-                            offsetValue: (x: -180, y: -50)
+                            frameValue: (width: isPortraitLayout ? 280 : 400, height: 70),
+                            offsetValue: (x: -180, y: -50),
+                            portraitOffsetValue: (x: -130, y: -50)
                         )
                     }
                 }
@@ -332,31 +385,9 @@ struct CaptureWarningPopup: View {
                                 .padding(.trailing, 20)
                         }
                     )
-                    .overlay(
-                        roverPointsD1IsShown ?
-                        VStack(alignment: .leading, spacing: 0){
-                            Image("RTK")
-                                .resizable()
-                                .scaledToFit()
-                            
-                            Text("ROVER_POINTS_D1_1".localized(userManager.userLanguage)
-                                 + "\n"
-                                 + "ROVER_POINTS_D1_2".localized(userManager.userLanguage))
-                        }
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(width: 550, height: 180)
-                            .padding(.all, 5)
-                            .background(userManager.setting.themeColor, in: Rectangle(), fillStyle: FillStyle(eoFill: true))
-                            .foregroundColor(userManager.setting.textColor)
-                            .border(Color.gray, width: 1)
-                            .font(.caption.bold())
-                            .fixedSize(horizontal: false, vertical: true)
-                            .dynamicTypeSize(DynamicTypeSize.medium)
-                            .offset(x: 40, y: -110)
-                            .onTapGesture{}
-                        :
-                            nil
-                    )
+                    .overlay {
+                        if roverPointsD1IsShown { roverPointsTooltip() }
+                    }
                 }
                 
                 HStack{
@@ -371,8 +402,9 @@ struct CaptureWarningPopup: View {
                         content: "ROVER_POINTS_D2_1".localized(userManager.userLanguage)
                         + "\n"
                         + "ROVER_POINTS_D2_2".localized(userManager.userLanguage),
-                        frameValue: (width: 400, height: 110),
-                        offsetValue: (x: 0, y: -70)
+                        frameValue: (width: isPortraitLayout ? 280 : 400, height: 110),
+                        offsetValue: (x: 0, y: -70),
+                        portraitOffsetValue: (x: -110, y: -70)
                     )
                 }
             }
@@ -410,6 +442,8 @@ struct CaptureWarningPopup: View {
                 labelSize: 15,
                 minHeight: 42,
                 maxWidth: .infinity,
+                labelLineLimit: 2,
+                labelMinimumScaleFactor: 0.6,
                 onClick: {
                     withAnimation(.linear(duration: 0.3)) {
                         isShow = false
@@ -431,6 +465,9 @@ struct CaptureWarningPopup: View {
             Text("CANCEL".localized(userManager.userLanguage))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 42)
                 .background(dimGray)
                 .contentShape(Rectangle())

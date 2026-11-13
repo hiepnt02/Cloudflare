@@ -47,6 +47,7 @@ struct Quick3DApp: App {
     @State private var groupwareTypeSelected: GroupwareType = GroupwareType.dashboard
     @State private var arUploadCase: UploadCase = .Ifc
 
+    @State private var windowSize: CGSize = .zero
     @State private var batchResults: [UploadBatchResult] = []
     
     var body: some Scene {
@@ -301,6 +302,15 @@ struct Quick3DApp: App {
                 .zIndex(11)
                 .environmentObject(userManager)
             }
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { windowSize = geo.size }
+                        .onChange(of: geo.size) { windowSize = $0 }
+                }
+            )
+            .environment(\.popupAvailableSize, windowSize)
+            .environment(\.isPortraitLayout, CompactLayout.isPortrait(windowSize))
             .onLoad {
                 userManager.getUserInfo {
                     productData.updateSelectedUser()
