@@ -148,12 +148,13 @@ class ViewARPreviewContext: PreviewContextTemplate, PreviewContext {
         _node.simdTransform = node.simdTransform
         _node.renderingOrder = node.renderingOrder
         _node.opacity = node.opacity
+        _node.isHidden = node.isHidden
         
         node.childNodes.forEach { child in
-            if !child.isHidden {
-                let _child = fetchNode(child)
-                _node.addChildNode(_child)
-            }
+            // Keep hidden design lanes in the preview map so each lane can
+            // be switched back on without rebuilding the preview scene.
+            let _child = fetchNode(child)
+            _node.addChildNode(_child)
         }
         
         nodeMap[ObjectIdentifier(node)] = _node

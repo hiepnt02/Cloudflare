@@ -17,7 +17,8 @@ struct ARSettingView: View {
     @Binding var isARStepExpanded: Bool
     
     @Binding var arRendered: Bool
-    @Binding var arItemRendered: Bool
+    @Binding var isIFCDesignRendered: Bool
+    @Binding var isSCMDesignRendered: Bool
     @Binding var arCalculating: Bool
     
     @ObservedObject var arPosition: ARPosition
@@ -30,8 +31,10 @@ struct ARSettingView: View {
     @State var isPointCloudVisible: Bool = true
     @State var pointOpacity: CGFloat = 1.0
     
-    @State var isARObjectVisisble: Bool = true
-    @State var arObjectScale: CGFloat = 1
+    @State private var isIFCDesignVisible = true
+    @State private var ifcDesignOpacity: CGFloat = 1
+    @State private var isSCMDesignVisible = true
+    @State private var scmDesignOpacity: CGFloat = 1
     
     @State var isUpdateAROn: Bool = true
     @State private var animatedProgress: Double = 0.0
@@ -124,7 +127,7 @@ struct ARSettingView: View {
             }
             
             // MARK: Sliders
-            if isPointCloudRendered || arItemRendered {
+            if isPointCloudRendered || isIFCDesignRendered || isSCMDesignRendered {
                 settingSlidersView
             }
             
@@ -142,6 +145,18 @@ struct ARSettingView: View {
         .onChange(of: pointCloudProgress) { newValue in
             withAnimation(.easeInOut(duration: 0.3)) {
                 animatedProgress = newValue
+            }
+        }
+        .onChange(of: isIFCDesignRendered) { loaded in
+            if loaded {
+                context.perform(ViewARDesignVisibleEvent(.ifc, nil, isIFCDesignVisible))
+                context.perform(ViewARDesignOpacityEvent(.ifc, nil, ifcDesignOpacity))
+            }
+        }
+        .onChange(of: isSCMDesignRendered) { loaded in
+            if loaded {
+                context.perform(ViewARDesignVisibleEvent(.scm, nil, isSCMDesignVisible))
+                context.perform(ViewARDesignOpacityEvent(.scm, nil, scmDesignOpacity))
             }
         }
     }
@@ -199,18 +214,33 @@ struct ARSettingView: View {
                 )
             }
 
-            if arItemRendered {
+            if isIFCDesignRendered {
                 ARVisibleScaleView(
-                    title: "DESIGN".localized(userManager.userLanguage),
-                    isVisible: isARObjectVisisble,
-                    scale: $arObjectScale,
+                    title: "IFC \("DESIGN".localized(userManager.userLanguage))",
+                    isVisible: isIFCDesignVisible,
+                    scale: $ifcDesignOpacity,
                     onVisibilityChanged: { visible in
-                        isARObjectVisisble = visible
-                        context.perform(ViewARIFCVisibleEvent(nil, visible))
+                        isIFCDesignVisible = visible
+                        context.perform(ViewARDesignVisibleEvent(.ifc, nil, visible))
                     },
                     onScaleChanged: { scale in
-                        arObjectScale = scale
-                        context.perform(ViewARIFCOpacityEvent(nil, scale))
+                        ifcDesignOpacity = scale
+                        context.perform(ViewARDesignOpacityEvent(.ifc, nil, scale))
+                    }
+                )
+            }
+            if isSCMDesignRendered {
+                ARVisibleScaleView(
+                    title: "SCM \("DESIGN".localized(userManager.userLanguage))",
+                    isVisible: isSCMDesignVisible,
+                    scale: $scmDesignOpacity,
+                    onVisibilityChanged: { visible in
+                        isSCMDesignVisible = visible
+                        context.perform(ViewARDesignVisibleEvent(.scm, nil, visible))
+                    },
+                    onScaleChanged: { scale in
+                        scmDesignOpacity = scale
+                        context.perform(ViewARDesignOpacityEvent(.scm, nil, scale))
                     }
                 )
             }

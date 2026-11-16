@@ -4,18 +4,17 @@
 //
 //  SCM binary format reader — converts SCM to SceneKit nodes.
 //
-//  Mirrors the web viewer (client/public/scm-load-worker.js +
-//  DesignManager.buildSCM) so a model looks the same on iOS as in the browser:
-//  - entities are placed flat by their own TRS (parent is ignored, like web)
+//  Preserves the SCM scene graph for both rendering and the layer tree:
+//  - every entity keeps its parent and local TRS, including grouping entities
 //  - one shared geometry per meshId (web: one InstancedMesh per mesh)
 //  - normals / UVs / vertex colors / textures from the streams
 //  - entity colour only when the mesh has no vertex colours; blank or white
 //    entity colour → 0.7 grey (same rule as web)
 //  - Lambert, double sided
-//  - coordSystem is ignored, like web: web rotates the Y-up SCM +90° about X
-//    into its Z-up world; iOS maps that world back to Y-up as (x, z, -y)
-//    (see GLTFBinReader), so the two rotations cancel and SCM coordinates go
-//    into SceneKit unchanged.
+//  - geometry stays centered near zero; file-level georeferencing is kept in
+//    Double precision outside SceneKit's vertex buffers
+//  - Y-up SCM coordinates are already SceneKit coordinates; Z-up SCM uses
+//    (x, y, z) -> (x, z, -y), including the metadata origin
 //
 
 import Foundation
@@ -54,6 +53,7 @@ private enum SCMBlockType: UInt16 {
     case vertexColorsStream = 0x0204
     case textureDataPool = 0x0205
     case stringTable    = 0x0206
+    case metadata       = 0x0300
 }
 
 private struct SCMBlockEntry {
@@ -88,6 +88,13 @@ private struct SCMTexture {
     let dataSize: Int
 }
 
+private struct SCMGeoreference {
+    let origin: SIMD3<Double>
+    let rotation: Double
+    let scale: Double
+
+}
+
 // MARK: - Binary Reader Helper
 
 /// Little-endian reader over the whole file. Reads straight from the buffer
@@ -100,6 +107,9 @@ private struct BinaryReader {
     func u32(_ o: Int) -> UInt32 { UInt32(littleEndian: bytes.loadUnaligned(fromByteOffset: o, as: UInt32.self)) }
     func i32(_ o: Int) -> Int32 { Int32(bitPattern: u32(o)) }
     func f32(_ o: Int) -> Float { Float(bitPattern: u32(o)) }
+    func f64(_ o: Int) -> Double {
+        Double(bitPattern: UInt64(littleEndian: bytes.loadUnaligned(fromByteOffset: o, as: UInt64.self)))
+    }
     func f32x3(_ o: Int) -> SIMD3<Float> { SIMD3(f32(o), f32(o + 4), f32(o + 8)) }
 
     var count: Int { bytes.count }
@@ -109,12 +119,16 @@ private enum SCMError: LocalizedError {
     case invalidMagic
     case truncated(String)
     case missingStreams
+    case invalidMetadata
+    case invalidCoordinateSystem
 
     var errorDescription: String? {
         switch self {
         case .invalidMagic: return "Invalid SCM magic"
         case .truncated(let what): return "SCM file truncated (\(what))"
         case .missingStreams: return "SCM missing position/index streams"
+        case .invalidMetadata: return "SCM has invalid georeferencing metadata"
+        case .invalidCoordinateSystem: return "SCM has an unsupported coordinate system"
         }
     }
 }
@@ -127,6 +141,8 @@ class SCMReader: ARProjectHelper {
     private var fileUrl: URL?
     var layers: [LayerNode] = []
     var node: SCNNode?
+    private var coordinateSystem: UInt8 = 0
+    private var georeference: SCMGeoreference?
 
     override init(projectId: String) {
         self.url = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)/ARdownload/SCM")!
@@ -135,7 +151,21 @@ class SCMReader: ARProjectHelper {
 
     override func update(min: SIMD3<Float>, max: SIMD3<Float>) {
         super.update(min: min, max: max)
-        self.update(offset: SIMD3<Double>(self.center))
+        let localCenter = sceneKitPosition(SIMD3<Double>(self.center))
+        let angle = (georeference?.rotation ?? 0).truncatingRemainder(dividingBy: 2 * .pi)
+        let scale = georeference?.scale ?? 1
+        let c = cos(angle), s = sin(angle)
+        let mappedCenter = SIMD3<Double>(
+            c * localCenter.x + s * localCenter.z,
+            localCenter.y,
+            -s * localCenter.x + c * localCenter.z
+        ) * scale
+        let origin = sceneKitPosition(georeference?.origin ?? .zero)
+        self.update(offset: origin + mappedCenter)
+    }
+
+    private func sceneKitPosition(_ value: SIMD3<Double>) -> SIMD3<Double> {
+        coordinateSystem == 1 ? SIMD3(value.x, value.z, -value.y) : value
     }
 
     func fetch() async {
@@ -153,23 +183,38 @@ class SCMReader: ARProjectHelper {
             let parsed = try parseSCM(data)
             print("[SCMReader] Parsed OK, \(parsed.entities.count) entities, \(parsed.drawGeometries) geometries")
 
-            guard parsed.bboxMin.x <= parsed.bboxMax.x else {
+            guard (0..<3).allSatisfy({
+                parsed.bboxMin[$0].isFinite && parsed.bboxMax[$0].isFinite
+                    && parsed.bboxMin[$0] <= parsed.bboxMax[$0]
+            }) else {
                 throw NSError(domain: "SCMReader", code: 3, userInfo: [NSLocalizedDescriptionKey: "SCM has no renderable geometry"])
             }
 
+            coordinateSystem = parsed.coordinateSystem
+            georeference = parsed.georeference
             update(min: parsed.bboxMin, max: parsed.bboxMax)
 
             let rootNode = SCNNode()
             rootNode.name = "SCM_Root"
             rootNode.castsShadow = false
-            for entity in parsed.entities {
-                entity.simdPosition -= self.center
-                rootNode.addChildNode(entity)
-            }
+            let axisRotation = simd_quatf(angle: coordinateSystem == 1 ? -.pi / 2 : 0,
+                                         axis: SIMD3<Float>(1, 0, 0))
+            let angle = (georeference?.rotation ?? 0).truncatingRemainder(dividingBy: 2 * .pi)
+            let mapRotation = simd_quatf(angle: Float(angle), axis: SIMD3<Float>(0, 1, 0))
+            rootNode.simdOrientation = mapRotation * axisRotation
+            let mapScale = Float(georeference?.scale ?? 1)
+            rootNode.simdScale = SIMD3<Float>(repeating: mapScale)
+            // Center the complete source hierarchy once, without changing any
+            // entity's local transform or removing its inherited transform.
+            let centeredNode = SCNNode()
+            centeredNode.name = "SCM_CenteredContent"
+            centeredNode.simdPosition = -self.center
+            parsed.roots.forEach { centeredNode.addChildNode($0) }
+            rootNode.addChildNode(centeredNode)
             self.node = rootNode
             delegate?.onCreateNode(rootNode)
 
-            layers = buildLayers(parsed.entities)
+            layers = buildLayers(parsed.roots, displayNames: parsed.displayNames)
 
             delegate?.onComplete()
 
@@ -183,9 +228,13 @@ class SCMReader: ARProjectHelper {
 
     private struct ParsedSCM {
         var entities: [SCNNode]
+        var roots: [SCNNode]
+        var displayNames: [String: String]
         var drawGeometries: Int
         var bboxMin: SIMD3<Float>
         var bboxMax: SIMD3<Float>
+        var coordinateSystem: UInt8
+        var georeference: SCMGeoreference?
     }
 
     private func parseSCM(_ data: Data) throws -> ParsedSCM {
@@ -204,6 +253,10 @@ class SCMReader: ARProjectHelper {
             let geoCount = Int(r.u32(12))
             let matCount = Int(r.u32(16))
             let texCount = Int(r.u32(20))
+            let coordinateSystem = r.u8(24)
+            guard coordinateSystem == 0 || coordinateSystem == 1 else {
+                throw SCMError.invalidCoordinateSystem
+            }
 
             guard r.count >= SCM_HEADER_SIZE + blockCount * SCM_BLOCK_ENTRY_SIZE else {
                 throw SCMError.truncated("block directory")
@@ -220,6 +273,35 @@ class SCMReader: ARProjectHelper {
             }
             func block(_ t: SCMBlockType) -> SCMBlockEntry? { blocks[t.rawValue] }
 
+            // 0x0300: origin xyz, rotation and scale as 5 little-endian f64s,
+            // then two UInt16-length-prefixed UTF-8 CRS names.
+            var georeference: SCMGeoreference?
+            if let metadata = block(.metadata) {
+                guard metadata.size >= 44 else { throw SCMError.truncated("metadata") }
+                let start = metadata.offset
+                let end = start + metadata.size
+                let origin = SIMD3<Double>(r.f64(start), r.f64(start + 8), r.f64(start + 16))
+                let rotation = r.f64(start + 24)
+                let scale = r.f64(start + 32)
+                guard origin.x.isFinite, origin.y.isFinite, origin.z.isFinite,
+                      rotation.isFinite, scale.isFinite, scale > 0,
+                      Float(scale).isFinite, Float(scale) > 0 else {
+                    throw SCMError.invalidMetadata
+                }
+                let horizontalStart = start + 42
+                let horizontalLength = Int(r.u16(start + 40))
+                let verticalLengthOffset = horizontalStart + horizontalLength
+                guard verticalLengthOffset + 2 <= end else { throw SCMError.truncated("horizontal CRS") }
+                let verticalStart = verticalLengthOffset + 2
+                let verticalLength = Int(r.u16(verticalLengthOffset))
+                guard verticalStart + verticalLength <= end else { throw SCMError.truncated("vertical CRS") }
+                guard String(bytes: raw[horizontalStart..<verticalLengthOffset], encoding: .utf8) != nil,
+                      String(bytes: raw[verticalStart..<(verticalStart + verticalLength)], encoding: .utf8) != nil else {
+                    throw SCMError.invalidMetadata
+                }
+                georeference = SCMGeoreference(origin: origin, rotation: rotation, scale: scale)
+            }
+
             let N = entityCount
 
             // Masked components: mask[N] then the non-default values packed
@@ -235,6 +317,7 @@ class SCMReader: ARProjectHelper {
                 return out
             }
 
+            let parents = masked(.parent, stride: 4, def: Int32(-1)) { r.i32($0) }
             let meshIds = masked(.meshId, stride: 4, def: Int32(-1)) { r.i32($0) }
             let materialIds = masked(.materialId, stride: 4, def: Int32(-1)) { r.i32($0) }
             let colors = masked(.color, stride: 4, def: SIMD4<UInt8>(0, 0, 0, 0)) {
@@ -245,6 +328,7 @@ class SCMReader: ARProjectHelper {
                 SIMD4(r.f32($0), r.f32($0 + 4), r.f32($0 + 8), r.f32($0 + 12))
             }
             let scales = masked(.scale, stride: 12, def: SIMD3<Float>(1, 1, 1)) { r.f32x3($0) }
+            let flags = masked(.flags, stride: 1, def: UInt8(0x03)) { r.u8($0) }
             let nameOffsets = masked(.name, stride: 4, def: UInt32.max) { r.u32($0) }
 
             // Names: uint32 BYTE offset into the NUL-separated UTF-8 string table
@@ -357,10 +441,27 @@ class SCMReader: ARProjectHelper {
 
             let grey = UIColor(red: 0.7, green: 0.7, blue: 0.7, alpha: 1)
             var entities: [SCNNode] = []
-            var bmin = SIMD3<Float>(repeating: .infinity)
-            var bmax = SIMD3<Float>(repeating: -.infinity)
+            var displayNames: [String: String] = [:]
+            entities.reserveCapacity(N)
 
             for ei in 0..<N {
+                // Keep non-mesh nodes too: their transforms and names belong to
+                // the source hierarchy, even when they only group other nodes.
+                let node = SCNNode()
+                let nodeName = "SCM_Entity_\(ei)"
+                node.name = nodeName
+                displayNames[nodeName] = names[ei] ?? "Entity_\(ei)"
+                node.castsShadow = false
+                node.isHidden = flags[ei] & 0x01 == 0
+                let q = rotations[ei]
+                let lengthSquared = simd_length_squared(q)
+                if lengthSquared.isFinite && lengthSquared > 0 {
+                    node.simdOrientation = simd_quatf(vector: q / sqrt(lengthSquared))
+                }
+                node.simdPosition = positions[ei]
+                node.simdScale = scales[ei]
+                entities.append(node)
+
                 let mid = Int(meshIds[ei])
                 guard mid >= 0, mid < geometries.count, let shared = geoCache[mid] else { continue }
 
@@ -389,23 +490,60 @@ class SCMReader: ARProjectHelper {
                 let geom = shared.copy() as! SCNGeometry
                 geom.materials = [material(texId: texId, color: color, colorKey: colorKey)]
 
-                let node = SCNNode(geometry: geom)
-                node.name = names[ei] ?? "Entity_\(ei)"
-                node.castsShadow = false
-                let q = rotations[ei]
-                let rot = simd_quatf(ix: q.x, iy: q.y, iz: q.z, r: q.w.isNaN ? 1 : q.w)
-                node.simdPosition = positions[ei]
-                node.simdOrientation = rot
-                node.simdScale = scales[ei]
-                entities.append(node)
+                node.geometry = geom
+            }
 
-                // World bbox from the mesh bbox corners through the entity TRS
+            // Invalid/self parents become roots. Break cyclic parent links
+            // before attaching nodes, so SceneKit and layer traversal stay acyclic.
+            var parentIndices = parents.enumerated().map { index, parent -> Int in
+                let candidate = Int(parent)
+                return candidate >= 0 && candidate < N && candidate != index ? candidate : -1
+            }
+            var states = [UInt8](repeating: 0, count: N)
+            for start in 0..<N where states[start] == 0 {
+                var path: [Int] = []
+                var current = start
+                while current >= 0 && states[current] == 0 {
+                    states[current] = 1
+                    path.append(current)
+                    current = parentIndices[current]
+                }
+                if current >= 0 && states[current] == 1 {
+                    parentIndices[current] = -1
+                }
+                for index in path { states[index] = 2 }
+            }
+
+            var children = [[Int]](repeating: [], count: N)
+            var rootIndices: [Int] = []
+            for ei in 0..<N {
+                let parent = parentIndices[ei]
+                if parent >= 0 {
+                    children[parent].append(ei)
+                    entities[parent].addChildNode(entities[ei])
+                } else {
+                    rootIndices.append(ei)
+                }
+            }
+
+            // Bounds in the SCM source frame, using the complete parent TRS.
+            // Group-only nodes do not enlarge the geometry bounds. Axis/map
+            // rotation and scale are applied later by the root and offset.
+            var bmin = SIMD3<Float>(repeating: .infinity)
+            var bmax = SIMD3<Float>(repeating: -.infinity)
+            var pending = rootIndices.reversed().map { ($0, matrix_identity_float4x4) }
+            while let (ei, parentTransform) = pending.popLast() {
+                let transform = parentTransform * entities[ei].simdTransform
+                for child in children[ei].reversed() {
+                    pending.append((child, transform))
+                }
+                let mid = Int(meshIds[ei])
+                guard mid >= 0, mid < geometries.count, geoCache[mid] != nil else { continue }
                 let g = geometries[mid]
-                let m = node.simdTransform
                 for cx in [g.bboxMin.x, g.bboxMax.x] {
                     for cy in [g.bboxMin.y, g.bboxMax.y] {
                         for cz in [g.bboxMin.z, g.bboxMax.z] {
-                            let p = m * SIMD4<Float>(cx, cy, cz, 1)
+                            let p = transform * SIMD4<Float>(cx, cy, cz, 1)
                             let v = SIMD3<Float>(p.x, p.y, p.z)
                             bmin = simd_min(bmin, v)
                             bmax = simd_max(bmax, v)
@@ -414,7 +552,10 @@ class SCMReader: ARProjectHelper {
                 }
             }
 
-            return ParsedSCM(entities: entities, drawGeometries: geoCache.count, bboxMin: bmin, bboxMax: bmax)
+            return ParsedSCM(entities: entities, roots: rootIndices.map { entities[$0] },
+                             displayNames: displayNames, drawGeometries: geoCache.count,
+                             bboxMin: bmin, bboxMax: bmax,
+                             coordinateSystem: coordinateSystem, georeference: georeference)
         }
     }
 
@@ -530,18 +671,33 @@ class SCMReader: ARProjectHelper {
 
     // MARK: - Layer list
 
-    /// Flat list, one row per drawn entity (the web viewer has no SCM tree).
-    private func buildLayers(_ entities: [SCNNode]) -> [LayerNode] {
-        return entities.map { node in
-            LayerNode(
-                id: node.name ?? UUID().uuidString,
-                name: node.name ?? "Unnamed",
-                displayName: nil,
-                type: "Geometry",
-                depth: 0,
-                children: [],
+    /// The actual source tree, with stable lookup names independent of labels.
+    private func buildLayers(_ roots: [SCNNode], displayNames: [String: String]) -> [LayerNode] {
+        var ordered = roots.map { ($0, 0) }
+        var cursor = 0
+        while cursor < ordered.count {
+            let (node, depth) = ordered[cursor]
+            ordered.append(contentsOf: node.childNodes.map { ($0, depth + 1) })
+            cursor += 1
+        }
+
+        var layersByName: [String: LayerNode] = [:]
+        for (node, depth) in ordered.reversed() {
+            guard let name = node.name else { continue }
+            let children = node.childNodes.compactMap { child in
+                child.name.flatMap { layersByName[$0] }
+            }
+            layersByName[name] = LayerNode(
+                id: name,
+                name: name,
+                displayName: displayNames[name] ?? name,
+                type: node.geometry == nil ? "Group" : "Geometry",
+                depth: depth,
+                children: children,
+                isVisible: !node.isHidden,
                 isExpanded: true
             )
         }
+        return roots.compactMap { node in node.name.flatMap { layersByName[$0] } }
     }
 }

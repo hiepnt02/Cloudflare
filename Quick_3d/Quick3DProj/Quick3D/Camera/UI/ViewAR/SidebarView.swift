@@ -14,7 +14,8 @@ struct SidebarView: View {
     var context: ViewARContext? = nil
     
     @Binding var isPointCloudVisible: Bool
-    @Binding var layers: [LayerNode]
+    @Binding var ifcLayers: [LayerNode]
+    @Binding var scmLayers: [LayerNode]
     @Binding var isAnyOpacitySliderOpen: Bool
     @Binding var activeOpacityNodeId: String?
     @Binding var pointCloudScale: Double
@@ -24,12 +25,16 @@ struct SidebarView: View {
     @State private var searchText: String = ""
     @State private var rootOpacity: Double = LayerNode.defaultOpacity
     
-    // Sử dụng computed property để lọc dữ liệu, giúp body sạch hơn
-    private var filteredLayers: [LayerNode] {
+    private func layers(for design: ARDesignType) -> [LayerNode] {
+        design == .ifc ? ifcLayers : scmLayers
+    }
+
+    private func filteredLayers(for design: ARDesignType) -> [LayerNode] {
+        let nodes = layers(for: design)
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return layers
+            return nodes
         }
-        return filterLayersHierarchy(layers, query: searchText)
+        return filterLayersHierarchy(nodes, query: searchText)
     }
     
     var isPortrait: Bool {
@@ -60,7 +65,7 @@ struct SidebarView: View {
                 Text("LAYERS".localized(userManager.userLanguage))
                     .font(.headline)
                     .foregroundColor(.white)
-                
+
                 // Search Bar
                 searchTextField
                 
@@ -68,7 +73,7 @@ struct SidebarView: View {
                 pointCloudSizeView()
                 
                 // Layers List
-                if !layers.isEmpty {
+                if !ifcLayers.isEmpty || !scmLayers.isEmpty {
                     layersScrollView
                 } else {
                     Spacer()
@@ -101,28 +106,63 @@ struct SidebarView: View {
     private var layersScrollView: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 8) {
-                ForEach(filteredLayers, id: \.id) { node in
+                ForEach(ARDesignType.allCases) { design in
+                    designSection(design)
+                }
+            }
+            .padding(.top, 10)
+        }
+    }
+
+    @ViewBuilder
+    private func designSection(_ design: ARDesignType) -> some View {
+        if !layers(for: design).isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(design.rawValue.uppercased()) \("DESIGN".localized(userManager.userLanguage))")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.top, 8)
+
+                ForEach(filteredLayers(for: design), id: \.id) { node in
                     LayerRow(
                         node: node,
                         onVisibilityChanged: { node, visible in
-                            context?.perform(ViewARIFCVisibleEvent(node, visible))
+                            context?.perform(ViewARDesignVisibleEvent(design, node, visible))
                         },
                         onLayerOpacityChanged: { node, scale in
-                            context?.perform(ViewARIFCOpacityEvent(node, calculateOpacity(scale)))
+                            context?.perform(ViewARDesignOpacityEvent(design, node, calculateOpacity(scale)))
                         },
                         isParentDisabled: false,
                         onToggleExpand: { node in
-                            toggleExpand(nodeId: node.id)
+                            toggleExpand(design: design, nodeId: node.id)
                         },
                         isAnyOpacitySliderOpen: $isAnyOpacitySliderOpen,
-                        activeOpacityNodeId: $activeOpacityNodeId,
+                        activeOpacityNodeId: opacityNodeId(for: design),
                         sharedOpacity: $rootOpacity
                     )
                     .environmentObject(userManager)
                 }
             }
-            .padding(.top, 10)
         }
+    }
+
+    // LayerRow operates on unqualified IDs. Keep the global selection scoped
+    // to its design so identical IFC/SCM names cannot activate both sliders.
+    private func opacityNodeId(for design: ARDesignType) -> Binding<String?> {
+        let prefix = "\(design.rawValue):"
+        return Binding(
+            get: {
+                guard let id = activeOpacityNodeId, id.hasPrefix(prefix) else { return nil }
+                return String(id.dropFirst(prefix.count))
+            },
+            set: { id in
+                if let id = id {
+                    activeOpacityNodeId = prefix + id
+                } else if activeOpacityNodeId?.hasPrefix(prefix) == true {
+                    activeOpacityNodeId = nil
+                }
+            }
+        )
     }
     
     @ViewBuilder
@@ -185,9 +225,11 @@ struct SidebarView: View {
         }
     }
     
-    private func toggleExpand(nodeId: String) {
-        updateNode(in: &layers, id: nodeId) { node in
-            node.isExpanded.toggle()
+    private func toggleExpand(design: ARDesignType, nodeId: String) {
+        if design == .ifc {
+            updateNode(in: &ifcLayers, id: nodeId) { $0.isExpanded.toggle() }
+        } else {
+            updateNode(in: &scmLayers, id: nodeId) { $0.isExpanded.toggle() }
         }
     }
     

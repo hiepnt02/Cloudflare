@@ -23,7 +23,7 @@ protocol ViewARDelegate {
     
     func ar(_ project: SfmProject?, didFailToDownloadPointCloud error: Error)
     
-    func ar(_ project: SfmProject?, didFailToDownloadIFC error: Error)
+    func ar(_ project: SfmProject?, didFailToDownloadDesign design: ARDesignType, error: Error)
     
     func ar(_ project: SfmProject?, willDownload projectId: String)
     
@@ -33,7 +33,7 @@ protocol ViewARDelegate {
     
     func ar(_ project: SfmProject?, didDownloadPointCloud offset: SIMD3<Double>)
     
-    func ar(_ project: SfmProject?, didDownloadIFC layers: [LayerNode])
+    func ar(_ project: SfmProject?, didDownloadDesign design: ARDesignType, layers: [LayerNode])
     
     func ar(_ project: SfmProject?, onPointCloudProgressChanged progress: Double)
     

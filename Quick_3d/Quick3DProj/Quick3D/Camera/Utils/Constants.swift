@@ -16,6 +16,15 @@ let eventCloseCammera = "CloseCameraEvent"
 // MARK: SCNNode Names
 let nameLasNode = "LAS Node"
 let nameUSDZNode = "USDZ Node"
+let nameSCMNode = "SCM Node"
+
+enum ARDesignType: String, CaseIterable, Identifiable, Hashable {
+    case ifc
+    case scm
+
+    var id: Self { self }
+    var rootNodeName: String { self == .ifc ? nameUSDZNode : nameSCMNode }
+}
 
 let defaultCoordinate: String = "EPSG:4326"
 

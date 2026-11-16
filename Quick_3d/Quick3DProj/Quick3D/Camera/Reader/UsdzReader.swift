@@ -42,11 +42,15 @@ class UsdzReader: ARProjectHelper {
             
             guard let jsonUrl = self.jsonUrl else { return .zero }
             
-            return try await session.request(jsonUrl, method: .get)
+            let metadata = try await session.request(jsonUrl, method: .get)
                         .validate()
                         .serializingDecodable(USDZMetadata.self)
                         .value
-                        .getOffset()
+            guard metadata.offset.count == 3,
+                  metadata.offset.allSatisfy({ $0.isFinite }) else { return .zero }
+            let origin = metadata.getOffset()
+            // This is the removed source bbox center, not a georeference flag.
+            return origin
         }catch{
           return .zero
         }

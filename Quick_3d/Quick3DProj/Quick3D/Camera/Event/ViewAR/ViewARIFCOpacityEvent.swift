@@ -7,16 +7,18 @@
 
 import Foundation
 
-class ViewARIFCOpacityEvent: EventIdentity, ViewAREvent {
+class ViewARDesignOpacityEvent: EventIdentity, ViewAREvent {
+    let design: ARDesignType
     let layerNode: LayerNode?
     let opacity: Double
     
-    init(_ layerNode: LayerNode?, _ opacity: Double) {
+    init(_ design: ARDesignType, _ layerNode: LayerNode?, _ opacity: Double) {
+        self.design = design
         self.layerNode = layerNode
         self.opacity = opacity
     }
     
     func call(_ context: ViewARContext) {
-        context.updateOpacity(for: layerNode, opacity: opacity)
+        context.updateOpacity(design: design, for: layerNode, opacity: opacity)
     }
 }

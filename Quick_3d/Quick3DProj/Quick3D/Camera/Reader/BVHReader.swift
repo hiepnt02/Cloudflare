@@ -47,6 +47,10 @@ class BVHReader: ARProjectHelper {
     }
     
     override func cancel() {
+        super.cancel()
+        lasReader.cancel()
+        lasReader.delegate = nil
+        delegate = nil
         lasDownloader?.cancel()
         lasDownloader = nil
     }
@@ -75,6 +79,7 @@ class BVHReader: ARProjectHelper {
         if totalItems == 0 {
             await MainActor.run {
                 onProgress?(1.0)
+                delegate?.onComplete()
             }
             return
         }
@@ -125,9 +130,8 @@ class BVHReader: ARProjectHelper {
                             await MainActor.run {
                                 let n = self.createNode(positions: result.positions, colors: result.colors, program: program)
                                 self.node?.addChildNode(n)
+                                self.update(min: result.min, max: result.max)
                             }
-                            
-                            self.update(min: result.min, max: result.max)
                             await progressTracker.incrementProgress()
                         } catch {
                             self.setError(error, program: program)

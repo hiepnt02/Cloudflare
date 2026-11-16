@@ -98,6 +98,13 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     /// Material của model design đã gắn shader modifier làm nhạt phần dưới sàn.
     /// Cache lại để mỗi lần đổi độ cao sàn không phải duyệt lại cả cây USDZ.
     private var ifcMaterials: [SCNMaterial] = []
+    var scmNode: SCNNode? {
+        didSet {
+            scmMaterials = scmNode.map { BelowGroundFade.attach(to: $0) } ?? []
+            pushGroundPlaneFade()
+        }
+    }
+    private var scmMaterials: [SCNMaterial] = []
 
     private var downloadLasTask: Task<Void, Never>?
     
@@ -203,6 +210,7 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     
     override func clear() {
         super.clear()
+        project?.cancel()
         downloadLasTask?.cancel()
         downloadLasTask = nil
         lastMeshUpdateTimes.removeAll()
@@ -215,6 +223,9 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
             self.arNode.removeFromParentNode()
             self.axisNode.removeFromParentNode()
             self.lightNode?.removeFromParentNode()
+            self.pointCloudNode = nil
+            self.ifcNode = nil
+            self.scmNode = nil
         }
     }
     
@@ -265,42 +276,34 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
         lightNode?.isHidden = !visible
     }
     
-    func setVisibility(nodeName: String?, visible: Bool) {
+    func setVisibility(design: ARDesignType, nodeName: String?, visible: Bool) {
         DispatchQueue.main.async {
+            let root = design == .ifc ? self.ifcNode : self.scmNode
             if let name = nodeName {
-                let node = self.arNode.childNode(withName: name, recursively: true)
+                let node = root?.childNode(withName: name, recursively: true)
                 node?.isHidden = !visible
                 self.previewContext?.updateNode(node)
             } else {
-                self.ifcNode?.isHidden = !visible
-                self.previewContext?.updateNode(self.ifcNode)
+                root?.isHidden = !visible
+                self.previewContext?.updateNode(root)
             }
         }
     }
     
-    func updateOpacity(for node: LayerNode?, opacity: Double) {
+    func updateOpacity(design: ARDesignType, for node: LayerNode?, opacity: Double) {
         DispatchQueue.main.async {
-            if let node = node {
-                self.setOpacity(nodeName: node.name, opacity: opacity)
-                for child in node.children {
-                    self.updateOpacity(for: child, opacity: opacity)
-                }
+            let root = design == .ifc ? self.ifcNode : self.scmNode
+            let target: SCNNode?
+            if let layer = node {
+                target = root?.childNode(withName: layer.name, recursively: true)
             } else {
-                self.ifcNode?.opacity = CGFloat(opacity)
-                self.previewContext?.updateNode(self.ifcNode)
+                target = root
             }
+            target?.opacity = CGFloat(max(0, min(1, opacity)))
+            self.previewContext?.updateNode(target)
         }
     }
-    
-    private func setOpacity(nodeName: String, opacity: Double) {
-        if let scnNode = arNode.childNode(withName: nodeName, recursively: true) {
-            let material = scnNode.geometry?.firstMaterial
-            material?.transparency = CGFloat(1.0 - opacity)
-            material?.transparencyMode = .rgbZero
-            previewContext?.updateNode(scnNode)
-        }
-    }
-    
+
     func updatePointCloudSize(to newSize: CGFloat) {
         project?.program.pointSize = Float(newSize)
     }
@@ -550,6 +553,13 @@ extension ViewARContext: ARSessionDelegate {
 extension ViewARContext {
     
     func downloadARProject(projectId: String, isAR: Bool) {
+        project?.cancel()
+        pointCloudNode?.removeFromParentNode()
+        ifcNode?.removeFromParentNode()
+        scmNode?.removeFromParentNode()
+        pointCloudNode = nil
+        ifcNode = nil
+        scmNode = nil
         project = SfmProject(projectId: projectId, isAR: isAR)
         // project vừa được gán có MetalViewARProgram mới toanh (hasGroundPlane
         // mặc định false) — đẩy lại trạng thái mặt sàn đã biết trước đó (nếu có)
@@ -563,14 +573,16 @@ extension ViewARContext {
 
             await MainActor.run { self.delegate?.ar(self.project, willDownload: projectId) }
 
-            self.project?.render(arNode: self.arNode) { [weak self] pcNode, ifcNode in
-                self?.pointCloudNode = pcNode
-                self?.ifcNode = ifcNode
+            self.project?.render(arNode: self.arNode) { [weak self] pcNode, ifcNode, scmNode in
+                guard let self = self else { return }
+                self.pointCloudNode = pcNode
+                if self.ifcNode !== ifcNode { self.ifcNode = ifcNode }
+                if self.scmNode !== scmNode { self.scmNode = scmNode }
             } onUpdateOffset: { [weak self] offset in
                 guard let self = self else { return }
                 self.arUpdatePosition = true
                 self.arRendered = true
-                if !isUpdatedBefore {
+                if !isUpdatedBefore, self.pointCloudNode != nil {
                     self.delegate?.ar(self.project, didDownloadPointCloudItem: offset)
                     isUpdatedBefore = true
                 }
@@ -579,8 +591,8 @@ extension ViewARContext {
                 self?.delegate?.ar(self?.project, didFailToDownload: code)
             } onLasError: { [weak self] error in
                 self?.delegate?.ar(self?.project, didFailToDownloadPointCloud: error)
-            } onIfcError: { [weak self] error in
-                self?.delegate?.ar(self?.project, didFailToDownloadIFC: error)
+            } onDesignError: { [weak self] design, error in
+                self?.delegate?.ar(self?.project, didFailToDownloadDesign: design, error: error)
             } onComplete: { [weak self] in
                 self?.placeArNodeOnHorizontalPlane()
                 self?.delegate?.ar(self?.project, didDownload: self?.project?.offset ?? .zero )
@@ -590,8 +602,8 @@ extension ViewARContext {
                 self.delegate?.ar(self.project, didDownloadPointCloud: self.project?.offset ?? .zero )
             } onLasProgressChanged: { [weak self] progress in
                 self?.delegate?.ar(self?.project, onPointCloudProgressChanged: progress)
-            } onIfcComplete: { [weak self] layers in
-                self?.delegate?.ar(self?.project, didDownloadIFC: layers)
+            } onDesignComplete: { [weak self] design, layers in
+                self?.delegate?.ar(self?.project, didDownloadDesign: design, layers: layers)
             }
         }
     }
@@ -756,6 +768,7 @@ extension ViewARContext {
         // Sử dụng giá trị truyền vào thay vì fix cứng 100
         arNode.renderingOrder = order
         ifcNode?.renderingOrder = order
+        scmNode?.renderingOrder = order
         pointCloudNode?.renderingOrder = order
         
         arNode.enumerateChildNodes { (node, _) in
@@ -920,6 +933,7 @@ extension ViewARContext: ARSCNViewDelegate {
     /// chỗ gọi nào.
     private func pushGroundPlaneFade() {
         BelowGroundFade.update(ifcMaterials, groundPlaneY: groundPlaneWorldY)
+        BelowGroundFade.update(scmMaterials, groundPlaneY: groundPlaneWorldY)
 
         // Point cloud: no-op nếu chưa có project — được gọi lại ngay sau khi
         // project được gán để không mất trạng thái đã biết trước đó.
@@ -999,7 +1013,7 @@ extension ViewARContext {
     func makeCalibrationModelNode() -> SCNNode {
         let node = arNode.clone()
         node.childNodes
-            .filter { $0.name != nameUSDZNode }
+            .filter { $0.name != nameUSDZNode && $0.name != nameSCMNode }
             .forEach { $0.removeFromParentNode() }
         // arNode carries the live AR placement (position/rotation/addtionalScale).
         // The panel picker and the calibration math both assume the canonical,

@@ -19,7 +19,9 @@ struct ViewARScreen: View {
     @State private var isARAccuracyTips = false
     
     @State private var arRendered: Bool = false
-    @State private var arItemRendered: Bool = false
+    @State private var isIFCDesignRendered = false
+    @State private var isSCMDesignRendered = false
+    private var arItemRendered: Bool { isIFCDesignRendered || isSCMDesignRendered }
     
     @State private var arCalculating: Bool = false
     
@@ -27,13 +29,14 @@ struct ViewARScreen: View {
     
     @State private var isPointCloudRendered = false
     
-    // MARK: Ifc sidebar view states
+    // MARK: Design sidebar view states
     @State private var isPointClouldVisible = true
     @State private var isExpandLayers = false
     @State private var isAnyOpacitySliderOpen = false
     @State private var activeOpacityNodeId: String? = nil
     @State private var pointCloudScale: Double = ARProjectHelper.pointCloudScale
-    @State private var layers: [LayerNode] = []
+    @State private var ifcLayers: [LayerNode] = []
+    @State private var scmLayers: [LayerNode] = []
     @State private var isARPositionExpanded = false
     @State private var isARStepExpanded = false
     @State private var arPositionInstruction: String = ""
@@ -41,7 +44,6 @@ struct ViewARScreen: View {
     @ObservedObject private var rtkObject = RTKObject.shared
 
     @State private var isPointCloudError = false
-    @State private var isArError = false
     @State private var pointCloudProgress: Double = 0.0
     
     @StateObject private var cameraObject = CameraObject()
@@ -71,7 +73,7 @@ struct ViewARScreen: View {
             }
 
             if arRendered, !isShowVidocSetting {
-                ifcLayersView
+                designLayersView
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -187,7 +189,8 @@ struct ViewARScreen: View {
                     isARPositionExpanded: $isARPositionExpanded,
                     isARStepExpanded: $isARStepExpanded,
                     arRendered: $arRendered,
-                    arItemRendered: $arItemRendered,
+                    isIFCDesignRendered: $isIFCDesignRendered,
+                    isSCMDesignRendered: $isSCMDesignRendered,
                     arCalculating: $arCalculating,
                     arPosition: arPosition,
                     pointCloudScale: $pointCloudScale,
@@ -240,12 +243,13 @@ struct ViewARScreen: View {
         }
     }
     
-    private var ifcLayersView: some View {
+    private var designLayersView: some View {
         ZStack(alignment: .leading) {
             SidebarView(
                 context: context,
                 isPointCloudVisible: $isPointClouldVisible,
-                layers: $layers,
+                ifcLayers: $ifcLayers,
+                scmLayers: $scmLayers,
                 isAnyOpacitySliderOpen: $isAnyOpacitySliderOpen,
                 activeOpacityNodeId: $activeOpacityNodeId,
                 pointCloudScale: $pointCloudScale,
@@ -358,6 +362,14 @@ extension ViewARScreen : ViewARDelegate {
     // MARK: - Download Lifecycle
     func ar(_ project: SfmProject?, willDownload projectId: String) {
         Task { @MainActor in
+            isIFCDesignRendered = false
+            isSCMDesignRendered = false
+            ifcLayers = []
+            scmLayers = []
+            arRendered = false
+            isPointCloudRendered = false
+            isPointCloudError = false
+            pointCloudProgress = 0
             cameraObject.startLoading(text: "LOADING_PROJECT".localized(userManager.userLanguage))
         }
     }
@@ -386,7 +398,7 @@ extension ViewARScreen : ViewARDelegate {
         }
     }
     
-    // MARK: - PointCloud & IFC
+    // MARK: - Point cloud and design lanes
     func ar(_ project: SfmProject?, onPointCloudProgressChanged progress: Double) {
         Task { @MainActor in
             self.pointCloudProgress = progress
@@ -411,19 +423,30 @@ extension ViewARScreen : ViewARDelegate {
         }
     }
     
-    func ar(_ project: SfmProject?, didDownloadIFC layers: [LayerNode]) {
+    func ar(_ project: SfmProject?, didDownloadDesign design: ARDesignType, layers: [LayerNode]) {
         Task { @MainActor in
             cameraObject.stopLoading()
-            self.arItemRendered = !isArError
-            self.isARAccuracyTips = true
-            self.layers = layers
+            arRendered = true
+            if !arItemRendered { isARAccuracyTips = true }
+            if design == .ifc {
+                ifcLayers = layers
+                isIFCDesignRendered = true
+            } else {
+                scmLayers = layers
+                isSCMDesignRendered = true
+            }
         }
     }
     
-    func ar(_ project: SfmProject?, didFailToDownloadIFC error: Error) {
+    func ar(_ project: SfmProject?, didFailToDownloadDesign design: ARDesignType, error: Error) {
         Task { @MainActor in
-            self.arItemRendered = false
-            self.isArError = true
+            if design == .ifc {
+                isIFCDesignRendered = false
+                ifcLayers = []
+            } else {
+                isSCMDesignRendered = false
+                scmLayers = []
+            }
         }
     }
     
