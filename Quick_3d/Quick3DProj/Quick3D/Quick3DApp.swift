@@ -35,10 +35,9 @@ struct Quick3DApp: App {
     @StateObject var editProject = EditProject()
     @StateObject var uploadProject = UploadProject()
     @StateObject var cancelUploadProject = CancelUploadProject()
+    @StateObject var uploadQueue = UploadQueueManager()
     
     @State var isShowRenameAlert: Bool = false
-    
-    @State private var isAttentionPopup = false
     
     @StateObject var languageObserver = LanguageChangeObserver()
     
@@ -47,6 +46,8 @@ struct Quick3DApp: App {
     @State private var groupwareSelected: GroupwareModel? = nil
     @State private var groupwareTypeSelected: GroupwareType = GroupwareType.dashboard
     @State private var arUploadCase: UploadCase = .Ifc
+
+    @State private var batchResults: [UploadBatchResult] = []
     
     var body: some Scene {
         WindowGroup{
@@ -66,6 +67,7 @@ struct Quick3DApp: App {
                     .environmentObject(uploadProject)
                     .environmentObject(editProject)
                     .environmentObject(cancelUploadProject)
+                    .environmentObject(uploadQueue)
                     .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                         if forceShowVersionAlert {
                             isShowVersionAlert = true
@@ -108,8 +110,7 @@ struct Quick3DApp: App {
                             }))
                         }
                     }
-                
-                //AttentionPopup(show: $isAttentionPopup,isCrate:$uploadProject.isCreate).environmentObject(userManager)
+
                 
                 // Popup for upload new project
                 UploadPopup(
@@ -139,20 +140,18 @@ struct Quick3DApp: App {
                         return
                     }
                     
-                    productData.uploadProjectQueue.enqueue(
-                        ProjectUploadModel(
+                    guard let zipUrl = productData.getZipFile(cat: tmpCat) else { return }
+                    uploadQueue.enqueue(
+                        .projectZip(
+                            cat: tmpCat,
                             jobsiteId: jobSite,
+                            fileURL: zipUrl,
                             useARMarker: useARMarker,
                             coordinateSetting: coordinateSetting,
                             linkDashboard: linkDashboard,
-                            shouldInterpolate: shouldInterpolate,
-                            url: receiveUrl,
-                            cat: tmpCat)
+                            shouldInterpolate: shouldInterpolate
+                        )
                     )
-                    
-                    if !uploadProject.isUploading {
-                        checkUploadProjectQueue()
-                    }
                 }
                 .environmentObject(userManager)
                 .environmentObject(productData)
@@ -186,20 +185,17 @@ struct Quick3DApp: App {
                     // Update createDate & captureDate to the time this upload starts
                     // so the project is sorted correctly while uploading
                     cat = productData.refreshUploadDate(for: cat)
-                    productData.uploadProjectQueue.enqueue(
-                        ProjectUploadModel(
+                    uploadQueue.enqueue(
+                        .projectZip(
+                            cat: cat,
                             jobsiteId: jobSite,
+                            fileURL: zipUrl,
                             useARMarker: useARMarker,
                             coordinateSetting: coordinateSetting,
                             linkDashboard: linkDashboard,
-                            shouldInterpolate: shouldInterpolate,
-                            url: zipUrl,
-                            cat: cat)
+                            shouldInterpolate: shouldInterpolate
+                        )
                     )
-
-                    if !uploadProject.isUploading {
-                        checkUploadProjectQueue()
-                    }
                 }
                 .environmentObject(userManager)
                 .environmentObject(productData)
@@ -211,20 +207,17 @@ struct Quick3DApp: App {
                     // Update createDate & captureDate to the time this upload starts
                     // so the project is sorted correctly while uploading
                     let currentCat = productData.refreshUploadDate(for: editingCat)
-                    productData.uploadProjectQueue.enqueue(
-                        ProjectUploadModel(
+                    uploadQueue.enqueue(
+                        .projectZip(
+                            cat: currentCat,
                             jobsiteId: currentCat.jobsiteId ?? "",
+                            fileURL: zipUrl,
                             useARMarker: editProject.isCurrentAR,
                             coordinateSetting: currentCat.coordinateSetting,
                             linkDashboard: currentCat.linkDashboard,
-                            shouldInterpolate: true,
-                            url: zipUrl,
-                            cat: currentCat)
+                            shouldInterpolate: true
+                        )
                     )
-
-                    if !uploadProject.isUploading {
-                        checkUploadProjectQueue()
-                    }
                 }
                 .environmentObject(userManager)
                 .environmentObject(productData)
@@ -241,50 +234,41 @@ struct Quick3DApp: App {
                     groupwareSelected: $groupwareSelected,
                     groupwareTypeSelected: $groupwareTypeSelected,
                     dataTypeSelected: $arUploadCase,
-                    handler: { jobSite, useARMarker, cat, fileURL, fileName, coordinateSetting, linkDashboard, shouldInterpolate, isAR, ar_color  in
-                        if(isAR){
-                            if !uploadProject.isUploading {
-                                uploadProject.projectId = cat!.id
-                                uploadARFile(with: jobSite ,cat: cat! ,fileUrl:fileURL!, fileName: fileName, ar_color: ar_color ?? "")
-                            }
-                            else{
-                                isAttentionPopup = true
-                            }
-                        } else {
-                            guard let receiveUrl = fileURL else {
-                                return
-                            }
-                            let tmpCat = productData.saveProduct(
-                                title: uploadProject.projectName,
+                    handler: { jobSite, cat, fileURL, fileName, sourceFileNames, ar_color in
+                        guard let cat = cat, let fileURL = fileURL else { return }
+                        uploadQueue.enqueue(
+                            UploadJob(
+                                cat: cat,
                                 jobsiteId: jobSite,
-                                zipFileUrl: receiveUrl,
-                                cat:uploadProject.currentCat,
-                                coordinateSetting: coordinateSetting,
-                                linkDashboard: linkDashboard,
-                                verticalCoordinate: "",
-                                horizontalCoordinate: ""
+                                kind: .arFile(
+                                    UploadJob.ARFileParameters(
+                                        fileURL: fileURL,
+                                        fileName: fileName,
+                                        arColor: ar_color ?? "",
+                                        sourceFileNames: sourceFileNames
+                                    )
+                                )
                             )
-                            if !uploadProject.isUploading {
-                                if tmpCat != nil {
-                                    uploadProject.currentCat = tmpCat
-                                    navigateCat = uploadProject.currentCat
-                                    uploadProject.projectId = navigateCat?.id ?? ""
-                                    uploadZipFile(with: jobSite, useARMarker: useARMarker, coordinateSetting: coordinateSetting, linkDashboard: linkDashboard, shouldInterpolate: shouldInterpolate, zipUrl: receiveUrl, cat: navigateCat!)
-                                }
-                            } else {
-                                isAttentionPopup = true
-                            }
-                        }
+                        )
                     },
                     onUploadGroupware: { cat, jobsiteId, groupwareSelected, newARColor in
-                        uploadARGroupware(cat: cat, jobsiteId: jobsiteId, groupware: groupwareSelected, arColor: newARColor)
-                    },
-                    onUploadComplete: {
-                        productData.requestListReload()
+                        uploadQueue.enqueue(
+                            UploadJob(
+                                cat: cat,
+                                jobsiteId: jobsiteId,
+                                kind: .arData(
+                                    UploadJob.ARDataParameters(
+                                        source: .groupware(groupwareSelected),
+                                        arColor: newARColor
+                                    )
+                                )
+                            )
+                        )
                     }
                 )
                 .environmentObject(userManager)
                 .environmentObject(productData)
+                .environmentObject(uploadQueue)
                 
                 GroupwarePopup(
                     isShow: $isShowSelectFileFromGroupware,
@@ -308,6 +292,14 @@ struct Quick3DApp: App {
                 .environmentObject(productData)
                 
                 InsufficientPhotoPopup(uploadProject: uploadProject).environmentObject(userManager)
+
+                UploadBatchResultPopup(result: batchResults.first) {
+                    if !batchResults.isEmpty {
+                        batchResults.removeFirst()
+                    }
+                }
+                .zIndex(11)
+                .environmentObject(userManager)
             }
             .onLoad {
                 userManager.getUserInfo {
@@ -321,226 +313,43 @@ struct Quick3DApp: App {
                 }
                 .store(in: &cancellables)
 
-                uploadProject.presentResult = { outcome in
-                    APAlert.shared.showAlertWithTheme(
-                        title: "",
-                        message: (outcome == .success ? "UPLOAD_COMPLETED" : "UPLOAD_ERROR").localized(userManager.userLanguage),
-                        buttonTitle: "CLOSE".localized(userManager.userLanguage),
-                        userManager: userManager
-                    )
+                uploadQueue.configure(
+                    transportFactory: AppUploadTransportFactory(environment: transportEnvironment)
+                )
+
+                productData.onProjectsRemoved = { ids in
+                    ids.forEach { uploadQueue.remove(catId: $0) }
+                }
+
+                uploadQueue.onBatchFinished = { result in
+                    batchResults.append(result)
                 }
             }
             .onChange(of: cancelUploadProject.isCancelDownload) { newValue in
                 if (newValue) {
                     // Should cancel all upload process when user logout or no network
-                    // Mark the upload cancelled first so no result popup is shown for it
-                    uploadProject.cancelUpload()
-                    uploadTask.cancelUpload()
+                    uploadQueue.abortAll(reason: .sessionEnded)
                     cancelUploadProject.isCancelDownload.toggle()
-                    productData.uploadProjectQueue.dequeueAll()
                 }
             }
             .onChange(of: languageObserver.currentLanguage) { newValue in
-                productData.uploadProjectQueue.dequeueAll()
+                uploadQueue.abortAll(reason: .sessionEnded)
             }
         }
     }
     
-    private func uploadARGroupware(
-        cat: Cat,
-        jobsiteId: String,
-        groupware: GroupwareModel,
-        arColor: String
-    ) {
-        uploadProject.projectId = cat.id
-        uploadProject.isUploading = true
-        uploadProject.uploadPercentage = 0
-        
-        productData.uploadARData(
-            cat: cat,
-            jobsiteId: jobsiteId,
-            arColor: arColor,
-            source: .groupware(groupware),
-            completion: { result in
-                Task { @MainActor in
-                    uploadProject.uploadPercentage = 0.5
-                    try await productData.refreshProjectListWithCurrentFilters()
-
-                    uploadProject.uploadPercentage = 1.0
-                    uploadProject.isUploading = false
-                    APAlert.shared.showAlertWithTheme(
-                        title: "",
-                        message: "UPLOAD_COMPLETED".localized(userManager.userLanguage),
-                        buttonTitle: "CLOSE".localized(userManager.userLanguage),
-                        userManager: userManager
-                    )
-                }
+    private var transportEnvironment: UploadTransportEnvironment {
+        UploadTransportEnvironment(
+            uploadTask: uploadTask,
+            productData: productData,
+            uploadProject: uploadProject,
+            onProjectIdAssigned: { projectId, jobsiteId, cat in
+                guard var target = navigateCat, target.id == cat.id else { return }
+                target.projectId = projectId
+                target.jobsiteId = jobsiteId
+                navigateCat = target
             }
         )
-    }
-    
-    // Check if there is any project in the queue.
-    // If there is, upload the project and delete it from the queue.
-    private func checkUploadProjectQueue() {
-        if let project = productData.uploadProjectQueue.dequeue(),
-           let category = project.cat,
-           let zipUrl = productData.getZipFile(cat: category) {
-            uploadProject.resetData()
-            uploadProject.projectId = category.id
-            uploadProject.currentCat = category
-            uploadProject.projectName = category.title
-            uploadProject.jobSiteName = jobSiteName(project.jobsiteId)
-            uploadProject.jobSiteValue = jobSiteValue(project.jobsiteId)
-            uploadProject.isCreate = false
-            uploadFile(with: project.jobsiteId, useARMarker: project.useARMarker, coordinateSetting: project.coordinateSetting, linkDashboard: project.linkDashboard, shouldInterpolate: project.shouldInterpolate, zipUrl: zipUrl, cat: category)
-        }
-    }
-    
-    private func jobSiteName(_ jobsiteId: String?) -> String {
-        if let site = productData.jobSite?.sites.first(where: {$0.id == jobsiteId}) {
-            return site.name
-        }
-        return ""
-    }
-
-    private func jobSiteValue(_ jobsiteId: String?) -> JobSite.Site? {
-        return productData.jobSite?.sites.first(where: {$0.id == jobsiteId})
-    }
-    
-    func uploadFile(with jobSite: String, useARMarker: Bool, coordinateSetting: Bool, linkDashboard: Bool, shouldInterpolate: Bool, zipUrl: URL, cat:Cat) {
-        uploadTask.uploadStream(with: cat, fileUrl: zipUrl, jobsite: jobSite, useARMarker: useARMarker, coordinateSetting: coordinateSetting, linkDashboard: linkDashboard, shouldInterpolate: shouldInterpolate)
-        
-        uploadTask.uploadProgress = { progress in
-            DispatchQueue.main.async {
-                if uploadProject.isUploading == false {
-                    uploadProject.isUploading = true
-                }
-                uploadProject.updateProgress(progress)
-            }
-        }
-        
-        uploadTask.responseHandler = { resp in
-            DispatchQueue.main.async {
-                Task {
-                    productData.removeTempFile()
-                    
-                    if resp == nil{
-                        // Reset data of uploadProject
-                        uploadProject.isUploading = false
-                        // Check in Queue to upload next project if that exist
-                        checkUploadProjectQueue()
-                        return
-                    }
-                    if resp!.isShortageImage != nil && resp!.isShortageImage! {
-                        try await productData.removeLocalProjectWithUpload(id: cat.id)
-                        try await productData.refreshProjectListWithCurrentFilters()
-                        uploadProject.isInsufficientPhoto = true
-                    }
-                    else{
-                        uploadProject.isUploaded = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            uploadProject.isUploaded = false
-                        }
-                        guard let projectId = resp?.projectId else {
-                            return
-                        }
-                        let filteredProducts = productData.products.filter { item in
-                            item.id == cat.id
-                        }
-                        
-                        if !filteredProducts.isEmpty{
-                            try await productData.removeLocalProjectWithUpload(id: cat.id)
-                            try await productData.refreshProjectListWithCurrentFilters()
-                        }
-                        productData.updateProjectId(projectId, jobsiteId: jobSite, for: cat)
-                        if navigateCat != nil{
-                            navigateCat?.projectId = projectId
-                            navigateCat?.jobsiteId = jobSite
-                        }
-                        productData.remove(cat)
-                    }
-                    
-                    // Reset data of uploadProject
-                    uploadProject.isUploading = false
-                    // Check in Queue to upload next project if that exist
-                    checkUploadProjectQueue()
-                }
-            }
-        }
-    }
-    
-    func uploadARFile(with jobSite: String, cat:Cat, fileUrl: URL, fileName: String, ar_color:String) {
-        uploadProject.beginUpload()
-        uploadTask.uploadARStream(with: cat, jobsite: jobSite ,fileUrl: fileUrl, fileName: fileName,ar_color: ar_color)
-
-        // 100% only means every byte was sent: the result is shown from the server response.
-        uploadTask.uploadProgress = { progress in
-            DispatchQueue.main.async {
-                if uploadProject.isUploading == false {
-                    uploadProject.isUploading = true
-                }
-                uploadProject.updateProgress(progress)
-            }
-        }
-
-        uploadTask.responseHandler = { resp in
-            DispatchQueue.main.async {
-                Task { @MainActor in
-                    // A failed refresh must not leave the bar stuck at 100%
-                    try? await productData.refreshProjectListWithCurrentFilters()
-                    uploadProject.isUploaded = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        uploadProject.isUploaded = false
-                    }
-                    productData.removeARTempFile(fileName: fileName)
-                    // Hides the bar, then shows the result popup
-                    uploadProject.finishUpload(resp != nil ? .success : .failure)
-                }
-            }
-        }
-    }
-    
-    func uploadZipFile(with jobSite: String, useARMarker: Bool, coordinateSetting: Bool, linkDashboard: Bool, shouldInterpolate: Bool, zipUrl: URL, cat:Cat) {
-        uploadTask.uploadZipStream(with: cat, fileUrl: zipUrl, jobsite: jobSite, useARMarker: useARMarker, coordinateSetting: coordinateSetting, linkDashboard: linkDashboard, shouldInterpolate: shouldInterpolate)
-        
-        uploadTask.uploadProgress = { progress in
-            DispatchQueue.main.async {
-                if uploadProject.isUploading == false {
-                    uploadProject.isUploading = true
-                }
-                uploadProject.updateProgress(progress)
-            }
-        }
-        
-        uploadTask.responseHandler = { resp in
-            DispatchQueue.main.async {
-                Task {
-                    uploadProject.isUploading = false
-                    productData.removeTempFile()
-                    if resp == nil{
-                        return
-                    }
-                    if resp!.isShortageImage != nil && resp!.isShortageImage! {
-                        uploadProject.isInsufficientPhoto = true
-                    } else{
-                        try await productData.refreshProjectListWithCurrentFilters()
-                        uploadProject.isUploaded = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            uploadProject.isUploaded = false
-                        }
-                        guard let projectId = resp?.projectId else {
-                            return
-                        }
-                        
-                        let filteredProducts = productData.products.filter { item in
-                            item.id == cat.id
-                        }
-                        productData.updateProjectId(projectId, jobsiteId: jobSite, for: cat)
-                        productData.remove(cat)
-                    }
-                }
-            }
-        }
     }
 }
 

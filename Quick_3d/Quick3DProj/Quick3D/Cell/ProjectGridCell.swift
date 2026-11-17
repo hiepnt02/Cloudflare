@@ -219,7 +219,7 @@ struct ProjectGridCell: View, Equatable {
 
     private var statusAndProgressRow: some View {
         HStack(spacing: isIPhone ? 4 : 6) {
-            if uploadState.isUploading {
+            if uploadState.isActive {
                 VStack {
                     Spacer().frame(height: isIPhone ? 14 : 21)
                     ProgressView(value: uploadState.percentage, total: 1)
@@ -271,21 +271,22 @@ struct ProjectGridCell: View, Equatable {
 
     private var uploadStatusFooter: some View {
         Group {
-            if uploadState.isUploading {
+            if uploadState.isActive {
                 HStack {
-                    Text("UPLOADING".localized(userManager.userLanguage))
+                    Text(uploadState.statusTextKey.localized(userManager.userLanguage))
                         .font(.system(size: isIPhone ? 10 : 12))
                     Spacer()
-                    Text("\(Int(uploadState.percentage * 100))%")
-                        .font(.system(size: isIPhone ? 12 : 14))
+                    if uploadState.isUploading {
+                        Text("\(Int(uploadState.percentage * 100))%")
+                            .font(.system(size: isIPhone ? 12 : 14))
+                    }
                 }
                 .foregroundColor(userManager.setting.textColor)
                 .padding(.bottom, 10)
             } else {
                 let statusText = cat.statusList?.sfmStatus(for: userManager.userLanguage)
-                let defaultText = productData.uploadProjectQueue.isInQueue(catId: cat.id) ? "PREPARING_FOR_DATA_UPLOAD" : "UPLOAD_WAITING"
 
-                Text((statusText ?? defaultText).localized(userManager.userLanguage))
+                Text((statusText ?? "UPLOAD_WAITING").localized(userManager.userLanguage))
                     .font(.system(size: isIPhone ? 11 : 14))
                     .foregroundColor(userManager.setting.textColor)
                     .padding(.bottom, 10)

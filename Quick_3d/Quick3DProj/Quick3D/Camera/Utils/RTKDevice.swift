@@ -102,6 +102,8 @@ final class RTKDevice: RTKTemplate {
     
     public private(set) var isReady = false
     
+    public private(set) var hasReceivedNmea = false
+    
     private var lostSignalTimer: Timer?
     
     private var queueRequest: [RequestDeviceType] = []
@@ -159,8 +161,11 @@ final class RTKDevice: RTKTemplate {
     public func reset() {
         unsubscribe()
         
-        lostSignalTimer?.invalidate()
+        let timer = lostSignalTimer
         lostSignalTimer = nil
+        DispatchQueue.main.async {
+            timer?.invalidate()
+        }
         
         name = nil
         device = nil
@@ -170,6 +175,7 @@ final class RTKDevice: RTKTemplate {
         previousState = nil
         
         isReady = false
+        hasReceivedNmea = false
         nmea = .init()
         
         removeQueue()
@@ -220,6 +226,8 @@ final class RTKDevice: RTKTemplate {
                 
                 _self.manager?.nmea.send(nmea)
                 
+                _self.hasReceivedNmea = true
+                
                 if let ggaMessage = message as? GGAMessage {
                     if ggaMessage.coordinate != nil {
                         if !_self.isReady && _self.state == .connected {
@@ -268,14 +276,18 @@ final class RTKDevice: RTKTemplate {
     private func startLostSignalTimer(_ interval: TimeInterval = 2) {
         if self.lostSignalTimer == nil {
             DispatchQueue.main.async {
-                self.lostSignalTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+                guard self.lostSignalTimer == nil else { return }
+                self.lostSignalTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
                     guard let _self = self else { return }
                     _self.queue.async {
-                        if _self.nmea.quality == .invalid {
+                        let isCurrentTimer = _self.lostSignalTimer === timer
+                        if RTKLostSignal.shouldDisconnect(isCurrentTimer: isCurrentTimer, isReady: _self.isReady, quality: _self.nmea.quality) {
                             _self.setError(NSError(domain: "RTKBluetoothService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Satellite signal lost."]))
                             _self.manager?.disconnect()
                         }
-                        _self.lostSignalTimer = nil
+                        if isCurrentTimer {
+                            _self.lostSignalTimer = nil
+                        }
                     }
                     
                 }

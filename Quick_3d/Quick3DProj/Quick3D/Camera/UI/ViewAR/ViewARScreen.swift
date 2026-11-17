@@ -31,6 +31,11 @@ struct ViewARScreen: View {
     
     // MARK: Design sidebar view states
     @State private var isPointClouldVisible = true
+    @State private var pointCloudOpacity: CGFloat = 1.0
+    @State private var isIFCDesignVisible = true
+    @State private var ifcDesignOpacity: CGFloat = 1.0
+    @State private var isSCMDesignVisible = true
+    @State private var scmDesignOpacity: CGFloat = 1.0
     @State private var isExpandLayers = false
     @State private var isAnyOpacitySliderOpen = false
     @State private var activeOpacityNodeId: String? = nil
@@ -73,7 +78,7 @@ struct ViewARScreen: View {
             }
 
             if arRendered, !isShowVidocSetting {
-                designLayersView
+                ifcLayersView
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -96,6 +101,12 @@ struct ViewARScreen: View {
             cameraObject.isShowAxis = value
             context.perform(ViewARAxisVisibleEvent(value))
             if !value { collapseARStepOptions() }
+        }
+        .onChange(of: ifcDesignOpacity) { value in
+            ifcLayers.forEach { $0.opacity = Double(value) }
+        }
+        .onChange(of: scmDesignOpacity) { value in
+            scmLayers.forEach { $0.opacity = Double(value) }
         }
         .onChange(of: isLightOn) { value in
             context.perform(ViewARShowHideLightEvent(value))
@@ -178,7 +189,6 @@ struct ViewARScreen: View {
                     context.clear()
                 }
             },
-            optionButtons: currentEnvironment == .dev && arItemRendered ? AnyView(calibrationButton) : nil,
             additionalWarning: {
                 ARInstructionToastView(message: arPositionInstruction)
             },
@@ -189,13 +199,26 @@ struct ViewARScreen: View {
                     isARPositionExpanded: $isARPositionExpanded,
                     isARStepExpanded: $isARStepExpanded,
                     arRendered: $arRendered,
-                    isIFCDesignRendered: $isIFCDesignRendered,
-                    isSCMDesignRendered: $isSCMDesignRendered,
+                    arItemRendered: arItemRendered,
+                    isIFCDesignRendered: isIFCDesignRendered,
+                    isSCMDesignRendered: isSCMDesignRendered,
                     arCalculating: $arCalculating,
                     arPosition: arPosition,
                     pointCloudScale: $pointCloudScale,
                     pointCloudProgress: $pointCloudProgress,
-                    arPositionInstruction: $arPositionInstruction
+                    arPositionInstruction: $arPositionInstruction,
+                    isPointCloudVisible: $isPointClouldVisible,
+                    pointOpacity: $pointCloudOpacity,
+                    isIFCDesignVisible: $isIFCDesignVisible,
+                    ifcDesignOpacity: $ifcDesignOpacity,
+                    isSCMDesignVisible: $isSCMDesignVisible,
+                    scmDesignOpacity: $scmDesignOpacity,
+                    onDesignVisibilityChanged: syncRootLayersVisibility,
+                    onCalibrationTapped: {
+                        guard isIFCDesignRendered, context.ifcNode != nil else { return }
+                        calibrationModel = context.makeCalibrationModelNode()
+                        isShowManualCalibration = true
+                    }
                 )
             }
         )
@@ -208,42 +231,31 @@ struct ViewARScreen: View {
                 parentContext: context,
                 panelModel: model,
                 onCalibrationComplete: { result in
-                    arPosition.setFrom(
-                        position: result.position,
-                        eulerAngles: result.eulerAngles,
-                        scale: result.scale
+                    // QUICK-1049: áp mốc vào context TRƯỚC, rồi mới đưa bảng giá trị về 0.
+                    // Làm ngược lại thì giá trị 0 sẽ bị đẩy vào delta và model nhảy về base.
+                    context.perform(
+                        ViewARApplyCalibrationBaselineEvent(result.position, result.eulerAngles, result.scale)
                     )
+                    arPosition.setFrom(position: .zero, eulerAngles: .zero, scale: result.scale)
                     UserSession.shared.position = result.position
                     UserSession.shared.eulerAngles = result.eulerAngles
-                    arPosition.updateUserSessionAndEvent { pos, eulerAngles, scale in
-                        context.perform(ViewARUpdatePositionEvent(pos, eulerAngles, scale))
-                    }
                     isShowManualCalibration = false
                 },
-                onDismiss: { isShowManualCalibration = false }
+                onDismiss: {
+                    // Panel expanded che kín camera nên khung hình chuyển tiếp lúc đóng
+                    // cover nháy giữa panel và camera — đóng ngay, không animation.
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        isShowManualCalibration = false
+                    }
+                }
             )
             .environmentObject(userManager)
         }
     }
 
-    private var calibrationButton: some View {
-        Button(action: {
-            calibrationModel = context.makeCalibrationModelNode()
-            isShowManualCalibration = true
-        }) {
-            Image("manual_calibration")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 24, height: 24)
-                .foregroundColor(.white)
-                .frame(width: 52, height: 52)
-                .background(imperialBlue.opacity(0.5))
-                .clipShape(RoundedRectangle(cornerRadius: borderNormal))
-        }
-    }
-    
-    private var designLayersView: some View {
+    private var ifcLayersView: some View {
         ZStack(alignment: .leading) {
             SidebarView(
                 context: context,
@@ -254,7 +266,12 @@ struct ViewARScreen: View {
                 activeOpacityNodeId: $activeOpacityNodeId,
                 pointCloudScale: $pointCloudScale,
                 isExpandLayers: $isExpandLayers,
-                isPointCloudRendered: $isPointCloudRendered
+                isPointCloudRendered: $isPointCloudRendered,
+                pointCloudOpacity: pointCloudOpacity,
+                isIFCDesignVisible: $isIFCDesignVisible,
+                ifcDesignOpacity: $ifcDesignOpacity,
+                isSCMDesignVisible: $isSCMDesignVisible,
+                scmDesignOpacity: $scmDesignOpacity
             )
             
             HStack {
@@ -280,6 +297,21 @@ struct ViewARScreen: View {
                 Spacer()
             }
         }
+    }
+    
+    private func syncRootLayersVisibility(_ design: ARDesignType, _ visible: Bool) {
+        let layers = design == .ifc ? ifcLayers : scmLayers
+        for root in layers where root.isVisible != visible {
+            root.isVisible = visible
+            context.perform(ViewARDesignVisibleEvent(design, root, visible))
+        }
+    }
+
+    private var scmFileDisplayName: String {
+        guard let source = selectedCat?.design_file else { return "model.scm" }
+        let name = ((source.removingPercentEncoding ?? source) as NSString).lastPathComponent
+        let fileExtension = (name as NSString).pathExtension.lowercased()
+        return ["scm", "dwg", "fbx", "glb"].contains(fileExtension) ? name : "model.scm"
     }
     
     private func updateARPositionMessage(arPositionDidMatch: Bool = false) {
@@ -362,14 +394,15 @@ extension ViewARScreen : ViewARDelegate {
     // MARK: - Download Lifecycle
     func ar(_ project: SfmProject?, willDownload projectId: String) {
         Task { @MainActor in
+            isPointCloudRendered = false
+            isPointCloudError = false
             isIFCDesignRendered = false
             isSCMDesignRendered = false
             ifcLayers = []
             scmLayers = []
-            arRendered = false
-            isPointCloudRendered = false
-            isPointCloudError = false
             pointCloudProgress = 0
+            isAnyOpacitySliderOpen = false
+            activeOpacityNodeId = nil
             cameraObject.startLoading(text: "LOADING_PROJECT".localized(userManager.userLanguage))
         }
     }
@@ -426,15 +459,35 @@ extension ViewARScreen : ViewARDelegate {
     func ar(_ project: SfmProject?, didDownloadDesign design: ARDesignType, layers: [LayerNode]) {
         Task { @MainActor in
             cameraObject.stopLoading()
-            arRendered = true
-            if !arItemRendered { isARAccuracyTips = true }
+            self.isARAccuracyTips = true
+            let visible = design == .ifc ? isIFCDesignVisible : isSCMDesignVisible
+            let opacity = design == .ifc ? ifcDesignOpacity : scmDesignOpacity
             if design == .ifc {
+                layers.forEach {
+                    $0.opacity = Double(opacity)
+                    $0.isVisible = visible
+                }
                 ifcLayers = layers
                 isIFCDesignRendered = true
             } else {
-                scmLayers = layers
+                // The file row controls the full design; its children retain
+                // their own source visibility and control individual entities.
+                scmLayers = [LayerNode(
+                    id: nameSCMNode,
+                    name: nameSCMNode,
+                    displayName: scmFileDisplayName,
+                    type: "File",
+                    depth: 0,
+                    children: layers,
+                    isVisible: visible,
+                    isExpanded: true,
+                    opacity: Double(opacity)
+                )]
                 isSCMDesignRendered = true
             }
+            context.perform(ViewARDesignVisibleEvent(design, nil, visible))
+            context.perform(ViewARDesignOpacityEvent(design, nil, opacity))
+            syncRootLayersVisibility(design, visible)
         }
     }
     

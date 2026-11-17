@@ -10,9 +10,7 @@ import CoreBluetooth
 
 struct RTKDeviceListView: View {
     @EnvironmentObject private var userManager: UserManager
-    
-    @EnvironmentObject private var rtk: RTKStateObject
-    
+
     @State private var deviceSelected: CBPeripheral?
     @State private var isConnecting = false
     

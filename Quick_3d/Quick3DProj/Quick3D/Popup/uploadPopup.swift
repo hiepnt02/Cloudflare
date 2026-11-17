@@ -140,6 +140,24 @@ struct UploadPopup: View {
             isFocusHcoord = false
             isPopupHcoordPresented = false
         }
+        .onChange(of: show) { isShown in
+            if !isShown { resetJobsiteAndCoordinate() }
+        }
+    }
+
+    private func resetJobsiteAndCoordinate() {
+        siteSelected = nil
+        jobsiteInputted = ""
+        isPopupPresented = false
+        coordinateJobSite = nil
+        isGettingCoordinateJobsite = false
+        isDisableSmartAlign = false
+        vCoordInputted = ""
+        hCoordInputted = ""
+        vCoordSelectedKey = ""
+        hCoordSelectedKey = ""
+        coordinateSetting = userManager.setting.coordinateSetting
+        coordOptionSelected = coordinateSetting ? .smartAlign : .selectManual
     }
     
     private var contentView: some View {
@@ -883,6 +901,10 @@ extension UploadPopup {
     }
     
     private func handleUpload() {
+        guard let siteId = siteSelected?.id else {
+            disableButton = false
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             withAnimation(.linear(duration: 0.3)) {
                 show = false
@@ -893,7 +915,7 @@ extension UploadPopup {
 
             if cat != nil {
                 cat?.title = projectName
-                cat?.jobsiteId = siteSelected!.id
+                cat?.jobsiteId = siteId
             }
 
             // Get coordinate by coordinate setting selected
@@ -910,7 +932,7 @@ extension UploadPopup {
             }
 
             handler(
-                siteSelected!.id,
+                siteId,
                 useARMarker,
                 coordinateJobSite == nil ? false : coordinateSetting,
                 coordinateJobSite == nil ? false : linkDashboard,

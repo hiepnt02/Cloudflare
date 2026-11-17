@@ -17,9 +17,12 @@ enum CalibrationVectorArrow {
     private static let dotRadiusRatio: Float = 0.032
     private static let minimumDirectionLength: Float = 1e-5
 
-    /// Vẽ sau cùng để nằm trên mọi geometry khác trong scene. Dùng chung cho mũi tên
-    /// và các dot marker để chúng không tự che nhau theo thứ tự thêm vào scene graph.
+    /// Vẽ sau cùng để nằm trên mọi geometry khác trong scene.
     static let renderingOrder = 1000
+
+    /// Material không dùng depth nên vật vẽ sau đè vật vẽ trước. Dot phải vẽ sau mũi
+    /// tên — chung một renderingOrder thì thứ tự giữa chúng không xác định.
+    static let dotRenderingOrder = renderingOrder + 1
 
     /// Radius for the CP1/CP2 sphere markers so they scale with the same reference
     /// as the arrow drawn between them and never get visually swallowed by it.

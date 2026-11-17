@@ -17,8 +17,9 @@ struct ARSettingView: View {
     @Binding var isARStepExpanded: Bool
     
     @Binding var arRendered: Bool
-    @Binding var isIFCDesignRendered: Bool
-    @Binding var isSCMDesignRendered: Bool
+    let arItemRendered: Bool
+    let isIFCDesignRendered: Bool
+    let isSCMDesignRendered: Bool
     @Binding var arCalculating: Bool
     
     @ObservedObject var arPosition: ARPosition
@@ -28,13 +29,15 @@ struct ARSettingView: View {
     
     @State var isPreview: Bool = false
     
-    @State var isPointCloudVisible: Bool = true
-    @State var pointOpacity: CGFloat = 1.0
+    @Binding var isPointCloudVisible: Bool
+    @Binding var pointOpacity: CGFloat
     
-    @State private var isIFCDesignVisible = true
-    @State private var ifcDesignOpacity: CGFloat = 1
-    @State private var isSCMDesignVisible = true
-    @State private var scmDesignOpacity: CGFloat = 1
+    @Binding var isIFCDesignVisible: Bool
+    @Binding var ifcDesignOpacity: CGFloat
+    @Binding var isSCMDesignVisible: Bool
+    @Binding var scmDesignOpacity: CGFloat
+    var onDesignVisibilityChanged: (ARDesignType, Bool) -> Void = { _, _ in }
+    var onCalibrationTapped: () -> Void = {}
     
     @State var isUpdateAROn: Bool = true
     @State private var animatedProgress: Double = 0.0
@@ -83,6 +86,10 @@ struct ARSettingView: View {
                             ) {
                                 isPreview = true
                             }
+
+                            if ARCalibrationButtonVisibility.isVisible(arRendered: arRendered, arItemRendered: isIFCDesignRendered) {
+                                calibrationButton
+                            }
                         }
                         
                         Spacer()
@@ -97,6 +104,7 @@ struct ARSettingView: View {
                         isPointCloudVisible: $isPointCloudVisible,
                         isPointCloudRendered: $isPointCloudRendered,
                         pointCloudScale: $pointCloudScale,
+                        pointCloudOpacity: pointOpacity,
                         isLightOn: $isLightOn,
                         isARPositionExpanded: $isARPositionExpanded,
                         isARStepExpanded: $isARStepExpanded,
@@ -127,7 +135,7 @@ struct ARSettingView: View {
             }
             
             // MARK: Sliders
-            if isPointCloudRendered || isIFCDesignRendered || isSCMDesignRendered {
+            if isPointCloudRendered || arItemRendered {
                 settingSlidersView
             }
             
@@ -147,20 +155,24 @@ struct ARSettingView: View {
                 animatedProgress = newValue
             }
         }
-        .onChange(of: isIFCDesignRendered) { loaded in
-            if loaded {
-                context.perform(ViewARDesignVisibleEvent(.ifc, nil, isIFCDesignVisible))
-                context.perform(ViewARDesignOpacityEvent(.ifc, nil, ifcDesignOpacity))
-            }
-        }
-        .onChange(of: isSCMDesignRendered) { loaded in
-            if loaded {
-                context.perform(ViewARDesignVisibleEvent(.scm, nil, isSCMDesignVisible))
-                context.perform(ViewARDesignOpacityEvent(.scm, nil, scmDesignOpacity))
-            }
-        }
     }
     
+    private var calibrationButton: some View {
+        Button(action: onCalibrationTapped) {
+            Image("manual_calibration")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 20, height: 20)
+                .foregroundColor(.white)
+                .frame(width: 48, height: 48)
+                .background(Circle().fill(imperialBlue.opacity(0.5)))
+                .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 2))
+                .contentShape(Circle())
+        }
+        .accessibilityIdentifier("calibrationButton")
+    }
+
     @ViewBuilder
     private var updateARView: some View {
 //        if arItemRendered || arRendered {
@@ -210,39 +222,16 @@ struct ARSettingView: View {
                     onScaleChanged: { scale in
                         pointOpacity = scale
                         context.perform(ViewARPointcloudOpacityEvent(scale))
-                    }
+                    },
+                    isVisibilityLocked: ViewARVisibilityLock.isLocked(isPointCloudVisible, pointOpacity)
                 )
             }
 
             if isIFCDesignRendered {
-                ARVisibleScaleView(
-                    title: "IFC \("DESIGN".localized(userManager.userLanguage))",
-                    isVisible: isIFCDesignVisible,
-                    scale: $ifcDesignOpacity,
-                    onVisibilityChanged: { visible in
-                        isIFCDesignVisible = visible
-                        context.perform(ViewARDesignVisibleEvent(.ifc, nil, visible))
-                    },
-                    onScaleChanged: { scale in
-                        ifcDesignOpacity = scale
-                        context.perform(ViewARDesignOpacityEvent(.ifc, nil, scale))
-                    }
-                )
+                designSlider(.ifc, visible: $isIFCDesignVisible, opacity: $ifcDesignOpacity)
             }
             if isSCMDesignRendered {
-                ARVisibleScaleView(
-                    title: "SCM \("DESIGN".localized(userManager.userLanguage))",
-                    isVisible: isSCMDesignVisible,
-                    scale: $scmDesignOpacity,
-                    onVisibilityChanged: { visible in
-                        isSCMDesignVisible = visible
-                        context.perform(ViewARDesignVisibleEvent(.scm, nil, visible))
-                    },
-                    onScaleChanged: { scale in
-                        scmDesignOpacity = scale
-                        context.perform(ViewARDesignOpacityEvent(.scm, nil, scale))
-                    }
-                )
+                designSlider(.scm, visible: $isSCMDesignVisible, opacity: $scmDesignOpacity)
             }
         }
         .padding(.vertical, 6)
@@ -254,6 +243,24 @@ struct ARSettingView: View {
         )
     }
     
+    private func designSlider(_ design: ARDesignType, visible: Binding<Bool>, opacity: Binding<CGFloat>) -> some View {
+        ARVisibleScaleView(
+            title: "\(design.rawValue.uppercased()) \("DESIGN".localized(userManager.userLanguage).lowercased())",
+            isVisible: visible.wrappedValue,
+            scale: opacity,
+            onVisibilityChanged: { value in
+                visible.wrappedValue = value
+                context.perform(ViewARDesignVisibleEvent(design, nil, value))
+                onDesignVisibilityChanged(design, value)
+            },
+            onScaleChanged: { value in
+                opacity.wrappedValue = value
+                context.perform(ViewARDesignOpacityEvent(design, nil, value))
+            },
+            isVisibilityLocked: ViewARVisibilityLock.isLocked(visible.wrappedValue, opacity.wrappedValue)
+        )
+    }
+
     // Show loading process of point cloud
     private var loadingProgressPCView: some View {
         HStack {
@@ -305,3 +312,8 @@ struct ARSettingView: View {
     }
 }
 
+enum ARCalibrationButtonVisibility {
+    static func isVisible(arRendered: Bool, arItemRendered: Bool) -> Bool {
+        arRendered && arItemRendered
+    }
+}

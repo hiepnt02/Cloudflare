@@ -12,7 +12,7 @@ struct FileInfoView: View {
     
     @Binding var fileName: String
     @Binding var fileSize: String
-    
+
     var body: some View {
         HStack {
             Image("icFolderZip")
@@ -28,7 +28,7 @@ struct FileInfoView: View {
                     .lineLimit(1)
                     .foregroundColor(userManager.setting.textColor)
                     .font(.subheadline)
-                
+
                 Text(fileSize)
                     .lineLimit(1)
                     .foregroundColor(userManager.setting.textColor)

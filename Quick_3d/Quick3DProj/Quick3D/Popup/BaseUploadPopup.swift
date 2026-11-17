@@ -31,17 +31,17 @@ struct BaseUploadPopup: View {
     @Binding var groupwareTypeSelected: GroupwareType
     @Binding var dataTypeSelected: UploadCase
 
-    var handler: (String, Bool, Cat?, URL?, String, Bool, Bool, Bool, Bool, String?) -> Void
+    var handler: (String, Cat?, URL?, String, [String], String?) -> Void
     var onUploadGroupware: (
         Cat,
         String,         // JobsiteId
         GroupwareModel,
         String          // AR Color
     ) -> Void
-    var onUploadComplete: () -> Void
 
     @EnvironmentObject var productData: ProductData
     @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var uploadQueue: UploadQueueManager
 
     // MARK: - State
 
@@ -50,9 +50,11 @@ struct BaseUploadPopup: View {
     @State private var selectedFileURL: URL?
     @State private var model3DFileURL: URL?
     @State private var lasFileURL: URL?
+    @State private var dxfFileURL: URL?
     @State private var tifFileURL: URL?
     @State private var xmlFileURL: URL?
     @State private var jsonFileURL: URL?
+    @State private var plyFileUrl: URL?
 
     @State private var arColor = Color(hex: BaseUploadPopup.defaultARColor)
     @State private var selectedFileName: String = ""
@@ -64,13 +66,11 @@ struct BaseUploadPopup: View {
     @State private var isValidUploadLas = false
     @State private var isValidUploadTif = false
     @State private var isValidUploadGeo = false
+    @State private var isValidUploadPly = false
     @State private var isUploading = false
     @StateObject private var popoverManager = PopoverManager()
 
     private let isIPhone = UIDevice.current.isIphone
-
-    /// No control in this popup toggles the AR marker, so uploads always opt out.
-    private let useARMarker = false
 
     private static let defaultARColor = "#50E3C2"
 
@@ -106,10 +106,11 @@ struct BaseUploadPopup: View {
     private var dataTypes: [DataType] {
         let all: [DataType] = [
             DataType(type: .Ifc,  label: "DESIGN_DATA_IFC".localized(userManager.userLanguage)),
-            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
+//            DataType(type: .Model3D, label: "DESIGN_DATA_FBX".localized(userManager.userLanguage)),
             DataType(type: .Las,  label: "POINT_DATA_LAS".localized(userManager.userLanguage)),
             DataType(type: .Tif,  label: "GEO_TIF".localized(userManager.userLanguage)),
-            DataType(type: .Json, label: "GEO_JSON".localized(userManager.userLanguage))
+            DataType(type: .Json, label: "GEO_JSON".localized(userManager.userLanguage)),
+//            DataType(type: .Ply,  label: "GAUSSIAN_SPLATTING_PLY".localized(userManager.userLanguage))
         ]
         return isCurrentAR ? all : all.filter { $0.type != .Las }
     }
@@ -137,7 +138,6 @@ struct BaseUploadPopup: View {
                     width: UIScreen.main.bounds.width * 0.70,
                     height: UIScreen.main.bounds.height * (isKeyboardShow ? 0.55 : 0.80)
                 )
-                .disabled(isUploading)
             }
         }
         .onTapGesture {
@@ -161,24 +161,13 @@ struct BaseUploadPopup: View {
             case .Las:  lasSection
             case .Tif:  geoTifSection
             case .Json: geoJsonSection
+            case .Ply:  plySection
             }
         }
         .padding(.all, sectionSpacing)
         .background(userManager.setting.themeColor)
         .frame(width: isIPhone ? 680 : 700)
         .border(.gray, width: 1)
-        .overlay {
-            if isUploading {
-                ZStack {
-                    Color.black.opacity(0.3)
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .tint(.white)
-                        .padding(.top, 80)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
         .onAppear {
             dataTypeSelected = .Ifc
             arColor = Color(hex: currentARColor)
@@ -306,7 +295,9 @@ private extension BaseUploadPopup {
                 onClickUpload: handleUploadModel3D
             )
         }
-        .onChange(of: model3DFileURL) { _ in isValidUploadModel3D = model3DFileURL != nil }
+        .onChange(of: model3DFileURL) { _ in
+            isValidUploadModel3D = model3DFileURL != nil
+        }
     }
 
     var lasSection: some View {
@@ -314,17 +305,41 @@ private extension BaseUploadPopup {
             sectionLabel("UPLOAD_FROM_LOCAL_OR_FROM_GROUPWARE".localized(userManager.userLanguage))
 
             fileSourceRow(
-                fileTypes: [FileTypes[FileType.las]!],
+                fileTypes: [FileTypes[FileType.las]!, FileTypes[FileType.laz]!, FileTypes[FileType.csv]!, FileTypes[FileType.txt]!],
                 fileURL: $lasFileURL,
                 isValidUpload: $isValidUploadLas
             )
             .padding(.bottom, contentSpacing)
+
+//            HStack {
+//                sectionLabel("PLEASE_SELECT_DXF_FILE".localized(userManager.userLanguage))
+//
+//                HelpPopoverView(
+//                    manager: popoverManager,
+//                    id: "dxf_notice",
+//                    content: "DXF_FILE_NOTICE".localized(userManager.userLanguage),
+//                    frameWidth: 300,
+//                    frameHeight: 50,
+//                    offsetValue: CGSize(width: 0, height: -50),
+//                    onClicked: {}
+//                )
+//                .zIndex(3)
+//            }
+//
+//            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.dxf]!]) { fileUrl, _ in
+//                dxfFileURL = fileUrl
+//            }
+//            .padding(.leading, contentSpacing)
+//            .padding(.bottom, contentSpacing)
 
             bottomButtons(
                 isValidUpload: $isValidUploadLas,
                 onClickCancel: resetLasSelection,
                 onClickUpload: handleUploadLas
             )
+        }
+        .onChange(of: lasFileURL) { _ in
+            isValidUploadLas = lasFileURL != nil
         }
         .onChange(of: groupwareSelected) { newGroupware in
             applyGroupwareSelection(
@@ -348,7 +363,10 @@ private extension BaseUploadPopup {
 
             sectionLabel("PLEASE_SELECT_XML_FILE".localized(userManager.userLanguage))
 
-            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.xml]!]) { fileUrl, _ in
+            ButtonSelectFile(
+                buttonText: nil,
+                fileTypes: [FileTypes[FileType.xml]!]
+            ) { fileUrl, _ in
                 xmlFileURL = fileUrl
             }
             .padding(.leading, contentSpacing)
@@ -363,15 +381,22 @@ private extension BaseUploadPopup {
                 onClickUpload: handleUploadHeatmap
             )
         }
-        .onChange(of: tifFileURL) { _ in isValidUploadTif = isTifSelectionComplete }
-        .onChange(of: xmlFileURL) { _ in isValidUploadTif = isTifSelectionComplete }
+        .onChange(of: tifFileURL) { _ in
+            isValidUploadTif = isTifSelectionComplete
+        }
+        .onChange(of: xmlFileURL) { _ in
+            isValidUploadTif = isTifSelectionComplete
+        }
     }
 
     var geoJsonSection: some View {
         VStack(alignment: .leading) {
             sectionLabel("PLEASE_SELECT_FILE".localized(userManager.userLanguage))
 
-            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.json]!]) { fileUrl, _ in
+            ButtonSelectFile(
+                buttonText: nil,
+                fileTypes: [FileTypes[FileType.json]!]
+            ) { fileUrl, _ in
                 jsonFileURL = fileUrl
             }
             .padding(.bottom, contentSpacing)
@@ -382,7 +407,33 @@ private extension BaseUploadPopup {
                 onClickUpload: handleUploadGeoJson
             )
         }
-        .onChange(of: jsonFileURL) { _ in isValidUploadGeo = jsonFileURL != nil }
+        .onChange(of: jsonFileURL) { _ in
+            isValidUploadGeo = jsonFileURL != nil
+        }
+    }
+    
+    var plySection: some View {
+        VStack(alignment: .leading) {
+            sectionLabel("PLEASE_SELECT_FILE".localized(userManager.userLanguage))
+            
+            ButtonSelectFile(
+                buttonText: nil,
+                fileTypes: [FileTypes[FileType.ply]!]
+            ) { fileUrl, fileName in
+                plyFileUrl = fileUrl
+            }
+            
+            bottomButtons(
+                isValidUpload: $isValidUploadPly,
+                onClickCancel: {
+                    plyFileUrl = nil
+                },
+                onClickUpload: {
+                    handleUploadPly()
+                }
+            )
+        }
+        .onChange(of: plyFileUrl) { _ in isValidUploadPly = plyFileUrl != nil }
     }
 }
 
@@ -421,8 +472,11 @@ private extension BaseUploadPopup {
             groupwareButton(type: .design, imageName: "icDesign3D")
 
             if !selectedFileName.isEmpty {
-                FileInfoView(fileName: $selectedFileName, fileSize: $selectedFileSize)
-                    .environmentObject(userManager)
+                FileInfoView(
+                    fileName: $selectedFileName,
+                    fileSize: $selectedFileSize
+                )
+                .environmentObject(userManager)
             }
         }
     }
@@ -487,7 +541,6 @@ private extension BaseUploadPopup {
         guard var cat = cat else { return }
         guard !projectName.isEmpty else { return }
         guard let jobsite = jobsite else { return }
-        isValidUploadIfc = false
 
         guard ProductUtil.validationCheck(projectName) else {
             APAlert.shared.showAlert(
@@ -495,7 +548,6 @@ private extension BaseUploadPopup {
                 message: "PROHIBITED_CHARACTER_MESSAGE".localized(userManager.userLanguage),
                 buttonTitle: "CLOSE".localized(userManager.userLanguage)
             )
-            isValidUploadIfc = true
             return
         }
 
@@ -506,40 +558,39 @@ private extension BaseUploadPopup {
 
         if let groupwareSelected = groupwareSelected {
             onUploadGroupware(cat, jobsite.id, groupwareSelected, newARColor)
-        } else {
-            cat.title = projectName
-            cat.jobsiteId = jobsite.id
-
-            guard let fileExtension = selectedFileURL?.pathExtension else { return }
-            switch fileExtension {
-            case "las":
-                cat.las_file = selectedFileName
-            case "xml", "ifc":
-                cat.ifc_file = selectedFileName
-            default:
-                break
-            }
-
-            upload(
-                cat: cat,
-                fileURL: selectedFileURL,
-                fileName: selectedFileName,
-                arColor: newARColor
-            )
+            projectName = ""
+            resetIfcSelection()
+            show = false
+            return
         }
 
-        projectName = ""
-        resetIfcSelection()
-        show = false
+        cat.title = projectName
+        cat.jobsiteId = jobsite.id
+
+        guard let fileExtension = selectedFileURL?.pathExtension else { return }
+        switch fileExtension {
+        case "las":
+            cat.las_file = selectedFileName
+        case "xml", "ifc":
+            cat.ifc_file = selectedFileName
+        default:
+            break
+        }
+
+        upload(
+            cat: cat,
+            fileURL: selectedFileURL,
+            fileName: selectedFileName,
+            arColor: newARColor
+        )
     }
 
     func handleUploadLas() {
         guard let cat = cat, let jobsite = jobsite else { return }
-        isValidUploadLas = false
         let arColor = currentARColor
 
-        // A groupware LAS goes through the queued upload path.
-        if let groupwareSelected = groupwareSelected {
+        // A groupware LAS without a local DXF goes through the queued upload path.
+        if let groupwareSelected = groupwareSelected, dxfFileURL == nil {
             onUploadGroupware(cat, jobsite.id, groupwareSelected, arColor)
             resetLasSelection()
             show = false
@@ -547,29 +598,32 @@ private extension BaseUploadPopup {
         }
 
         let source: ARUploadSource
-        if let lasURL = lasFileURL {
-            source = .local(file1URL: lasURL, file2URL: nil)
+        if let groupwareSelected = groupwareSelected, let dxfURL = dxfFileURL {
+            source = .groupwareWithLocalFile(groupwareSelected, file2URL: dxfURL)
+        } else if let lasURL = lasFileURL {
+            source = .local(file1URL: lasURL, file2URL: dxfFileURL)
         } else {
             return
         }
 
-        isUploading = true
-        productData.uploadARData(
-            cat: cat,
-            jobsiteId: jobsite.id,
-            arColor: arColor,
-            source: source
-        ) { _ in
-            isUploading = false
-            resetLasSelection()
-            show = false
-            onUploadComplete()
-        }
+        uploadQueue.enqueue(
+            UploadJob(
+                cat: cat,
+                jobsiteId: jobsite.id,
+                kind: .arData(
+                    UploadJob.ARDataParameters(
+                        source: source,
+                        arColor: arColor
+                    )
+                )
+            )
+        )
+        resetLasSelection()
+        show = false
     }
 
     func handleUploadModel3D() {
         guard let model3DUrl = model3DFileURL else { return }
-        isValidUploadModel3D = false
 
         upload(
             cat: cat,
@@ -577,8 +631,6 @@ private extension BaseUploadPopup {
             fileName: model3DUrl.lastPathComponent,
             arColor: currentARColor
         )
-        resetModel3DSelection()
-        show = false
     }
 
     func handleUploadHeatmap() {
@@ -593,6 +645,9 @@ private extension BaseUploadPopup {
         let zipFileURL = documentsURL.appendingPathComponent("heatmap.zip")
 
         do {
+            if FileManager.default.fileExists(atPath: zipFileURL.path) {
+                try FileManager.default.removeItem(at: zipFileURL)
+            }
             let archive = try Archive(url: zipFileURL, accessMode: .create)
             try archive.addEntry(with: tifUrl.lastPathComponent, relativeTo: tifUrl.deletingLastPathComponent())
             try archive.addEntry(with: xmlUrl.lastPathComponent, relativeTo: xmlUrl.deletingLastPathComponent())
@@ -601,9 +656,9 @@ private extension BaseUploadPopup {
                 cat: cat,
                 fileURL: zipFileURL,
                 fileName: zipFileURL.lastPathComponent,
-                arColor: currentARColor
+                arColor: currentARColor,
+                sourceFileNames: [tifUrl.lastPathComponent, xmlUrl.lastPathComponent]
             )
-            show = false
         } catch {
             print("Error creating or adding to archive: \(error.localizedDescription)")
         }
@@ -618,24 +673,45 @@ private extension BaseUploadPopup {
             fileName: jsonUrl.lastPathComponent,
             arColor: currentARColor
         )
-        show = false
     }
 
-    func upload(cat: Cat?, fileURL: URL?, fileName: String, arColor: String) {
+    func upload(
+        cat: Cat?,
+        fileURL: URL?,
+        fileName: String,
+        arColor: String,
+        sourceFileNames: [String] = []
+    ) {
         let fileNameFormatted = fileName.removingPercentEncoding ?? fileName
+        defer {
+            resetDataTypeSelection()
+            show = false
+        }
         handler(
             jobsite?.id ?? "",
-            useARMarker,
             cat,
             fileURL,
             fileNameFormatted,
-            false,
-            false,
-            false,
-            true,
+            sourceFileNames,
             arColor
         )
     }
+    
+    func handleUploadPly() {
+        guard let plyUrl = plyFileUrl else {
+            return
+        }
+        
+        upload(
+            cat: cat,
+            fileURL: plyUrl,
+            fileName: plyUrl.lastPathComponent,
+            arColor: currentARColor
+        )
+        
+        show = false
+    }
+    
 }
 
 // MARK: - Selection state
@@ -687,6 +763,7 @@ private extension BaseUploadPopup {
     func resetLasSelection() {
         clearSharedSelection()
         lasFileURL = nil
+        dxfFileURL = nil
         isValidUploadLas = false
     }
 

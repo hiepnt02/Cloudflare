@@ -136,6 +136,9 @@ struct CaptureScreen: View {
                 ImageCompressionProcessor.current.clearAll()
             }
         }
+        .onChange(of: isShowMenuSetting || isExportPreview) { value in
+            cameraObject.isPopupPresented = value
+        }
         .onChange(of: arObject.status) { value in
             cameraObject.isShowHomeButton = arObject.status == .initial || arObject.status == .stopped
         }

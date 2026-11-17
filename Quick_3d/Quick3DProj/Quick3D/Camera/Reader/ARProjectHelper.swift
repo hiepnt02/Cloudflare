@@ -153,6 +153,16 @@ class ARProjectHelper {
         }
     }
     
+    public static func makePointCloudMaterial(writesDepth: Bool) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.isDoubleSided = true
+        material.blendMode = .alpha
+        material.readsFromDepthBuffer = true
+        material.writesToDepthBuffer = writesDepth
+        return material
+    }
+
     public func createNode(positions: [SIMD3<Float>], colors: [SIMD3<Float>], program: MetalViewARProgram? = nil) -> SCNNode {
         let pointSource = SCNGeometrySource(
             data: Data(bytes: positions, count: positions.count * MemoryLayout<SIMD3<Float>>.size),
@@ -194,6 +204,7 @@ class ARProjectHelper {
         let geometry = SCNGeometry(sources: [pointSource, colorSource], elements: [element])
         
         if let p = program {
+            geometry.firstMaterial = Self.makePointCloudMaterial(writesDepth: p.pointCloudNodeOpacity >= 1.0)
             geometry.program = p
         } else {
             let material = SCNMaterial()

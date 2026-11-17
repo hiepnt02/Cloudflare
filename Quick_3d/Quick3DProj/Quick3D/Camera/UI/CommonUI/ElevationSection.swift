@@ -36,13 +36,13 @@ struct ElevationSection: View {
                                     .font(.system(size: 12))
                             }
                             
-                            Text("\(getElevationLabel(item))")
+                            Text(item.displayLabel)
                         }
                     }
                 }
             } label: {
                 HStack {
-                    Text("\(getElevationLabel(currentElev))")
+                    Text(currentElev.displayLabel)
                         .font(.system(size: 16))
                         .foregroundColor(userManager.setting.textColor)
                     
@@ -60,28 +60,22 @@ struct ElevationSection: View {
         .frame(maxWidth: .infinity)
     }
     
-    private func getElevationLabel(_ elevation: ElevationValue) -> String {
-        switch elevation {
-        case .ang0:
-            return "0\u{00B0}"
-        case .ang5:
-            return "5\u{00B0}"
-        case .ang10:
-            return "10\u{00B0}"
-        case .ang15:
-            return "15\u{00B0}"
-        case .ang20:
-            return "20\u{00B0}"
-        case .ang25:
-            return "25\u{00B0}"
-        case .ang30:
-            return "30\u{00B0}"
-        case .ang35:
-            return "35\u{00B0}"
-        case .ang40:
-            return "40\u{00B0}"
-        default:
-            return ""
+}
+
+extension ElevationValue {
+    /// Nhãn góc ngẩng, ví dụ "15\u{00B0}".
+    var displayLabel: String {
+        switch self {
+        case .ang0:  return "0\u{00B0}"
+        case .ang5:  return "5\u{00B0}"
+        case .ang10: return "10\u{00B0}"
+        case .ang15: return "15\u{00B0}"
+        case .ang20: return "20\u{00B0}"
+        case .ang25: return "25\u{00B0}"
+        case .ang30: return "30\u{00B0}"
+        case .ang35: return "35\u{00B0}"
+        case .ang40: return "40\u{00B0}"
+        default:     return ""
         }
     }
 }

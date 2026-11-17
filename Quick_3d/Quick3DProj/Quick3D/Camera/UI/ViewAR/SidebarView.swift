@@ -21,20 +21,34 @@ struct SidebarView: View {
     @Binding var pointCloudScale: Double
     @Binding var isExpandLayers: Bool
     @Binding var isPointCloudRendered: Bool
+    var pointCloudOpacity: CGFloat = 1.0
+    @Binding var isIFCDesignVisible: Bool
+    @Binding var ifcDesignOpacity: CGFloat
+    @Binding var isSCMDesignVisible: Bool
+    @Binding var scmDesignOpacity: CGFloat
     
     @State private var searchText: String = ""
     @State private var rootOpacity: Double = LayerNode.defaultOpacity
     
+    // Sử dụng computed property để lọc dữ liệu, giúp body sạch hơn
     private func layers(for design: ARDesignType) -> [LayerNode] {
         design == .ifc ? ifcLayers : scmLayers
     }
 
+    private func visibility(for design: ARDesignType) -> Binding<Bool> {
+        design == .ifc ? $isIFCDesignVisible : $isSCMDesignVisible
+    }
+
+    private func opacity(for design: ARDesignType) -> Binding<CGFloat> {
+        design == .ifc ? $ifcDesignOpacity : $scmDesignOpacity
+    }
+
     private func filteredLayers(for design: ARDesignType) -> [LayerNode] {
-        let nodes = layers(for: design)
+        let layers = layers(for: design)
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return nodes
+            return layers
         }
-        return filterLayersHierarchy(nodes, query: searchText)
+        return filterLayersHierarchy(layers, query: searchText)
     }
     
     var isPortrait: Bool {
@@ -54,6 +68,12 @@ struct SidebarView: View {
             isAnyOpacitySliderOpen = false
             activeOpacityNodeId = nil
         }
+        .onChange(of: ifcDesignOpacity) { value in
+            syncActiveRootOpacity(.ifc, value: value)
+        }
+        .onChange(of: scmDesignOpacity) { value in
+            syncActiveRootOpacity(.scm, value: value)
+        }
     }
     
     // MARK: - View Components
@@ -65,7 +85,7 @@ struct SidebarView: View {
                 Text("LAYERS".localized(userManager.userLanguage))
                     .font(.headline)
                     .foregroundColor(.white)
-
+                
                 // Search Bar
                 searchTextField
                 
@@ -128,9 +148,17 @@ struct SidebarView: View {
                         node: node,
                         onVisibilityChanged: { node, visible in
                             context?.perform(ViewARDesignVisibleEvent(design, node, visible))
+                            if node.parent == nil {
+                                syncDesignVisibility(design, rootId: node.id, visible: visible)
+                            }
                         },
                         onLayerOpacityChanged: { node, scale in
-                            context?.perform(ViewARDesignOpacityEvent(design, node, calculateOpacity(scale)))
+                            if node.parent == nil {
+                                syncDesignOpacity(design, rootId: node.id, scale: scale)
+                            } else {
+                                node.applyOpacity(scale)
+                                context?.perform(ViewARDesignOpacityEvent(design, node, calculateOpacity(scale)))
+                            }
                         },
                         isParentDisabled: false,
                         onToggleExpand: { node in
@@ -138,16 +166,50 @@ struct SidebarView: View {
                         },
                         isAnyOpacitySliderOpen: $isAnyOpacitySliderOpen,
                         activeOpacityNodeId: opacityNodeId(for: design),
-                        sharedOpacity: $rootOpacity
+                        sharedOpacity: $rootOpacity,
+                        isVisibilityLocked: ViewARVisibilityLock.isLocked(visibility(for: design).wrappedValue, opacity(for: design).wrappedValue)
                     )
                     .environmentObject(userManager)
                 }
             }
         }
     }
-
-    // LayerRow operates on unqualified IDs. Keep the global selection scoped
-    // to its design so identical IFC/SCM names cannot activate both sliders.
+    
+    @ViewBuilder
+    private func pointCloudSizeView() -> some View {
+        if isPointCloudRendered {
+            let isVisibilityLocked = ViewARVisibilityLock.isLocked(isPointCloudVisible, pointCloudOpacity)
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: {
+                    isPointCloudVisible.toggle()
+                    context?.perform(ViewARPointcloudVisibleEvent(isPointCloudVisible))
+                }) {
+                    HStack {
+                        Image(systemName: isPointCloudVisible ? "checkmark.square.fill" : "square")
+                            .foregroundColor(isPointCloudVisible ? .blue : .gray)
+                        Text("POINT_CLOUD".localized(userManager.userLanguage))
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                    }
+                }
+                .disabled(isVisibilityLocked)
+                .opacity(isVisibilityLocked ? 0.5 : 1.0)
+                
+                Slider(value: $pointCloudScale, in: 0...1.0)
+                    .tint(.blue)
+                    .onChange(of: pointCloudScale) { newValue in
+                        context?.perform(ViewARChangePointCloudSizeEvent(newValue))
+                    }
+                    .disabled(!isPointCloudVisible)
+                    .opacity(isPointCloudVisible ? 1.0 : 0.5)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
+    // LayerRow uses unqualified IDs; scope the shared selection to its design.
     private func opacityNodeId(for design: ARDesignType) -> Binding<String?> {
         let prefix = "\(design.rawValue):"
         return Binding(
@@ -164,37 +226,28 @@ struct SidebarView: View {
             }
         )
     }
-    
-    @ViewBuilder
-    private func pointCloudSizeView() -> some View {
-        if isPointCloudRendered {
-            VStack(alignment: .leading, spacing: 8) {
-                Button(action: {
-                    isPointCloudVisible.toggle()
-                    context?.perform(ViewARPointcloudVisibleEvent(isPointCloudVisible))
-                }) {
-                    HStack {
-                        Image(systemName: isPointCloudVisible ? "checkmark.square.fill" : "square")
-                            .foregroundColor(isPointCloudVisible ? .blue : .gray)
-                        Text("POINT_CLOUD".localized(userManager.userLanguage))
-                            .font(.system(size: 12))
-                            .foregroundColor(.white)
-                    }
-                }
-                
-                Slider(value: $pointCloudScale, in: 0...1.0)
-                    .tint(.blue)
-                    .onChange(of: pointCloudScale) { newValue in
-                        context?.perform(ViewARChangePointCloudSizeEvent(newValue))
-                    }
-                    .disabled(!isPointCloudVisible)
-                    .opacity(isPointCloudVisible ? 1.0 : 0.5)
-            }
-            .padding(.vertical, 4)
-        }
+
+    private func syncActiveRootOpacity(_ design: ARDesignType, value: CGFloat) {
+        guard let id = opacityNodeId(for: design).wrappedValue,
+              layers(for: design).contains(where: { $0.id == id }) else { return }
+        rootOpacity = Double(value)
+    }
+
+    private func syncDesignOpacity(_ design: ARDesignType, rootId: String, scale: Double) {
+        layers(for: design).first { $0.id == rootId }?.opacity = scale
+        opacity(for: design).wrappedValue = CGFloat(scale)
+        context?.perform(ViewARDesignOpacityEvent(design, nil, scale))
     }
     
-    // MARK: - Helper Functions
+    private func syncDesignVisibility(_ design: ARDesignType, rootId: String, visible: Bool) {
+        // filteredLayers là bản copy khi đang search
+        layers(for: design).first { $0.id == rootId }?.isVisible = visible
+        let anyRootVisible = layers(for: design).contains { $0.isVisible }
+        let designVisible = visibility(for: design)
+        guard anyRootVisible != designVisible.wrappedValue else { return }
+        designVisible.wrappedValue = anyRootVisible
+        context?.perform(ViewARDesignVisibleEvent(design, nil, anyRootVisible))
+    }
     
     private func closeActiveSliders() {
         if isAnyOpacitySliderOpen {

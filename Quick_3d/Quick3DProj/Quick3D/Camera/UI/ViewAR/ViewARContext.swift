@@ -90,8 +90,10 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
                 ifcMaterials = []
                 return
             }
+            prepareDesignMaterials(in: node)
             ifcMaterials = BelowGroundFade.attach(to: node)
             pushGroundPlaneFade()
+            applyDesignRenderState(.ifc)
         }
     }
 
@@ -100,8 +102,10 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     private var ifcMaterials: [SCNMaterial] = []
     var scmNode: SCNNode? {
         didSet {
+            if let node = scmNode { prepareDesignMaterials(in: node) }
             scmMaterials = scmNode.map { BelowGroundFade.attach(to: $0) } ?? []
             pushGroundPlaneFade()
+            applyDesignRenderState(.scm)
         }
     }
     private var scmMaterials: [SCNMaterial] = []
@@ -112,6 +116,13 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     private var isLightOn: Bool = true
     
     weak var previewContext: ViewARPreviewContext?
+
+    private var nodesRenderingOrder: Int = 0
+
+    private enum TransparentOrderOffset {
+        static let design = 1
+        static let pointCloud = 2
+    }
 
     weak var arSceneView: ARSCNView?
     private let sharedOcclusionMaterial: SCNMaterial = {
@@ -268,8 +279,64 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     // MARK: - UI & Node Updates (Main Thread Safe)
     func updatePointCloudOpacity(for node: SCNNode, opacity: CGFloat) {
         project?.program.pointCloudNodeOpacity = Float(opacity)
-        pointCloudNode?.isHidden = opacity == 0
-        self.previewContext?.updateNode(pointCloudNode)
+        DispatchQueue.main.async {
+            self.pointCloudNode?.isHidden = opacity == 0
+            self.applyPointCloudRenderState()
+        }
+    }
+
+    private func applyPointCloudRenderState() {
+        guard let root = pointCloudNode else { return }
+
+        let opacity = project?.program.pointCloudNodeOpacity ?? 1.0
+        let isTransparent = opacity < 1.0
+        let order = nodesRenderingOrder + (isTransparent ? TransparentOrderOffset.pointCloud : 0)
+        let writesDepth = !isTransparent
+
+        let apply: (SCNNode) -> Void = { node in
+            node.renderingOrder = order
+
+            guard let geometry = node.geometry,
+                  geometry.firstMaterial?.writesToDepthBuffer != writesDepth else { return }
+
+            let rebuilt = SCNGeometry(sources: geometry.sources, elements: geometry.elements)
+            rebuilt.firstMaterial = ARProjectHelper.makePointCloudMaterial(writesDepth: writesDepth)
+            rebuilt.program = geometry.program
+            node.geometry = rebuilt
+        }
+
+        apply(root)
+        root.enumerateChildNodes { node, _ in apply(node) }
+        previewContext?.updateNode(root, recursively: true)
+    }
+
+    private func prepareDesignMaterials(in root: SCNNode) {
+        // Instances can share SCM materials. Depth state must stay local to a
+        // layer so changing its opacity cannot alter an opaque sibling.
+        let prepare: (SCNNode) -> Void = { node in
+            guard let geometry = node.geometry,
+                  let copy = geometry.copy() as? SCNGeometry else { return }
+            copy.materials = geometry.materials.map { ($0.copy() as? SCNMaterial) ?? $0 }
+            node.geometry = copy
+        }
+        prepare(root)
+        root.enumerateChildNodes { node, _ in prepare(node) }
+    }
+
+    private func applyDesignRenderState(_ design: ARDesignType) {
+        guard let root = design == .ifc ? ifcNode : scmNode else { return }
+
+        func apply(_ node: SCNNode, inheritedOpacity: CGFloat) {
+            let opacity = inheritedOpacity * node.opacity
+            let isTransparent = opacity < 1.0 ||
+                (node.geometry?.materials.contains { $0.transparency < 1.0 } ?? false)
+            node.renderingOrder = nodesRenderingOrder + (isTransparent ? TransparentOrderOffset.design : 0)
+            node.geometry?.materials.forEach { $0.writesToDepthBuffer = !isTransparent }
+            node.childNodes.forEach { apply($0, inheritedOpacity: opacity) }
+        }
+
+        apply(root, inheritedOpacity: 1.0)
+        previewContext?.updateNode(root, recursively: true)
     }
     
     func setLightNodeVisible(_ visible: Bool) {
@@ -280,7 +347,7 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
         DispatchQueue.main.async {
             let root = design == .ifc ? self.ifcNode : self.scmNode
             if let name = nodeName {
-                let node = root?.childNode(withName: name, recursively: true)
+                let node = root?.name == name ? root : root?.childNode(withName: name, recursively: true)
                 node?.isHidden = !visible
                 self.previewContext?.updateNode(node)
             } else {
@@ -295,15 +362,15 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
             let root = design == .ifc ? self.ifcNode : self.scmNode
             let target: SCNNode?
             if let layer = node {
-                target = root?.childNode(withName: layer.name, recursively: true)
+                target = root?.name == layer.name ? root : root?.childNode(withName: layer.name, recursively: true)
             } else {
                 target = root
             }
             target?.opacity = CGFloat(max(0, min(1, opacity)))
-            self.previewContext?.updateNode(target)
+            self.applyDesignRenderState(design)
         }
     }
-
+    
     func updatePointCloudSize(to newSize: CGFloat) {
         project?.program.pointSize = Float(newSize)
     }
@@ -322,6 +389,12 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
             self.updateAxisPosition()
             self.updateCalculateAccuracy()
         }
+    }
+
+    func applyCalibrationBaseline(position: SIMD3<Float>, eulerAngles: SIMD3<Float>, scale: Float) {
+        self.arPosition = position
+        self.arEulerAngles = eulerAngles
+        updateARPosition(position: .zero, eulerAngles: .zero, scale: scale)
     }
 
     func updateAxisPosition() {
@@ -598,7 +671,8 @@ extension ViewARContext {
                 self?.delegate?.ar(self?.project, didDownload: self?.project?.offset ?? .zero )
             } onLasComplete: { [weak self] in
                 guard let self = self else { return }
-                self.pointCloudNode?.renderingOrder = self.isAROcclusion ? 100 : 0
+                self.nodesRenderingOrder = self.isAROcclusion ? 100 : 0
+                self.applyPointCloudRenderState()
                 self.delegate?.ar(self.project, didDownloadPointCloud: self.project?.offset ?? .zero )
             } onLasProgressChanged: { [weak self] progress in
                 self?.delegate?.ar(self?.project, onPointCloudProgressChanged: progress)
@@ -766,6 +840,7 @@ extension ViewARContext {
     
     private func updateNodesRenderingOrder(to order: Int) {
         // Sử dụng giá trị truyền vào thay vì fix cứng 100
+        nodesRenderingOrder = order
         arNode.renderingOrder = order
         ifcNode?.renderingOrder = order
         scmNode?.renderingOrder = order
@@ -775,6 +850,10 @@ extension ViewARContext {
             node.renderingOrder = order
             node.geometry?.firstMaterial?.readsFromDepthBuffer = true
         }
+
+        applyPointCloudRenderState()
+        applyDesignRenderState(.ifc)
+        applyDesignRenderState(.scm)
     }
 }
 
@@ -1013,7 +1092,7 @@ extension ViewARContext {
     func makeCalibrationModelNode() -> SCNNode {
         let node = arNode.clone()
         node.childNodes
-            .filter { $0.name != nameUSDZNode && $0.name != nameSCMNode }
+            .filter { $0.name != nameUSDZNode }
             .forEach { $0.removeFromParentNode() }
         // arNode carries the live AR placement (position/rotation/addtionalScale).
         // The panel picker and the calibration math both assume the canonical,

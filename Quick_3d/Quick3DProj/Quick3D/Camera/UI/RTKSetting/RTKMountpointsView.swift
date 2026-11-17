@@ -10,7 +10,7 @@ import SwiftUI
 struct RTKMountpointsView: View {
     @EnvironmentObject private var userManager: UserManager
     
-    @EnvironmentObject private var rtk: RTKStateObject
+    @EnvironmentObject private var rtk: RTKProfileDraft
     
     @Binding var isShow: Bool
 

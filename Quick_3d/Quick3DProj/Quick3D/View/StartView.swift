@@ -177,6 +177,7 @@ struct StartView: View {
                     UIApplication.shared.endBackgroundTask(taskIdentifier)
                     taskIdentifier = .invalid
                 }
+                RTKAutoConnectionHelper.shared.cancelRecovery()
                 RTKManager.shared.disconnect(true) {
                     UIApplication.shared.endBackgroundTask(taskIdentifier)
                     taskIdentifier = .invalid

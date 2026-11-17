@@ -671,9 +671,9 @@ class SCMReader: ARProjectHelper {
 
     // MARK: - Layer list
 
-    /// The actual source tree, with stable lookup names independent of labels.
+    /// The source tree under the file row, with stable scene-node lookup names.
     private func buildLayers(_ roots: [SCNNode], displayNames: [String: String]) -> [LayerNode] {
-        var ordered = roots.map { ($0, 0) }
+        var ordered = roots.map { ($0, 1) }
         var cursor = 0
         while cursor < ordered.count {
             let (node, depth) = ordered[cursor]
@@ -687,6 +687,9 @@ class SCMReader: ARProjectHelper {
             let children = node.childNodes.compactMap { child in
                 child.name.flatMap { layersByName[$0] }
             }
+            // Keep groups with drawable descendants, but omit empty entities
+            // whose visibility cannot change anything in the rendered model.
+            guard node.geometry != nil || !children.isEmpty else { continue }
             layersByName[name] = LayerNode(
                 id: name,
                 name: name,

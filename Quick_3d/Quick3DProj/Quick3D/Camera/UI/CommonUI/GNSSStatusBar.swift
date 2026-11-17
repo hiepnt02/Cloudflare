@@ -136,7 +136,14 @@ struct GNSSStatusBar: View {
         HStack(spacing: 12) {
             // Battery
             VStack(alignment: .center, spacing: 2) {
-                if case .battery(let message) = rtk.batteryMessage {
+                if rtk.isWaitingForSignal {
+                    Image("ic_battery_default")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 16, height: 11)
+                    Text(rtkNotAvailableText)
+                        .font(.system(size: 15))
+                } else if case .battery(let message) = rtk.batteryMessage {
                     BatteryGaugeView(percentage: message.percentage)
                     Text("\(message.percentage)%")
                         .font(.system(size: 15))
@@ -160,7 +167,7 @@ struct GNSSStatusBar: View {
             VStack(alignment: .center, spacing: 0) {
                 Image("ic_satellite_white")
                     .frame(width: 16, height: 16)
-                Text("\(satelliteCountToDisplay)")
+                Text(rtk.isWaitingForSignal ? rtkNotAvailableText : "\(rtk.satelliteCountToDisplay)")
                     .font(.system(size: 12))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -171,16 +178,18 @@ struct GNSSStatusBar: View {
     }
 
     private func isConnectingToVidoc() -> Bool {
-        return rtk.isReady
+        return rtk.isReady || rtk.isWaitingForSignal
     }
-    
-    private var satelliteCountToDisplay: Int {
-        let pvtCount = rtk.satelliteMessagePVT?.satelliteCount ?? 0
+}
+
+extension RTKObject {
+    var satelliteCountToDisplay: Int {
+        let pvtCount = satelliteMessagePVT?.satelliteCount ?? 0
         
         if pvtCount > 0 {
             return pvtCount
         } else {
-            return rtk.GGAMessage?.satelliteCount ?? 0
+            return GGAMessage?.satelliteCount ?? 0
         }
     }
 }

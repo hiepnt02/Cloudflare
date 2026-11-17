@@ -95,7 +95,7 @@ final class ProductData: ObservableObject {
     private var cancelBag = Set<AnyCancellable>()
     var currentSearchStr = ""
     var currentSelectStatus: Status = .all
-    var sortOption: SortOption = UserSession.sortOption
+    var sortOption: SortOption = .capturedDate
     private var lastFetchedOnlineProjects: [Project] = []
     private var lastFetchStatus: Status = .all
     private var lastFetchFromDate: Date? = nil
@@ -105,6 +105,7 @@ final class ProductData: ObservableObject {
     private var lastFetchRtkFilterMode: Int = 2
     private var lastSearchResult = UserSession.products
     private var requests = [DataRequest]()
+    private var arUploadRequest: DataRequest?
     /// Server projects whose DELETE request is still in flight — excluded from
     /// fetch results so a refresh cannot resurrect a just-deleted row.
     private var pendingDeleteProjectIds = Set<String>()
@@ -116,7 +117,7 @@ final class ProductData: ObservableObject {
     private let pjManifestFileName = "projectManifest.json"
     private let catchLogFileName = "catchLog.ndjson"
     private let thumbnailFileName = "thumbnail.png"
-    var uploadProjectQueue = ProjectUploadQueue()
+    var onProjectsRemoved: (([String]) -> Void)?
 
     var groupFormat: String {
         groupIndex.displayFormat
@@ -503,9 +504,9 @@ final class ProductData: ObservableObject {
         ids.forEach { id in
             products.removeAll(where: { $0.id == id })
             lastSearchResult.removeAll(where: { $0.id == id })
-            // Should also remove project in queue
-            uploadProjectQueue.dequeue(catId: id)
         }
+        // Should also remove project in queue
+        onProjectsRemoved?(Array(ids))
         UserSession.products =  UserSession.products.filter { !ids.contains($0.id) }
         updateDisplayProduct()
 
@@ -1146,6 +1147,7 @@ final class ProductData: ObservableObject {
         jobsiteId: String,
         arColor: String,
         source: ARUploadSource,
+        progress progressHandler: ((Double) -> Void)? = nil,
         completion: @escaping (AFDataResponse<Any>) -> Void
     ) {
         let url = URL(string: Constant.baseUrl + "api/v1/project/\(cat.projectId ?? "")/ar")!
@@ -1176,17 +1178,21 @@ final class ProductData: ObservableObject {
             var fields = commonARFields(jobsiteId: jobsiteId, cat: cat, arColor: arColor)
             fields["uploadFileName"] = file1URL.lastPathComponent
             if let f2URL = file2URL { fields["uploadFileName2"] = f2URL.lastPathComponent }
-            AF.upload(multipartFormData: { form in
+            let req = AF.upload(multipartFormData: { form in
                 form.appendTextFields(fields)
                 form.append(file1URL, withName: "uploadFile", fileName: file1URL.lastPathComponent, mimeType: "application/octet-stream")
                 if let f2URL = file2URL {
                     form.append(f2URL, withName: "uploadFile2", fileName: f2URL.lastPathComponent, mimeType: "application/octet-stream")
                 }
             }, to: url, method: .post)
-            .responseJSON { response in
+            .uploadProgress { progressHandler?($0.fractionCompleted) }
+            .responseJSON { [weak self] response in
                 debugPrint(response)
+                self?.arUploadRequest = nil
                 completion(response)
             }
+            arUploadRequest = req
+            requests.append(req)
 
         case .groupwareWithLocalFile(let groupware, let file2URL):
             var fields = commonARFields(jobsiteId: jobsiteId, cat: cat, arColor: arColor)
@@ -1205,6 +1211,11 @@ final class ProductData: ObservableObject {
                 completion(response)
             }
         }
+    }
+
+    func cancelARUpload() {
+        arUploadRequest?.cancel()
+        arUploadRequest = nil
     }
 
     private func commonARFields(jobsiteId: String, cat: Cat, arColor: String) -> [String: String] {
@@ -1336,7 +1347,7 @@ extension ProductData {
     ) -> Parameters {
         var params: Parameters = [
             "status": status == .uploadWating ? Status.all.value : status.value,
-            "sortBy": sortOption.paramValue()
+            "sortBy": sortOption.rawValue
         ]
         if let userId = selectedUser?.userId {
             params["userId"] = userId
