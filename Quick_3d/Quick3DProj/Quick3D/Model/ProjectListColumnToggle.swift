@@ -43,7 +43,7 @@ struct ProjectListColumnLayout {
     static let totalParts = 24
 
     static let displayOrder: [ProjectListColumnToggle] = [
-        .name, .jobsite, .photographer, .capturedDate, .uploadDate, .status
+        .name, .jobsite, .photographer, .type, .capturedDate, .uploadDate, .photo, .status
     ]
 
     static func ratio(_ column: ProjectListColumnToggle) -> Int {

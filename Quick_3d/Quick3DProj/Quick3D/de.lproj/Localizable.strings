@@ -34,6 +34,9 @@
 "COORDINATE_CHANGE_PROCESSING" = "Koordinatensystem oder \nKoordinaten Konvertierung wird verarbeitet";
 "CMSG00004" = "SfM-Verarbeitung";
 "CONVERT_COORD_SYSTEM" = "Koordinatensystem wird umgewandelt";
+"REMOVING_POINT_CLOUD" = "Punktwolke entfernen";
+"CONVERTING_TO_TEXT" = "in Text umwandeln";
+"POINT_CLOUD_DIVISION" = "Während der Teilung der Punktwolke";
 "ACCURACY_VERIFY_COMP" = "Genauigkeitsvalidierung abgeschlossen";
 "DASHBOARD_UPLOAD_COMPLETE" = "Punktwolke Hochladen abgeschlossen";
 "Details" = "Einzelheiten";

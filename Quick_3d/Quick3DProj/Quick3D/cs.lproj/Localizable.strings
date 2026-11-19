@@ -34,6 +34,9 @@
 "COORDINATE_CHANGE_PROCESSING" = "Souřadnicový systém nebo \nsouřadnice Konverze probíhá";
 "CMSG00004" = "Zpracování SfM";
 "CONVERT_COORD_SYSTEM" = "Převod souřadnicového systému";
+"REMOVING_POINT_CLOUD" = "Odstranění mračna bodů";
+"CONVERTING_TO_TEXT" = "převod na text";
+"POINT_CLOUD_DIVISION" = "Při dělení mračna bodů";
 "ACCURACY_VERIFY_COMP" = "Potvrzení přesnosti dokončeno";
 "DASHBOARD_UPLOAD_COMPLETE" = "Mraku bodů Nahrávání dokončeno";
 "Details" = "Podrobnosti";

@@ -32,8 +32,6 @@ struct ARSettingView: View {
     
     @Binding var isARObjectVisisble: Bool
     @Binding var arObjectScale: CGFloat
-    /// Đối tượng đang hiển thị; rỗng thì nút calibration bị disable.
-    let calibrationTargets: Set<CalibrationTarget>
     var onARObjectVisibilityChanged: (Bool) -> Void = { _ in }
     var onCalibrationTapped: () -> Void = {}
     
@@ -85,8 +83,8 @@ struct ARSettingView: View {
                                 isPreview = true
                             }
 
-                            if ARCalibrationButtonVisibility.isVisible(arRendered: arRendered, arItemRendered: arItemRendered, isPointCloudRendered: isPointCloudRendered) {
-                                calibrationButton(isEnabled: !calibrationTargets.isEmpty)
+                            if ARCalibrationButtonVisibility.isVisible(arRendered: arRendered, arItemRendered: arItemRendered) {
+                                calibrationButton
                             }
                         }
                         
@@ -155,7 +153,7 @@ struct ARSettingView: View {
         }
     }
     
-    private func calibrationButton(isEnabled: Bool) -> some View {
+    private var calibrationButton: some View {
         Button(action: onCalibrationTapped) {
             Image("manual_calibration")
                 .renderingMode(.template)
@@ -168,8 +166,6 @@ struct ARSettingView: View {
                 .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 2))
                 .contentShape(Circle())
         }
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.5)
         .accessibilityIdentifier("calibrationButton")
     }
 
@@ -306,7 +302,7 @@ struct ARSettingView: View {
 }
 
 enum ARCalibrationButtonVisibility {
-    static func isVisible(arRendered: Bool, arItemRendered: Bool, isPointCloudRendered: Bool) -> Bool {
-        arRendered && (arItemRendered || isPointCloudRendered)
+    static func isVisible(arRendered: Bool, arItemRendered: Bool) -> Bool {
+        arRendered && arItemRendered
     }
 }

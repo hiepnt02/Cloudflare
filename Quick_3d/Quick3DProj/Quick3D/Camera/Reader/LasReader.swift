@@ -282,12 +282,6 @@ class LasReader: ARProjectHelper {
             return .zero
         }
     }
-
-    /// K with (easting, height, -northing) = vertex position + K (vertices are relative to
-    /// the header center, the node sits at the origin). nil until the header is read.
-    var pointsGeoOrigin: SIMD3<Double>? {
-        return header?.offset
-    }
     
     init(projectId: String, isAR: Bool = false) {
         self.url = URL(string: Constant.baseUrl + "api/v1/project/\(projectId)/\(isAR ? "ARdownload/LAS" : "ZipDownloadLasFile")")!

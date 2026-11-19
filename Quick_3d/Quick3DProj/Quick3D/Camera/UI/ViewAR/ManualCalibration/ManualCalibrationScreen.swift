@@ -10,7 +10,7 @@ struct ManualCalibrationScreen: View {
 
     let parentContext: ViewARContext
 
-    let calibrationModel: SCNNode
+    let panelModel: SCNNode
 
     var onCalibrationComplete: (CalibrationResult) -> Void
 
@@ -19,20 +19,7 @@ struct ManualCalibrationScreen: View {
     @State private var context = ManualCalibrationContext()
 
     /// Bản đọc của state trong context, cập nhật qua ManualCalibrationDelegate.
-    @State private var selection: CalibrationSelection
-
-    init(
-        parentContext: ViewARContext,
-        calibrationModel: SCNNode,
-        onCalibrationComplete: @escaping (CalibrationResult) -> Void,
-        onDismiss: @escaping () -> Void
-    ) {
-        self.parentContext = parentContext
-        self.calibrationModel = calibrationModel
-        self.onCalibrationComplete = onCalibrationComplete
-        self.onDismiss = onDismiss
-        _selection = State(initialValue: CalibrationSelection())
-    }
+    @State private var selection = CalibrationSelection()
 
     @StateObject private var cameraObject = CameraObject()
 
@@ -98,7 +85,7 @@ struct ManualCalibrationScreen: View {
                 .onLoad {
                     cameraObject.isReady = true
                     context.calibrationDelegate = self
-                    context.begin(parent: parentContext, model: calibrationModel)
+                    context.begin(parent: parentContext, model: panelModel)
                 }
 
             if selection.step.isCameraTapActive {
@@ -160,7 +147,7 @@ struct ManualCalibrationScreen: View {
         let panel = CalibrationPanelView(
             context: $context,
             selection: selection,
-            model: calibrationModel,
+            model: panelModel,
             instructionText: instructionKey.localized(userManager.userLanguage)
         )
         return Group {

@@ -27,9 +27,7 @@ fileprivate enum SharedFormatter {
     static let sessionDate: DateFormatter = {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.calendar = Calendar(identifier: .gregorian)
-        df.timeZone = .autoupdatingCurrent
+        df.timeZone = TimeZone(identifier: "UTC")
         return df
     }()
 }
@@ -57,7 +55,12 @@ class CaptureSession {
         RTKManager.shared.id = String.randomHexNumber(length: 64)
         AccurateClock.shared.reset()
 
-        session.sessionLogger.logOperation("cameraStarted", UserSession.shared.captureSettingsLogDetail)
+        session.sessionLogger.logOperation("cameraStarted", [
+            "isRTK": isRTK,
+            "imageResolution": "\(session.imageResolution)",
+            "overlapRate": session.overlapRate,
+            "isSaveMesh": isSaveMesh
+        ])
     }
     
     static func stop() {
@@ -110,7 +113,15 @@ class CaptureSession {
     
     var frames: [FrameMetadata] = []
     var metas: [JpegMetadataCache] = []
-    
+
+    private(set) var correctedRoot: LocationModel?
+    private(set) var correctedLocations: [ImageLocation] = []
+
+    func setCorrectedLocations(root: LocationModel, locations: [ImageLocation]) {
+        correctedRoot = root
+        correctedLocations = locations
+    }
+
     private let lock = NSLock()
     
     // MARK: Getters for Loggers
@@ -204,7 +215,6 @@ class CaptureSession {
         
         self.pointClouds = .init(spacing: pointCloudsSettings.spacing, pointSize: pointCloudsSettings.pointSize)
         self.cameras = .init(bufferSize: 1_000)
-        self.pointClouds.writer = self.pointGLTFWriter
     }
     
     func add(_ frame: FrameMetadata, meta: JpegMetadataCache) {
@@ -266,7 +276,48 @@ class CaptureSession {
         pointClouds.data = []
     }
     
-    func exportPointClouds() {
+    var isEligibleForGlobalCorrection: Bool {
+        frames.filter { ImageCalculator.checkCriteriaAccuracy($0.location) }.count >= GlobalRigidCorrection.minimumFitPointCount
+    }
+
+    func logPhotoUpdatedEvents(correction: simd_float4x4?) {
+        guard correctedRoot != nil, correctedLocations.count == frames.count, !frames.isEmpty else {
+            return
+        }
+        for (index, frame) in frames.enumerated() {
+            let corrected = correctedLocations[index]
+            let transform = correction.map { $0 * frame.transform } ?? frame.transform
+            catchLogger.appendPhotoUpdated(
+                imageName: frame.imageNameWithoutExtension,
+                transform: transform,
+                gps: corrected.location,
+                eulerAngles: corrected.eulerAngles
+            )
+        }
+    }
+
+    func exportPointClouds(correction: simd_float4x4?) {
+        pointGLTFWriter.exportTransform = correction
+        // Writer chỉ được gắn ở đây, không gắn từ init: buffer đầy bị flush ngay trong lúc
+        // capture, thời điểm đó chưa biết correction nên những điểm đã flush sẽ không được
+        // hiệu chỉnh. Gắn muộn → mọi điểm đi qua append một lần duy nhất, sau khi có transform.
+        pointClouds.writer = pointGLTFWriter
+
+        // Kiểm chứng: preFlushed phải luôn = 0 — buffer nào có writeCount > 0 nghĩa là điểm của
+        // nó đã bị ghi ra file trước khi exportTransform được set, tức không được hiệu chỉnh.
+        var detail: [String: Any] = [
+            "buffers": pointClouds.data.count,
+            "preFlushed": pointClouds.data.filter { $0.writeCount > 0 }.count,
+            "points": pointClouds.data.reduce(0) { $0 + $1.count },
+            "corrected": correction != nil
+        ]
+        if let correction {
+            let t = correction.columns.3
+            detail["tMeters"] = String(format: "%.3f", sqrt(t.x * t.x + t.y * t.y + t.z * t.z))
+            detail["yawDegrees"] = String(format: "%.3f", atan2(correction.columns.0.z, correction.columns.0.x) * 180 / Float.pi)
+        }
+        sessionLogger.logProcessing("export", "pointCloudWrite", detail)
+
         pointClouds.write()
         pointClouds.group.wait()
         pointGLTFWriter.write()
@@ -285,14 +336,23 @@ class CaptureSession {
     }
     
     func export(onProgress: @escaping (Double) -> Void) async throws -> URL {
+        let deferPhotoUpdated = isEligibleForGlobalCorrection
+
+        let correction = deferPhotoUpdated ? correctedRoot.flatMap { GlobalRigidCorrection.compute(frames: frames, root: $0) } : nil
+        
         sessionLogger.logOperation("saveRequested", ["photoCount": frames.count])
-
-        catchLogger.projectSaveFinalised()
+        if !deferPhotoUpdated {
+            // Flow cũ, giữ nguyên cho phiên không đủ điểm fix chuẩn (BR-2).
+            catchLogger.projectSaveFinalised()
+        }
         exportMeshes()
-        exportPointClouds()
+        exportPointClouds(correction: correction?.transform)
 
-        sessionLogger.logProcessing("export", "manifestWriting")
-        sessionLogger.write()
+        if deferPhotoUpdated {
+            logPhotoUpdatedEvents(correction: correction?.transform)
+            catchLogger.projectSaveFinalised()
+            StorageManager.waitUntilCompleted()
+        }
 
         let manifest = ManifestWriter(self)
         try manifest.write()

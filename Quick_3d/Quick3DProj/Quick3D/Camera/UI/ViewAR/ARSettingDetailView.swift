@@ -250,20 +250,6 @@ struct ARSettingDetailView: View {
             .padding(.vertical, 4)
             
             Rectangle().fill(Color.white.opacity(0.3)).frame(height: 1)
-
-            settingToggle(
-                label: "DXF",
-                isOn: Binding(
-                    get: { userManager.isARDxfOverlay },
-                    set: { newValue in
-                        context?.perform(ViewARDxfOverlayEvent(newValue))
-                        userManager.isARDxfOverlay = newValue
-                    }
-                )
-            )
-            .padding(.vertical, 4)
-
-            Rectangle().fill(Color.white.opacity(0.3)).frame(height: 1)
             
             if isARPositionExpanded {
                 settingToggle(

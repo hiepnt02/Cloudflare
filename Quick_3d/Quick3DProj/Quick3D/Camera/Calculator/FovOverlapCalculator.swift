@@ -81,30 +81,26 @@ class FovOverlapCalculator: OverlapCalculator {
                 
                 var sum: Float = 0
                 var count: Int = 0
-
+                
                 let midY = height / 2
                 let midX = width / 2
                 let limitX = Int(Float(width) * (scanRatio / 2))
                 let limitY = Int(Float(height) * (scanRatio / 2))
-                let targetSampleCount: Float = 80
-                let area = Float(2 * limitX) * Float(2 * limitY)
-                let step = max(1, Int(ceil(sqrt(area / targetSampleCount))))
-
+                
                 let accumulate = { (x: Int, y: Int) in
                     let index = y * width + x
                     let depth = depthData[index]
                     let conf = confData?[index] ?? 2
-
+                    
                     if depth < 18.0 && (conf == 1 || conf == 2) {
                         sum += depth
                         count += 1
                     }
                 }
-
-                for dx in stride(from: -limitX, to: limitX, by: step) {
-                    for dy in stride(from: -limitY, to: limitY, by: step) { accumulate(midX + dx, midY + dy) }
-                }
-
+                
+                for i in stride(from: -limitX, to: limitX, by: 5) { accumulate(midX + i, midY) }
+                for j in stride(from: -limitY, to: limitY, by: 5) where j != 0 { accumulate(midX, midY + j) }
+                
                 return count > 0 ? sum / Float(count) : 3.0
             }
         }

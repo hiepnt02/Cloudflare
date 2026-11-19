@@ -381,22 +381,7 @@ typedef struct {
     float pointSize [[point_size]];
     float opacity;
     float belowGroundFactor; // 1 = trên mặt sàn, giữ nguyên alpha; belowGroundAlphaScale = dưới sàn
-    float2 dxfUV;            // DXF overlay texture UV of the point; outside [0, 1] = no overlay
-    float4 dxfBlend;         // DXF overlay radius, hardness, opacity, maxDistance
 } ARPointVertexOut;
-
-// DXF overlay (SC_QUICK-1986), filled by MetalViewARProgram ("dxfOverlay").
-typedef struct {
-    float enabled;
-    float radius;
-    float hardness;
-    float opacity;
-    float maxDistance;
-    float uScale;
-    float uOffset;
-    float vScale;
-    float vOffset;
-} DxfOverlayUniforms;
 
 typedef struct {
      float4x4 modelTransform;
@@ -421,8 +406,7 @@ vertex ARPointVertexOut arPointVertex
     constant float& groundPlaneY              [[ buffer(4) ]],
     constant float& hasGroundPlane            [[ buffer(5) ]],
     constant float& belowGroundAlphaScale     [[ buffer(6) ]],
-    constant float& belowGroundTransitionBand [[ buffer(7) ]],
-    constant DxfOverlayUniforms& dxfOverlay   [[ buffer(8) ]]
+    constant float& belowGroundTransitionBand [[ buffer(7) ]]
  ) {
 
     ARPointVertexOut out;
@@ -449,18 +433,10 @@ vertex ARPointVertexOut arPointVertex
     float factor = mix(belowGroundAlphaScale, 1.0, aboveness);
     out.belowGroundFactor = mix(1.0, factor, hasGroundPlane);
 
-    // The point's x / z are (easting, -northing) minus a constant, so the UV is linear in them.
-    out.dxfUV = dxfOverlay.enabled > 0.5
-        ? float2(in.position.x * dxfOverlay.uScale + dxfOverlay.uOffset,
-                 in.position.z * dxfOverlay.vScale + dxfOverlay.vOffset)
-        : float2(-1.0);
-    out.dxfBlend = float4(dxfOverlay.radius, dxfOverlay.hardness, dxfOverlay.opacity, dxfOverlay.maxDistance);
-
     return out;
 }
 
-fragment float4 arPointFragment(ARPointVertexOut in [[stage_in]], float2 pointCoord [[point_coord]],
-                                texture2d<float> dxfTexture [[ texture(0) ]]) {
+fragment float4 arPointFragment(ARPointVertexOut in [[stage_in]], float2 pointCoord [[point_coord]]) {
 //    float2 coord = pointCoord - 0.5;
 //    float r = length(coord);
 //    if (r > 0.5) {
@@ -470,23 +446,8 @@ fragment float4 arPointFragment(ARPointVertexOut in [[stage_in]], float2 pointCo
     // là giảm alpha đúng nghĩa — giống cách BelowGroundFade làm với material
     // của model design. Cần MetalViewARProgram.isOpaque = false, không thì
     // SceneKit bỏ qua alpha này và phần dưới sàn chỉ tối đi chứ không mờ.
-    float3 color = in.color;
-
-    // DXF overlay, the same blend as the web viewer (PointCloudMaterial.ts): alpha holds the
-    // distance to the nearest DXF edge (0...254 → 0...maxDistance, 255 = none nearby).
-    if (all(in.dxfUV >= 0.0) && all(in.dxfUV <= 1.0)) {
-        constexpr sampler dxfSampler(filter::nearest, address::clamp_to_edge);
-        float4 dxf = dxfTexture.sample(dxfSampler, in.dxfUV);
-        float a = dxf.a * 255.0;
-        if (a < 254.5) {
-            float dist = (a / 254.0) * in.dxfBlend.w;
-            float blend = smoothstep(in.dxfBlend.y * in.dxfBlend.x, in.dxfBlend.x, dist);
-            color = mix(color, dxf.rgb, (1.0 - blend) * in.dxfBlend.z);
-        }
-    }
-
     float alpha = in.opacity * in.belowGroundFactor;
-    return float4(color * alpha, alpha);
+    return float4(in.color * alpha, alpha);
 }
 
 kernel void copyPointCloud(

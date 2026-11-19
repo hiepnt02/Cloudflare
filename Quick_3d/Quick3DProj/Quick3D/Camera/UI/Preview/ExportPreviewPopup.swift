@@ -215,7 +215,6 @@ struct ExportPreviewPopup: View {
     }
     
     private func onSaveProject(isExport: Bool) {
-        guard isShow else { return }
         guard !StorageManager.shared.isDuplicateZipFileName(projectName) else {
             isShowingAlert = true
             return
@@ -224,6 +223,7 @@ struct ExportPreviewPopup: View {
         if isExport {
             exportedHander?()
         } else {
+            CaptureSession.current?.name = projectName
             savedHander?()
         }
         

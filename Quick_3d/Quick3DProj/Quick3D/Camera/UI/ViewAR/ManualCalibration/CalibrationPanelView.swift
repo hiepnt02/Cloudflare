@@ -266,50 +266,18 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     private var vectorOrigin: SCNVector3? { p1Pos }
     private var vectorThrough: SCNVector3? { p2Pos }
 
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView()
-        container.backgroundColor = .black
-        container.clipsToBounds = true
-
-        let coordinator = context.coordinator
-        coordinator.cameraResetToken = cameraResetToken
-        container.addSubview(makeSceneView(in: container, coordinator: coordinator))
-        // Frame again after the first layout pass — the container has no bounds (aspect) yet here.
-        DispatchQueue.main.async {
-            guard let scnView = coordinator.sceneView, let displayNode = coordinator.displayNode else { return }
-            frameCamera(in: scnView, around: displayNode, coordinator: coordinator)
-        }
-        return container
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.onTap = onTap
-        context.coordinator.onPlainTap = onPlainTap
-        // Đổi đối tượng (AR ↔ Point cloud) dựng SCNView mới, có camera đã frame sẵn rồi mới thay view cũ.
-        // Camera controller là state riêng của từng SCNView: dùng lại sau khi pinch làm model biến mất.
-        if context.coordinator.sourceNode !== node {
-            context.coordinator.sceneView?.removeFromSuperview()
-            uiView.addSubview(makeSceneView(in: uiView, coordinator: context.coordinator))
-        }
-        guard let scnView = context.coordinator.sceneView else { return }
-        restoreCameraIfNeeded(in: scnView, coordinator: context.coordinator)
-        updateDot(in: scnView, named: CalibrationNames.panelDotP1, at: p1Pos, color: p1Color)
-        updateDot(in: scnView, named: CalibrationNames.panelDotP2, at: p2Pos, color: p2Color)
-        updateVector(in: scnView)
-    }
-
-    /// SCNView mới cho `node`, đã có scene, model và camera trước khi được gắn vào container.
-    private func makeSceneView(in container: UIView, coordinator: Coordinator) -> SCNView {
-        let scnView = SCNView(frame: container.bounds)
-        scnView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    func makeUIView(context: Context) -> SCNView {
+        let scnView = SCNView()
         scnView.backgroundColor = .black
         scnView.antialiasingMode = .multisampling2X
         scnView.allowsCameraControl = true
         scnView.autoenablesDefaultLighting = true
 
-        let scene = SCNScene()
-        scnView.scene = scene
-        // Each viewport renders its own clone (shares geometry/materials, so it is cheap).
+        // An SCNNode can only live in ONE scene. The expanded and collapsed viewports
+        // are separate SCNViews, and SwiftUI's create/teardown order while switching
+        // modes is unpredictable — sharing the original node lets the outgoing view
+        // detach it from the incoming one. Each viewport therefore renders its own
+        // clone (shares geometry/materials, so it is cheap).
         let displayNode = node.clone()
         displayNode.simdPosition = .zero
         displayNode.simdEulerAngles = .zero
@@ -319,15 +287,31 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         // AR model currently has, mismatching CP1/CP2 (raycast points are
         // always real-world/unscaled).
         displayNode.simdScale = SIMD3<Float>(repeating: 1)
-        scene.rootNode.addChildNode(displayNode)
-        coordinator.displayNode = displayNode
-        coordinator.sourceNode = node
-        coordinator.sceneView = scnView
-        frameCamera(in: scnView, around: displayNode, coordinator: coordinator)
 
-        let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.handleTap(_:)))
+        let scene = SCNScene()
+        scene.rootNode.addChildNode(displayNode)
+        scnView.scene = scene
+
+        // Frame after the first layout pass — the view has no bounds (aspect) yet here.
+        let coordinator = context.coordinator
+        coordinator.cameraResetToken = cameraResetToken
+        DispatchQueue.main.async {
+            frameCamera(in: scnView, around: displayNode, coordinator: coordinator)
+        }
+
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleTap(_:)))
         scnView.addGestureRecognizer(tap)
         return scnView
+    }
+
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        context.coordinator.onTap = onTap
+        context.coordinator.onPlainTap = onPlainTap
+        restoreCameraIfNeeded(in: uiView, coordinator: context.coordinator)
+        updateDot(in: uiView, named: CalibrationNames.panelDotP1, at: p1Pos, color: p1Color)
+        updateDot(in: uiView, named: CalibrationNames.panelDotP2, at: p2Pos, color: p2Color)
+        updateVector(in: uiView)
     }
 
     /// Places an explicit camera far enough back that the whole model fits on screen.
@@ -335,7 +319,7 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
     /// layout pass so the view's real aspect ratio is known.
     private func frameCamera(in scnView: SCNView, around displayNode: SCNNode, coordinator: Coordinator) {
         guard let scene = scnView.scene else { return }
-        let (center, radius) = Self.framingSphere(of: displayNode)
+        let (center, radius) = displayNode.boundingSphere
 
         let camera = SCNCamera()
         camera.fieldOfView = CGFloat(CalibrationViewportCamera.verticalFovDegrees)
@@ -352,32 +336,17 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
             aspect: aspect
         )
 
-        coordinator.cameraNode?.removeFromParentNode()
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(center.x, center.y, center.z + distance)
         scene.rootNode.addChildNode(cameraNode)
         cameraNode.look(at: center)
-        scnView.defaultCameraController.stopInertia()
         scnView.pointOfView = cameraNode
-        // Xoay quanh tâm đang khung, không quanh tâm của cả scene — nếu không, AR ở xa sẽ kéo PC văng khỏi khung.
-        scnView.defaultCameraController.automaticTarget = false
-        scnView.defaultCameraController.target = center
-        coordinator.cameraNode = cameraNode
         coordinator.initialCameraTransform = cameraNode.transform
     }
 
-    /// Camera khung theo bounding sphere của PC, AR nằm trong hay ngoài sphere đó vẫn hiển thị.
-    /// Khi PC đang ẩn thì model chỉ còn AR nên khung theo AR.
-    private static func framingSphere(of model: SCNNode) -> (center: SCNVector3, radius: Float) {
-        guard let pc = model.childNode(withName: CalibrationTarget.pointCloud.nodeName, recursively: false) else {
-            return model.boundingSphere
-        }
-        let sphere = pc.boundingSphere
-        return (pc.convertPosition(sphere.center, to: model), sphere.radius)
-    }
-
-    /// Reset chỉ đưa camera về pose lúc frame xong.
+    /// Reset chỉ đưa camera về pose lúc frame xong. Dựng lại cả SCNView (đổi `.id`) làm
+    /// viewport đen và camera chưa được đặt trong vài khung hình đầu — chính là cái nháy.
     private func restoreCameraIfNeeded(in scnView: SCNView, coordinator: Coordinator) {
         guard coordinator.cameraResetToken != cameraResetToken else { return }
         coordinator.cameraResetToken = cameraResetToken
@@ -392,30 +361,25 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
             CalibrationVectorArrow.update(in: rootNode, from: SCNVector3Zero, through: nil, boundingRadius: 1)
             return
         }
-        // Arrow size follows the same reference as the framing (point cloud, or the model when
-        // it is hidden), not the whole model: an AR object far away must not make the arrow huge.
-        let referenceRadius = Self.framingSphere(of: node).radius
-        let dotRadius = CalibrationVectorArrow.panelDotRadius(referenceRadius: referenceRadius)
-        let arrow = CalibrationVectorArrow.update(in: rootNode, from: origin, through: vectorThrough,
-                                                  boundingRadius: referenceRadius, dotRadius: dotRadius)
-        // Độ dày của thân và đầu mũi tên scale theo khoảng cách như dot; chiều dài giữ nguyên.
-        arrow?.childNodes.forEach {
-            $0.constraints = [Self.constantThicknessConstraint(in: scnView, sceneRadius: referenceRadius)]
-        }
+        // BR-9: extension length scales with the MODEL's size — measure the model node
+        // itself, not the scene root, whose bounding sphere also contains the dots and
+        // the previously drawn arrow (feeding the arrow's own length back into itself).
+        let (_, modelRadius) = node.boundingSphere
+        CalibrationVectorArrow.update(in: rootNode, from: origin, through: vectorThrough, boundingRadius: Float(modelRadius))
     }
 
     private func updateDot(in scnView: SCNView, named name: String, at pos: SCNVector3?, color: UIColor) {
         scnView.scene?.rootNode.childNode(withName: name, recursively: false)?.removeFromParentNode()
         guard let pos = pos else { return }
-        let referenceRadius = Self.framingSphere(of: node).radius
-        let dotRadius = CGFloat(CalibrationVectorArrow.panelDotRadius(referenceRadius: referenceRadius))
+        let (_, sceneRadius) = scnView.scene?.rootNode.boundingSphere ?? (SCNVector3Zero, 1.0)
+        let dotRadius = CGFloat(max(0.02, Float(sceneRadius) * 0.025))
         let sphere = SCNSphere(radius: dotRadius)
         sphere.materials = [CalibrationVectorArrow.alwaysVisibleMaterial(color: color)]
         let dotNode = SCNNode(geometry: sphere)
         dotNode.name = name
         dotNode.position = pos
         dotNode.renderingOrder = CalibrationVectorArrow.dotRenderingOrder
-        dotNode.constraints = [Self.constantScreenSizeConstraint(in: scnView, sceneRadius: referenceRadius)]
+        dotNode.constraints = [Self.constantScreenSizeConstraint(in: scnView, sceneRadius: Float(sceneRadius))]
         scnView.scene?.rootNode.addChildNode(dotNode)
     }
 
@@ -439,43 +403,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         }
     }
 
-    /// Chỉ scale độ dày (trục X và Z cục bộ) theo khoảng cách camera, trục Y giữ nguyên nên chiều dài không đổi.
-    private static func constantThicknessConstraint(in scnView: SCNView, sceneRadius: Float) -> SCNConstraint {
-        let referenceDistance = max(sceneRadius * 2.0, 0.001)
-        let referenceFovFactor = tanf(30.0 * .pi / 180.0)
-        return SCNTransformConstraint(inWorldSpace: false) { [weak scnView] node, _ in
-            var scale: Float = 1
-            if let pov = scnView?.pointOfView {
-                let distance = simd_distance(pov.simdWorldPosition, node.simdWorldPosition)
-                let fovDegrees = Float(pov.camera?.fieldOfView ?? 60.0)
-                let fovFactor = tanf(fovDegrees * .pi / 360.0) / referenceFovFactor
-                scale = min(max(distance / referenceDistance * fovFactor, 0.01), 1.0)
-            }
-            // Dựng lại từ position và orientation của node, không nhân vào transform đầu vào:
-            // transform đầu vào đã bị constraint sửa ở frame trước, nhân tiếp sẽ tích luỹ và mũi tên mất hẳn.
-            let axes = simd_float3x3(node.simdOrientation)
-            let x = axes.columns.0 * scale
-            let y = axes.columns.1
-            let z = axes.columns.2 * scale
-            let position = node.simdPosition
-            // Hàng của SCNMatrix4 là trục cục bộ X, Y, Z và vị trí ở hàng 4.
-            var result = SCNMatrix4Identity
-            result.m11 = x.x
-            result.m12 = x.y
-            result.m13 = x.z
-            result.m21 = y.x
-            result.m22 = y.y
-            result.m23 = y.z
-            result.m31 = z.x
-            result.m32 = z.y
-            result.m33 = z.z
-            result.m41 = position.x
-            result.m42 = position.y
-            result.m43 = position.z
-            return result
-        }
-    }
-
     func makeCoordinator() -> Coordinator {
         Coordinator(onTap: onTap, onPlainTap: onPlainTap)
     }
@@ -485,11 +412,6 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
         var onPlainTap: (() -> Void)?
         var cameraResetToken = UUID()
         var initialCameraTransform: SCNMatrix4?
-        /// Model gốc đang được hiển thị, để so identity khi SwiftUI cập nhật view.
-        var sourceNode: SCNNode?
-        var displayNode: SCNNode?
-        var cameraNode: SCNNode?
-        var sceneView: SCNView?
         init(onTap: @escaping (SCNVector3) -> Void, onPlainTap: (() -> Void)?) {
             self.onTap = onTap
             self.onPlainTap = onPlainTap
@@ -503,96 +425,10 @@ struct SCNCalibrationModelPicker: UIViewRepresentable {
             }
             guard let scnView = gesture.view as? SCNView else { return }
             let point = gesture.location(in: scnView)
-            // Point cloud không đi qua hit-test của SceneKit: điểm primitive thưa nên tia hầu như không trúng,
-            // nên tìm điểm gần tia nhất trực tiếp từ geometry.
-            if let position = Self.pointCloudPosition(at: point, in: scnView) {
-                onTap(SCNVector3(position))
-                return
-            }
             let hits = scnView.hitTest(point, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
-            if let hit = hits.first(where: {
-                !Self.isOverlayNode($0.node) && !Self.isNode($0.node, named: CalibrationTarget.pointCloud.nodeName)
-            }) {
+            if let hit = hits.first(where: { !Self.isOverlayNode($0.node) }) {
                 onTap(hit.worldCoordinates)
             }
-        }
-
-        /// Điểm PC gần tia chạm nhất. Thử bán kính nhỏ trước, không có điểm nào thì nới ra để tap vào vùng thưa vẫn ăn.
-        private static func pointCloudPosition(at screenPoint: CGPoint, in scnView: SCNView) -> SIMD3<Float>? {
-            guard let root = scnView.scene?.rootNode.childNode(withName: CalibrationTarget.pointCloud.nodeName, recursively: true) else {
-                return nil
-            }
-            return nearestPointPosition(in: root, to: screenPoint, in: scnView, radius: pointPickRadius)
-                ?? nearestPointPosition(in: root, to: screenPoint, in: scnView, radius: pointPickFallbackRadius)
-        }
-
-        /// Điểm có toạ độ thật trong geometry của `root` (và các node con) nằm gần tia từ camera qua điểm chạm nhất,
-        /// trong góc nhìn `radius` pt. Khi nhiều điểm cùng trúng tia, lấy điểm gần camera nhất
-        /// để không chọn điểm bị che phía sau.
-        private static func nearestPointPosition(in root: SCNNode, to screenPoint: CGPoint, in scnView: SCNView, radius: Float) -> SIMD3<Float>? {
-            // Tia lấy từ unprojectPoint của SceneKit nên khớp với khung đang vẽ, không tự tính ma trận.
-            let (origin, direction) = ray(through: screenPoint, in: scnView)
-            let (_, edgeDirection) = ray(through: CGPoint(x: screenPoint.x + CGFloat(radius), y: screenPoint.y), in: scnView)
-            let maxSlope = tanf(acosf(min(1, simd_dot(direction, edgeDirection))))
-            guard maxSlope.isFinite else { return nil }
-            var geometryNodes = root.childNodes(passingTest: { child, _ in child.geometry != nil })
-            if root.geometry != nil {
-                geometryNodes.append(root)
-            }
-            var best: (position: SIMD3<Float>, depth: Float)?
-            for node in geometryNodes {
-                guard let source = node.geometry?.sources(for: .vertex).first else { continue }
-                let worldTransform = node.presentation.simdWorldTransform
-                source.data.withUnsafeBytes { raw in
-                    for index in 0..<source.vectorCount {
-                        let base = source.dataOffset + index * source.dataStride
-                        let local = simd_float4(
-                            raw.load(fromByteOffset: base, as: Float.self),
-                            raw.load(fromByteOffset: base + 4, as: Float.self),
-                            raw.load(fromByteOffset: base + 8, as: Float.self),
-                            1
-                        )
-                        let world = worldTransform * local
-                        let position = SIMD3<Float>(world.x, world.y, world.z)
-                        let offset = position - origin
-                        let depth = simd_dot(offset, direction)
-                        guard depth > 0 else { continue }
-                        let perpendicular = simd_length(offset - direction * depth)
-                        guard perpendicular <= depth * maxSlope else { continue }
-                        if best == nil || depth < best!.depth {
-                            best = (position, depth)
-                        }
-                    }
-                }
-            }
-            return best?.position
-        }
-
-        /// Tia thẳng từ điểm gần đến điểm xa của frustum tại toạ độ màn hình đã cho.
-        private static func ray(through screenPoint: CGPoint, in scnView: SCNView) -> (origin: SIMD3<Float>, direction: SIMD3<Float>) {
-            let near = scnView.unprojectPoint(SCNVector3(Float(screenPoint.x), Float(screenPoint.y), 0))
-            let far = scnView.unprojectPoint(SCNVector3(Float(screenPoint.x), Float(screenPoint.y), 1))
-            let origin = SIMD3<Float>(near.x, near.y, near.z)
-            let target = SIMD3<Float>(far.x, far.y, far.z)
-            return (origin, simd_normalize(target - origin))
-        }
-
-        /// Bán kính (pt) quanh điểm chạm để tìm điểm point cloud.
-        private static let pointPickRadius: Float = 12
-
-        /// Bán kính dự phòng (pt) khi không có điểm nào trong `pointPickRadius`.
-        private static let pointPickFallbackRadius: Float = 32
-
-        /// Node là `name` hoặc nằm dưới một node mang tên đó.
-        private static func isNode(_ node: SCNNode, named name: String) -> Bool {
-            var current: SCNNode? = node
-            while let candidate = current {
-                if candidate.name == name {
-                    return true
-                }
-                current = candidate.parent
-            }
-            return false
         }
 
         /// Dots and the direction arrow float over the model — taps must fall through

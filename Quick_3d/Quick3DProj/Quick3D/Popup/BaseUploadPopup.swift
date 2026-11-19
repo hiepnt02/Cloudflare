@@ -311,26 +311,26 @@ private extension BaseUploadPopup {
             )
             .padding(.bottom, contentSpacing)
 
-            HStack {
-                sectionLabel("PLEASE_SELECT_DXF_FILE".localized(userManager.userLanguage))
-
-                HelpPopoverView(
-                    manager: popoverManager,
-                    id: "dxf_notice",
-                    content: "DXF_FILE_NOTICE".localized(userManager.userLanguage),
-                    frameWidth: 300,
-                    frameHeight: 50,
-                    offsetValue: CGSize(width: 0, height: -50),
-                    onClicked: {}
-                )
-                .zIndex(3)
-            }
-
-            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.dxf]!]) { fileUrl, _ in
-                dxfFileURL = fileUrl
-            }
-            .padding(.leading, contentSpacing)
-            .padding(.bottom, contentSpacing)
+//            HStack {
+//                sectionLabel("PLEASE_SELECT_DXF_FILE".localized(userManager.userLanguage))
+//
+//                HelpPopoverView(
+//                    manager: popoverManager,
+//                    id: "dxf_notice",
+//                    content: "DXF_FILE_NOTICE".localized(userManager.userLanguage),
+//                    frameWidth: 300,
+//                    frameHeight: 50,
+//                    offsetValue: CGSize(width: 0, height: -50),
+//                    onClicked: {}
+//                )
+//                .zIndex(3)
+//            }
+//
+//            ButtonSelectFile(buttonText: nil, fileTypes: [FileTypes[FileType.dxf]!]) { fileUrl, _ in
+//                dxfFileURL = fileUrl
+//            }
+//            .padding(.leading, contentSpacing)
+//            .padding(.bottom, contentSpacing)
 
             bottomButtons(
                 isValidUpload: $isValidUploadLas,

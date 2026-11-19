@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Metal
 import SceneKit
 
 class MetalViewARProgram: SCNProgram {
@@ -31,30 +30,6 @@ class MetalViewARProgram: SCNProgram {
     /// đây, không thì hai bên lệch nhau.
     var belowGroundAlphaScale: Float = BelowGroundFade.alphaScale
     var belowGroundTransitionBand: Float = BelowGroundFade.transitionBand
-
-    /// DXF overlay (SC_QUICK-1986), the same blend as the web viewer's point shader: a
-    /// point within `dxfRadius` meters (top-down) of a DXF edge takes on the edge's color.
-    /// Drawn once `setDxfOverlay` was called and while the user switch is on.
-    var isDxfOverlayOn: Bool = true
-    var dxfRadius: Float = 2
-    var dxfHardness: Float = 0
-    var dxfOpacity: Float = 1
-    private var dxfOverlay: DxfOverlayTexture?
-    /// Point position → texture UV: u = x * [0] + [1], v = z * [2] + [3].
-    private var dxfUVTransform: SIMD4<Float> = .zero
-
-    /// Layout of `DxfOverlayUniforms` in Shaders.metal.
-    private struct DxfOverlayUniforms {
-        var enabled: Float
-        var radius: Float
-        var hardness: Float
-        var opacity: Float
-        var maxDistance: Float
-        var uScale: Float
-        var uOffset: Float
-        var vScale: Float
-        var vOffset: Float
-    }
 
     override init() {
         super.init()
@@ -93,58 +68,9 @@ class MetalViewARProgram: SCNProgram {
             var t = self.belowGroundTransitionBand
             buffer.writeBytes(&t, count: MemoryLayout<Float>.size)
         }
-        self.handleBinding(ofBufferNamed: "dxfOverlay", frequency: .perFrame) { buffer, _, _, _ in
-            let uv = self.dxfUVTransform
-            var uniforms = DxfOverlayUniforms(
-                enabled: self.isDxfOverlayOn && self.dxfOverlay != nil ? 1 : 0,
-                radius: self.dxfRadius,
-                hardness: self.dxfHardness,
-                opacity: self.dxfOpacity,
-                maxDistance: DxfOverlayBuilder.maxDistance,
-                uScale: uv.x,
-                uOffset: uv.y,
-                vScale: uv.z,
-                vOffset: uv.w
-            )
-            buffer.writeBytes(&uniforms, count: MemoryLayout<DxfOverlayUniforms>.size)
-        }
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
-    /// `pointsGeoOrigin` is K with (easting, height, -northing) = point position + K for
-    /// the point nodes this program draws. The UV offsets are worked out in Double, since
-    /// K is in the hundreds of kilometers.
-    func setDxfOverlay(_ overlay: DxfOverlayTexture, pointsGeoOrigin origin: SIMD3<Double>) {
-        dxfUVTransform = SIMD4<Float>(
-            Float(1 / overlay.spanE),
-            Float((origin.x - overlay.minE) / overlay.spanE),
-            Float(1 / overlay.spanMN),
-            Float((origin.z - overlay.minMN) / overlay.spanMN)
-        )
-        dxfOverlay = overlay
-    }
-
-    /// Each point chunk has its own geometry, rebuilt when the opacity changes, so the
-    /// texture is set on every one. The program hangs on the geometry, whose values
-    /// SceneKit binds by argument name; the material gets it too. Before any DXF a 1×1
-    /// "no edge" texture keeps the shader's texture argument bound.
-    func attachDxfTexture(to geometry: SCNGeometry) {
-        guard let texture = dxfOverlay?.texture ?? Self.emptyDxfTexture else { return }
-        let property = SCNMaterialProperty(contents: texture)
-        geometry.setValue(property, forKey: "dxfTexture")
-        geometry.firstMaterial?.setValue(property, forKey: "dxfTexture")
-    }
-
-    private static let emptyDxfTexture: MTLTexture? = {
-        guard let device = MTLCreateSystemDefaultDevice() else { return nil }
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 1, height: 1, mipmapped: false)
-        descriptor.usage = .shaderRead
-        guard let texture = device.makeTexture(descriptor: descriptor) else { return nil }
-        var noEdge: [UInt8] = [0, 0, 0, 255]
-        texture.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &noEdge, bytesPerRow: 4)
-        return texture
-    }()
 }

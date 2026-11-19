@@ -154,9 +154,6 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     /// Mặc định tắt, người dùng bật trong panel setting của màn AR.
     var isShowPlaneGrid: Bool = false
 
-    /// DXF overlay on the point cloud (SC_QUICK-1986); only shows for a project with a DXF.
-    var isDxfOverlayOn: Bool = true
-
     /// Occlusion bằng plane chỉ dành cho máy không hỗ trợ scene mesh: máy có mesh
     /// đã occlusion đúng theo hình dạng thực, còn plane là hình chữ nhật thường
     /// tràn ra ngoài vùng thực nên sẽ che sai vật thể ảo.
@@ -291,7 +288,6 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
             let rebuilt = SCNGeometry(sources: geometry.sources, elements: geometry.elements)
             rebuilt.firstMaterial = ARProjectHelper.makePointCloudMaterial(writesDepth: writesDepth)
             rebuilt.program = geometry.program
-            (geometry.program as? MetalViewARProgram)?.attachDxfTexture(to: rebuilt)
             node.geometry = rebuilt
         }
 
@@ -377,23 +373,6 @@ class ViewARContext: CameraContextTemplate, CameraContext, @unchecked Sendable {
     
     func updatePointCloudSize(to newSize: CGFloat) {
         project?.program.pointSize = Float(newSize)
-    }
-
-    func setDxfOverlay(isOn: Bool) {
-        isDxfOverlayOn = isOn
-        project?.program.isDxfOverlayOn = isOn
-    }
-
-    /// The DXF is ready after some point chunks were already created with the placeholder
-    /// texture; later chunks pick it up in `createNode`.
-    private func attachDxfOverlay() {
-        guard let root = pointCloudNode, let program = project?.program else { return }
-        let apply: (SCNNode) -> Void = { node in
-            guard let geometry = node.geometry else { return }
-            program.attachDxfTexture(to: geometry)
-        }
-        apply(root)
-        root.enumerateChildNodes { node, _ in apply(node) }
     }
     
     func updateARPosition(position: SIMD3<Float>, eulerAngles: SIMD3<Float>, scale: Float) {
@@ -648,7 +627,6 @@ extension ViewARContext {
     
     func downloadARProject(projectId: String, isAR: Bool) {
         project = SfmProject(projectId: projectId, isAR: isAR)
-        project?.program.isDxfOverlayOn = isDxfOverlayOn
         // project vừa được gán có MetalViewARProgram mới toanh (hasGroundPlane
         // mặc định false) — đẩy lại trạng thái mặt sàn đã biết trước đó (nếu có)
         // để không bị mất khi màn hình tải project mới.
@@ -691,8 +669,6 @@ extension ViewARContext {
                 self?.delegate?.ar(self?.project, onPointCloudProgressChanged: progress)
             } onIfcComplete: { [weak self] layers in
                 self?.delegate?.ar(self?.project, didDownloadIFC: layers)
-            } onDxfReady: { [weak self] in
-                self?.attachDxfOverlay()
             }
         }
     }
@@ -1100,18 +1076,11 @@ extension ViewARContext: ARSCNViewDelegate {
 
 extension ViewARContext {
 
-    /// Model cho panel P1/P2, gồm các đối tượng đang hiển thị trong arNode. Trả về nil nếu không có đối tượng nào.
-    func makeCalibrationModel(for targets: Set<CalibrationTarget>) -> SCNNode? {
-        let names = Set(targets.map(\.nodeName)).filter { arNode.childNode(withName: $0, recursively: false) != nil }
-        guard !names.isEmpty else { return nil }
-        return makeCalibrationModelNode(keeping: names)
-    }
-
     /// Model dùng cho panel P1/P2 và cho bản clone preview của màn calibration.
-    func makeCalibrationModelNode(keeping names: Set<String>) -> SCNNode {
+    func makeCalibrationModelNode() -> SCNNode {
         let node = arNode.clone()
         node.childNodes
-            .filter { !names.contains($0.name ?? "") }
+            .filter { $0.name != nameUSDZNode }
             .forEach { $0.removeFromParentNode() }
         // arNode carries the live AR placement (position/rotation/addtionalScale).
         // The panel picker and the calibration math both assume the canonical,

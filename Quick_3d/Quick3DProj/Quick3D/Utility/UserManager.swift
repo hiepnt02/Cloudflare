@@ -36,8 +36,6 @@ final class UserManager: ObservableObject {
     @Published var isAROcclusion: Bool = false
 
     @Published var isARPlaneGrid: Bool = false
-
-    @Published var isARDxfOverlay: Bool = true
     
     var numOfLicenses: Double = 0.0
     var isARAvailable: Bool = false
