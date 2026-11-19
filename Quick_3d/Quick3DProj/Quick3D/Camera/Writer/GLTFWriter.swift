@@ -30,10 +30,8 @@ class GLTFWriter {
     private let lock = NSLock()
     
     var onError: ((Error) -> Void)? = nil
-
+    
     public private(set) var isWritten: Bool = false
-
-    var exportTransform: simd_float4x4?
     
     init(_ folder: URL, name: String, mode: Int, includeRGB: Bool, bufferSize: Int = 100000) {
         self.name = name
@@ -75,10 +73,6 @@ class GLTFWriter {
         
         for i in 0..<vertexCount {
             var pos = positions[i]
-            if let exportTransform {
-                let moved = exportTransform * SIMD4<Float>(pos, 1)
-                pos = SIMD3<Float>(moved.x, moved.y, moved.z)
-            }
             if convertZUp {
                 pos = [pos.x, -pos.z, pos.y]
             }

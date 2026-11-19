@@ -17,7 +17,16 @@ class BVHReader: ARProjectHelper {
     private let lasReader: LasReader
     
     private var rawOffset: SIMD3<Double> = .zero
-    
+
+    private var hasMetadata = false
+
+    /// K with (easting, height, -northing) = vertex position + K for every point node this
+    /// reader created: chunk vertices are in the meta.json frame, and the root's -center
+    /// shift is undone by the offset reported to the project. nil until known.
+    var pointsGeoOrigin: SIMD3<Double>? {
+        return hasMetadata ? rawOffset : lasReader.pointsGeoOrigin
+    }
+
     private var node: SCNNode?
     
     private var lasDownloader: Task<Void, Error>?
@@ -65,7 +74,8 @@ class BVHReader: ARProjectHelper {
         }
         
         rawOffset = -meta.getOffset()
-        
+        hasMetadata = true
+
         node = SCNNode()
         
         delegate?.onCreateNode(node!)

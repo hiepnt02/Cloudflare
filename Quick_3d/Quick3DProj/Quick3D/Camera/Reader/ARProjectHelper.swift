@@ -206,6 +206,7 @@ class ARProjectHelper {
         if let p = program {
             geometry.firstMaterial = Self.makePointCloudMaterial(writesDepth: p.pointCloudNodeOpacity >= 1.0)
             geometry.program = p
+            p.attachDxfTexture(to: geometry)
         } else {
             let material = SCNMaterial()
             material.lightingModel = .constant

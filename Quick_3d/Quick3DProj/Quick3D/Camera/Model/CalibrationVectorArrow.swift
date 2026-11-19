@@ -15,6 +15,10 @@ enum CalibrationVectorArrow {
     private static let extensionRatio: Float = 0.2
     private static let shaftRadiusRatio: Float = 0.008
     private static let dotRadiusRatio: Float = 0.032
+    private static let panelDotRadiusRatio: Float = 0.025
+    /// Bán kính trục và đầu mũi tên so với điểm P1/P2 trong panel: trục 0.46, đầu 1.15 đường kính điểm.
+    private static let shaftToDotRadiusRatio: Float = 0.23
+    private static let headToDotRadiusRatio: Float = 0.575
     private static let minimumDirectionLength: Float = 1e-5
 
     /// Vẽ sau cùng để nằm trên mọi geometry khác trong scene.
@@ -30,6 +34,11 @@ enum CalibrationVectorArrow {
         max(boundingRadius * dotRadiusRatio, 0.01)
     }
 
+    /// Bán kính dot P1/P2 trong panel. Mũi tên lấy bán kính này làm chuẩn để giữ tỉ lệ với điểm.
+    static func panelDotRadius(referenceRadius: Float) -> Float {
+        max(0.02, referenceRadius * panelDotRadiusRatio)
+    }
+
     static func tipPosition(from p1: SCNVector3, through p2: SCNVector3, boundingRadius: Float) -> SCNVector3 {
         let origin = SIMD3<Float>(p1)
         let through = SIMD3<Float>(p2)
@@ -40,7 +49,8 @@ enum CalibrationVectorArrow {
     }
 
     /// Builds the full arrow node (shaft + head), or nil when P1 and P2 coincide (EC-1).
-    static func makeNode(from p1: SCNVector3, through p2: SCNVector3, boundingRadius: Float) -> SCNNode? {
+    /// `dotRadius` (nếu có) đặt kích thước trục và đầu mũi tên theo điểm; nil thì theo `boundingRadius`.
+    static func makeNode(from p1: SCNVector3, through p2: SCNVector3, boundingRadius: Float, dotRadius: Float? = nil) -> SCNNode? {
         let origin = SIMD3<Float>(p1)
         let through = SIMD3<Float>(p2)
         let distance = simd_distance(origin, through)
@@ -50,22 +60,25 @@ enum CalibrationVectorArrow {
         let tip = SIMD3<Float>(tipPosition(from: p1, through: p2, boundingRadius: boundingRadius))
         let totalLength = simd_distance(origin, tip)
 
-        let shaftRadius = max(boundingRadius * shaftRadiusRatio, 0.002)
-        let headHeight = min(shaftRadius * 6, totalLength * 0.3)
+        let shaftRadius = dotRadius.map { $0 * shaftToDotRadiusRatio } ?? max(boundingRadius * shaftRadiusRatio, 0.002)
+        let headRadius = dotRadius.map { $0 * headToDotRadiusRatio } ?? shaftRadius * 3
+        let headHeight = min(headRadius * 2, totalLength * 0.3)
         let shaftLength = totalLength - headHeight
 
+        // Container đặt tại P1 để các phần của mũi tên có toạ độ tương đối với P1.
         let container = SCNNode()
         container.name = nodeName
         container.renderingOrder = renderingOrder
+        container.simdPosition = origin
 
         let shaft = SCNNode(geometry: applyMaterial(SCNCylinder(radius: CGFloat(shaftRadius), height: CGFloat(shaftLength))))
-        shaft.simdPosition = origin + direction * (shaftLength / 2)
+        shaft.simdPosition = direction * (shaftLength / 2)
         shaft.simdOrientation = orientation(for: direction)
         shaft.renderingOrder = renderingOrder
         container.addChildNode(shaft)
 
-        let head = SCNNode(geometry: applyMaterial(SCNCone(topRadius: 0, bottomRadius: CGFloat(shaftRadius * 3), height: CGFloat(headHeight))))
-        head.simdPosition = origin + direction * (shaftLength + headHeight / 2)
+        let head = SCNNode(geometry: applyMaterial(SCNCone(topRadius: 0, bottomRadius: CGFloat(headRadius), height: CGFloat(headHeight))))
+        head.simdPosition = direction * (shaftLength + headHeight / 2)
         head.simdOrientation = orientation(for: direction)
         head.renderingOrder = renderingOrder
         container.addChildNode(head)
@@ -75,12 +88,14 @@ enum CalibrationVectorArrow {
 
     /// Replaces any existing arrow under `rootNode` with one for the given points;
     /// passing `through: nil` just removes the current arrow (BR-3).
-    static func update(in rootNode: SCNNode, from p1: SCNVector3, through p2: SCNVector3?, boundingRadius: Float) {
+    @discardableResult
+    static func update(in rootNode: SCNNode, from p1: SCNVector3, through p2: SCNVector3?, boundingRadius: Float, dotRadius: Float? = nil) -> SCNNode? {
         rootNode.childNodes
             .filter { $0.name == nodeName }
             .forEach { $0.removeFromParentNode() }
-        guard let p2 = p2, let arrow = makeNode(from: p1, through: p2, boundingRadius: boundingRadius) else { return }
+        guard let p2 = p2, let arrow = makeNode(from: p1, through: p2, boundingRadius: boundingRadius, dotRadius: dotRadius) else { return nil }
         rootNode.addChildNode(arrow)
+        return arrow
     }
 
     // MARK: - Helpers

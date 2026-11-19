@@ -30,8 +30,10 @@
 "COORDINATE_CHANGE_ERROR" = "Fehler im Koordinatensystem oder\nbei der Koordinatenkonvertierung";
 "SFM_PROCESSING_ERROR" = "Fehler bei der SfM-Verarbeitung";
 "PROCESSING_DONE" = "SfM-Verarbeitung abgeschlossen";
-"SFM_PROCESSING" = "SfM-Verarbeitung läuft";
-"COORDINATE_CHANGE_PROCESSING" = "Koordinatensystem- oder\nKoordinatenumwandlung läuft";
+"SFM_PROCESSING" = "SfM-Verarbeitung";
+"COORDINATE_CHANGE_PROCESSING" = "Koordinatensystem oder \nKoordinaten Konvertierung wird verarbeitet";
+"CMSG00004" = "SfM-Verarbeitung";
+"CONVERT_COORD_SYSTEM" = "Koordinatensystem wird umgewandelt";
 "ACCURACY_VERIFY_COMP" = "Genauigkeitsvalidierung abgeschlossen";
 "DASHBOARD_UPLOAD_COMPLETE" = "Punktwolke Hochladen abgeschlossen";
 "Details" = "Einzelheiten";

@@ -88,6 +88,7 @@ struct ViewARScreen: View {
             updateARPositionMessage()
             context.isAROcclusion = userManager.isAROcclusion
             context.isShowPlaneGrid = userManager.isARPlaneGrid
+            context.isDxfOverlayOn = userManager.isARDxfOverlay
         }
         .environmentObject(cameraObject)
         .onChange(of: cameraObject.rtkQuality) { value in
@@ -202,9 +203,10 @@ struct ViewARScreen: View {
                     pointOpacity: $pointCloudOpacity,
                     isARObjectVisisble: $isDesignVisible,
                     arObjectScale: $designOpacity,
+                    calibrationTargets: visibleCalibrationTargets,
                     onARObjectVisibilityChanged: syncRootLayersVisibility,
                     onCalibrationTapped: {
-                        calibrationModel = context.makeCalibrationModelNode()
+                        calibrationModel = context.makeCalibrationModel(for: visibleCalibrationTargets)
                         isShowManualCalibration = true
                     }
                 )
@@ -214,10 +216,10 @@ struct ViewARScreen: View {
 
     @ViewBuilder
     private var manualCalibrationSheet: some View {
-        if let model = calibrationModel {
+        if let calibrationModel {
             ManualCalibrationScreen(
                 parentContext: context,
-                panelModel: model,
+                calibrationModel: calibrationModel,
                 onCalibrationComplete: { result in
                     // QUICK-1049: áp mốc vào context TRƯỚC, rồi mới đưa bảng giá trị về 0.
                     // Làm ngược lại thì giá trị 0 sẽ bị đẩy vào delta và model nhảy về base.
@@ -284,6 +286,18 @@ struct ViewARScreen: View {
         }
     }
     
+    /// Đối tượng đã tải xong và đang hiển thị. Màn calibration chỉ chọn điểm trên các đối tượng này.
+    private var visibleCalibrationTargets: Set<CalibrationTarget> {
+        var targets: Set<CalibrationTarget> = []
+        if arItemRendered && isDesignVisible {
+            targets.insert(.ar)
+        }
+        if isPointCloudRendered && isPointClouldVisible {
+            targets.insert(.pointCloud)
+        }
+        return targets
+    }
+
     private func syncRootLayersVisibility(_ visible: Bool) {
         for root in layers where root.isVisible != visible {
             root.isVisible = visible

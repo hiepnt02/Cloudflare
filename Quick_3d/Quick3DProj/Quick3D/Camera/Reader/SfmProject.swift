@@ -10,6 +10,7 @@ import CoreLocation
 import Alamofire
 import simd
 import SceneKit
+import Metal
 
 struct CrsResp: Codable {
     let conditionFlag: Bool
@@ -58,18 +59,28 @@ class SfmProject {
     private let lasReader: BVHReader
     
     private let ifcReader: UsdzReader
+
+    private let dxfReader: DxfReader
+
+    /// Built off the main thread, handed to `program` once the point cloud's origin is known.
+    private var dxfOverlay: DxfOverlayTexture?
+
+    private var isDxfOverlayApplied = false
     
     private var projectDownloader: Task<Void, Error>?
     
     private var lasDownloader: Task<Void, Error>?
     
     private var ifcDownloader: Task<Void, Error>?
+
+    private var dxfDownloader: Task<Void, Never>?
     
     init(projectId: String, concurrentLimit: Int = 2, isAR: Bool) {
         self.projectId = projectId
         self.isAR = isAR
         self.lasReader = BVHReader(projectId: self.projectId, concurrentLimit: concurrentLimit,  isAR: isAR)
         self.ifcReader = UsdzReader(projectId: self.projectId)
+        self.dxfReader = DxfReader(projectId: self.projectId)
     }
     
     private func updateOffset() {
@@ -101,8 +112,11 @@ class SfmProject {
         lasDownloader = nil
         ifcDownloader?.cancel()
         ifcDownloader = nil
+        dxfDownloader?.cancel()
+        dxfDownloader = nil
         lasReader.cancel()
         ifcReader.cancel()
+        dxfReader.cancel()
     }
     
     func render(
@@ -115,7 +129,8 @@ class SfmProject {
         onComplete: (() -> Void)? = nil,
         onLasComplete: (() -> Void)? = nil,
         onLasProgressChanged: ((Double) -> Void)? = nil,
-        onIfcComplete: (([LayerNode]) -> Void)? = nil
+        onIfcComplete: (([LayerNode]) -> Void)? = nil,
+        onDxfReady: (() -> Void)? = nil
     ) {
         
         projectDownloader = Task {
@@ -132,6 +147,7 @@ class SfmProject {
                     self.lasOffset = offset
                     self.updateOffset()
                     onUpdateOffset?(self.offset)
+                    self.applyDxfOverlay(onReady: onDxfReady)
                 }
             } onError: { error in
                 self.lasError = error
@@ -180,8 +196,33 @@ class SfmProject {
                 ifcReader.delegate = ifcDelegate
                 await ifcReader.fetch()
             }
+
+            // The DXF overlay is optional: without a DXF (or a usable one) nothing changes.
+            // Utility, not background: iOS confines background work to the efficiency cores
+            // and throttles it. The build uses half the cores, so the points keep loading.
+            dxfDownloader = Task.detached(priority: .utility) { [weak self] in
+                guard let self,
+                      let edges = await self.dxfReader.fetch(),
+                      !Task.isCancelled,
+                      let device = MTLCreateSystemDefaultDevice(),
+                      let overlay = DxfOverlayBuilder.build(edges: edges, device: device) else { return }
+                await MainActor.run {
+                    self.dxfOverlay = overlay
+                    self.applyDxfOverlay(onReady: onDxfReady)
+                }
+            }
         }
         
+    }
+
+    /// Needs both the DXF texture and the points' geo origin, which arrive in either order.
+    @MainActor
+    private func applyDxfOverlay(onReady: (() -> Void)?) {
+        guard !isDxfOverlayApplied, let overlay = dxfOverlay, let origin = lasReader.pointsGeoOrigin else { return }
+        program.setDxfOverlay(overlay, pointsGeoOrigin: origin)
+        isDxfOverlayApplied = true
+        print("[DXF] overlay ready \(overlay.texture.width)x\(overlay.texture.height)")
+        onReady?()
     }
     
     private func fetchCrs() async {

@@ -113,7 +113,6 @@ final class ProductData: ObservableObject {
     @Published var lishDashboard: [GroupwareModel] = []
     @Published var listDesign: [GroupwareModel] = []
     
-    private let copyZipFileName = "copyZipFile.zip"
     private let pjManifestFileName = "projectManifest.json"
     private let catchLogFileName = "catchLog.ndjson"
     private let thumbnailFileName = "thumbnail.png"
@@ -550,16 +549,14 @@ final class ProductData: ObservableObject {
         let uploadStartDate = Date()
         let folderName = "\(NSUUID().uuidString)"
         let folder = documentsDirectory.appendingPathComponent(folderName)
-        let copyZipFile = folder.appendingPathComponent(copyZipFileName)
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: nil)
-            _ = FileManager.default.secureCopyItem(at: zipFileUrl, to: copyZipFile)
-            
+            guard let copiedZipFile = ProjectZipFileName.copy(from: zipFileUrl, toFolder: folder, date: uploadStartDate, reusingFrom: cat?.zipFolder) else {
+                try? FileManager.default.removeItem(at: folder)
+                return nil
+            }
+
             // Get data from zip file but not extract that
-            let fileManager = FileManager()
-            let currentWorkingPath = fileManager.currentDirectoryPath
-            var archiveURL = URL(fileURLWithPath: currentWorkingPath)
-            archiveURL.appendPathComponent(copyZipFileName)
             let archive = try Archive(url: zipFileUrl, accessMode: .read)
 
             let projectManifestURL = folder.appendingPathComponent(pjManifestFileName)
@@ -610,7 +607,7 @@ final class ProductData: ObservableObject {
                     return createCatModel(
                         folder: folder,
                         folderName: folderName,
-                        zipFileUrl: zipFileUrl,
+                        zipFileName: copiedZipFile.lastPathComponent,
                         cat: cat,
                         title: title,
                         jobsiteId: jobsiteId,
@@ -646,7 +643,7 @@ final class ProductData: ObservableObject {
                 return createCatModel(
                     folder: folder,
                     folderName: folderName,
-                    zipFileUrl: zipFileUrl,
+                    zipFileName: copiedZipFile.lastPathComponent,
                     cat: cat,
                     title: title,
                     jobsiteId: jobsiteId,
@@ -723,7 +720,7 @@ final class ProductData: ObservableObject {
     private func createCatModel(
         folder: URL,
         folderName: String,
-        zipFileUrl: URL,
+        zipFileName: String,
         cat: Cat?,
         title: String,
         jobsiteId: String,
@@ -750,7 +747,7 @@ final class ProductData: ObservableObject {
                 statusList:cat!.statusList,
                 imageUrl: imageThumbnailURL,
                 projectId:cat!.projectId,
-                zipFileName: zipFileUrl.lastPathComponent,
+                zipFileName: zipFileName,
                 useVidoc: useVidoc,
                 las_file: cat!.las_file,
                 ifc_file: cat!.ifc_file,
@@ -774,7 +771,7 @@ final class ProductData: ObservableObject {
                 sourceStr: Cat.Source.local.rawValue,
                 numberOfImage: cat?.numberOfImage ?? 0,
                 imageUrl: imageThumbnailURL,
-                zipFileName: zipFileUrl.lastPathComponent, 
+                zipFileName: zipFileName, 
                 useVidoc: useVidoc,
                 vertical: verticalCoordinate,
                 horizontal: horizontalCoordinate,
@@ -874,27 +871,17 @@ final class ProductData: ObservableObject {
     }
         
     func getZipFile(cat: Cat) -> URL? {
-        guard
-            let zipFolder = cat.zipFolder,
-            FileManager.default.fileExists(atPath: zipFolder.path)
-        else {
-            return nil
-        }
-        do {
-            let contents = try FileManager.default.contentsOfDirectory(at: zipFolder, includingPropertiesForKeys: nil)
-            let i = 0
-            for file in contents {
-                if file.isZipFile && file.lastPathComponent == copyZipFileName {
-                    return file
-                }
-            }
-            return nil
-        } catch {
-            print("error: \(error)")
-            return nil
-        }
+        guard let zipFolder = cat.zipFolder else { return nil }
+        return ProjectZipFileName.find(in: zipFolder, preferredName: cat.zipFileName)
     }
     
+    @discardableResult
+    static func update(_ list: inout [Cat], id: String, _ change: (inout Cat) -> Void) -> Bool {
+        guard let index = list.firstIndex(where: { $0.id == id }) else { return false }
+        change(&list[index])
+        return true
+    }
+
     func updateProjectId(_ projectId: String, jobsiteId: String, for cat: Cat) {
         guard
             let index = products.firstIndex(where: { $0.id == cat.id }),
@@ -913,12 +900,14 @@ final class ProductData: ObservableObject {
         
         fetchStatus(for: projectId) { [weak self] status in
             guard let self = self, let status = status else { return }
-            self.products[index].statusList = status
-            self.lastSearchResult[indexAtLastSearch].statusList = status
+            Self.update(&self.products, id: cat.id) { $0.statusList = status }
+            Self.update(&self.lastSearchResult, id: cat.id) { $0.statusList = status }
             UserSession.products =  UserSession.products.filter { $0.id != cat.id }
             self.updateDisplayProduct()
             
-            self.updatedCat = self.products[index]
+            if let latest = self.products.first(where: { $0.id == cat.id }) {
+                self.updatedCat = latest
+            }
         }
     }
     

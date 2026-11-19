@@ -38,6 +38,20 @@ struct CalibrationPoint {
     let worldPosition: SIMD3<Float>
 }
 
+/// Đối tượng được chọn P1/P2 trên panel. AR và point cloud cùng nằm dưới arNode nên
+/// transform kết quả áp lên arNode là áp cho cả hai.
+enum CalibrationTarget: Hashable {
+    case ar
+    case pointCloud
+
+    var nodeName: String {
+        switch self {
+        case .ar: return nameUSDZNode
+        case .pointCloud: return nameLasNode
+        }
+    }
+}
+
 /// State của luồng manual calibration: step hiện tại, P1/P2 chọn trên model và
 /// CP1/CP2 chọn trong AR. ManualCalibrationContext sở hữu và mutate, view chỉ đọc.
 struct CalibrationSelection {

@@ -854,6 +854,7 @@ struct UploadPopup: View {
 
 extension UploadPopup {
     private func addAction() {
+        guard !disableButton else { return }
         guard !projectName.isEmpty else { return }
         guard let siteSelected = siteSelected else { return }
         disableButton = true
@@ -901,6 +902,10 @@ extension UploadPopup {
     }
     
     private func handleUpload() {
+        guard let siteId = siteSelected?.id else {
+            disableButton = false
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             withAnimation(.linear(duration: 0.3)) {
                 show = false
@@ -911,7 +916,7 @@ extension UploadPopup {
 
             if cat != nil {
                 cat?.title = projectName
-                cat?.jobsiteId = siteSelected!.id
+                cat?.jobsiteId = siteId
             }
 
             // Get coordinate by coordinate setting selected
@@ -928,7 +933,7 @@ extension UploadPopup {
             }
 
             handler(
-                siteSelected!.id,
+                siteId,
                 useARMarker,
                 coordinateJobSite == nil ? false : coordinateSetting,
                 coordinateJobSite == nil ? false : linkDashboard,

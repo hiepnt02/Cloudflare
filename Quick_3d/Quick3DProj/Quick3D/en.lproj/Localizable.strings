@@ -31,8 +31,10 @@
 "COORDINATE_CHANGE_ERROR" = "Coordinate system or\nCoordinate Conversion error";
 "SFM_PROCESSING_ERROR" = "SfM Processing Error";
 "PROCESSING_DONE" = "SfM Processing complete";
-"SFM_PROCESSING" = "SfM processing";
-"COORDINATE_CHANGE_PROCESSING" = "Coordinate system or\nconversion processing";
+"SFM_PROCESSING" = "SfM Processing";
+"COORDINATE_CHANGE_PROCESSING" = "Coordinate system or \n conversion processing";
+"CMSG00004" = "SFM Processing";
+"CONVERT_COORD_SYSTEM" = "Converting coordinate system";
 "ACCURACY_VERIFY_COMP" = "Accuracy Validation Complete";
 "DASHBOARD_UPLOAD_COMPLETE" = "Point Cloud Upload Complete";
 "Details" = "Details";

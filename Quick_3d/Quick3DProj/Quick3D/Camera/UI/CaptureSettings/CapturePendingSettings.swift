@@ -148,3 +148,26 @@ final class CapturePendingSettings: ObservableObject {
         saveToken += 1
     }
 }
+
+// MARK: - Log snapshot
+
+extension UserSession {
+    // Các biến cài đặt chụp dùng để ghi vào log, để đối chiếu lại giá trị thực tế khi phân tích dữ liệu.
+    var captureSettingsLogDetail: [String: Any] {
+        [
+            "isRTK": LocationManager.shared.isRTK,
+            "imageResolution": "\(imageResolution)",
+            "overlapValue": overlapValue,
+            "ratioValue": ratioValue,
+            "smoothValue": smoothValue,
+            "isShowMovement": isShowMovement,
+            "isEnableAlertSound": isEnableAlertSound,
+            "isShowFeaturePoints": isShowFeaturePoints,
+            "isShowResolution": isShowResolution,
+            "isShowOverlap": isShowOverlap,
+            "previewMode": "\(previewMode)",
+            "isEnableMesh": isEnableMesh,
+            "isSaveMesh": isSaveMesh
+        ]
+    }
+}

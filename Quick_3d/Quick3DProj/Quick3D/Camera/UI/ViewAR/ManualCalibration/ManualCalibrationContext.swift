@@ -24,9 +24,8 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
     /// world tracking, và khôi phục lại config khi màn calibration đóng.
     private weak var parentContext: ViewARContext?
 
-    /// Model của panel P1/P2. Preview trong AR clone lại đúng node này — panel và
-    /// preview phải chung một local frame.
-    private var previewSource: SCNNode?
+    /// Model của panel P1/P2. Preview trong AR clone lại đúng node này — panel và preview phải chung một local frame.
+    private var model: SCNNode?
 
     private var modelScale: Float = 1
 
@@ -51,7 +50,8 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
 
     func begin(parent: ViewARContext, model: SCNNode) {
         parentContext = parent
-        previewSource = model
+        self.model = model
+        selection = CalibrationSelection()
         modelScale = parent.addtionalScale
         addtionalScale = parent.addtionalScale
         isAROcclusion = false
@@ -93,7 +93,7 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
         // calibration mở — khôi phục theo setting của ViewAR.
         parentContext?.reconfigureWithoutReset()
         parentContext = nil
-        previewSource = nil
+        model = nil
     }
 
     // MARK: - Flow
@@ -248,7 +248,7 @@ class ManualCalibrationContext: ViewARContext, @unchecked Sendable {
 
     private func showPreview(point1: CalibrationPoint, point2: CalibrationPoint?) {
         removePreview()
-        guard let source = previewSource,
+        guard let source = model,
               let rootNode = arSceneView?.scene.rootNode else { return }
         let preview = source.clone()
         preview.simdScale = SIMD3<Float>(modelScale, modelScale, modelScale)
