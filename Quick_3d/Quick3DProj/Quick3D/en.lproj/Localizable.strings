@@ -32,7 +32,7 @@
 "SFM_PROCESSING_ERROR" = "SfM Processing Error";
 "PROCESSING_DONE" = "SfM Processing complete";
 "SFM_PROCESSING" = "SfM Processing";
-"COORDINATE_CHANGE_PROCESSING" = "Coordinate system or \n conversion processing";
+"COORDINATE_CHANGE_PROCESSING" = "Coordinate system or \nConversion processing";
 "CMSG00004" = "SFM Processing";
 "CONVERT_COORD_SYSTEM" = "Converting coordinate system";
 "REMOVING_POINT_CLOUD" = "Removing point cloud";
